@@ -37,10 +37,19 @@
   }
 }
 
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .fixed-button {
   transform: translateZ(0);
   will-change: transform;
   backface-visibility: hidden;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
 }
 
 @keyframes fadeIn {

@@ -2,8 +2,6 @@
 
 > AI-powered music generation for your little one's special moments
 
-![MelodyNest Banner](https://images.unsplash.com/photo-1445633629932-0029acc44e88?auto=format&fit=crop&q=80&w=2000&h=600)
-
 MelodyNest is an innovative web application that creates personalized lullabies and learning songs for children using advanced AI technology. Create unique melodies for every moment of your baby's day, from playtime to bedtime.
 
 ## ✨ Features

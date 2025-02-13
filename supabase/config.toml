@@ -1,0 +1,2 @@
+[functions]
+db_url = "postgresql://postgres:postgres@localhost:54322/postgres"

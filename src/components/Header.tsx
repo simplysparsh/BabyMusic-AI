@@ -36,7 +36,7 @@ export default function Header() {
             <div className="flex items-center space-x-2 relative">
               <Music2 className="w-6 h-6 sm:w-8 sm:h-8 text-primary animate-float" />
               <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                MelodyNest
+                {user ? 'Studio' : 'MelodyNest'}
               </span>
             </div>
             <nav className="flex items-center space-x-4 relative">
@@ -62,7 +62,8 @@ export default function Header() {
                 <>
                   <button
                     onClick={() => setIsAuthModalOpen(true)}
-                    className="btn-secondary text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3"
+                    className="btn-secondary text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3" 
+                    data-auth-trigger
                   >
                     Sign In
                   </button>

@@ -1,36 +1,16 @@
 import React from 'react';
 import Header from './components/Header';
-import Hero from './components/Hero';
-import PresetSongs from './components/PresetSongs';
-import MusicGenerator from './components/MusicGenerator';
-import SongList from './components/SongList';
-import { useErrorStore } from './store/errorStore';
-import { useRealtime } from './hooks/useRealtime';
+import Landing from './pages/Landing';
+import Dashboard from './pages/Dashboard';
+import { useAuthStore } from './store/authStore';
 
 function App() {
-  const error = useErrorStore(state => state.error);
-  useRealtime();
+  const { user } = useAuthStore();
 
   return (
     <div className="min-h-screen bg-background-dark">
       <Header />
-      <main>
-        {error && (
-          <div className="fixed top-16 left-0 right-0 z-50 p-4 bg-red-500/90 backdrop-blur-sm text-white text-center">
-            {error}
-          </div>
-        )}
-        <Hero />
-        <section className="py-16 px-4 relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-background-dark via-background-dark to-black opacity-50"></div>
-          <PresetSongs />
-          <MusicGenerator />
-          <div className="mt-16 max-w-2xl mx-auto relative z-10">
-            <h2 className="text-3xl font-bold text-white mb-8 text-center">Your Melodies</h2>
-            <SongList />
-          </div>
-        </section>
-      </main>
+      {user ? <Dashboard /> : <Landing />}
     </div>
   );
 }

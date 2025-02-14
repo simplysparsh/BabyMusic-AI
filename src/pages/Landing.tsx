@@ -128,6 +128,132 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Research & Credibility Section */}
+      <section className="py-24 relative bg-gradient-to-b from-[#FFD700]/[0.08] to-background-dark">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#FFD700]/[0.03] via-transparent to-transparent opacity-30"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-6">
+            Research is Clear: Music Shapes Your Baby's Mind
+            <span className="block text-lg sm:text-xl font-normal text-white/60 mt-2">
+              Leading institutions confirm the profound impact of early musical exposure
+            </span>
+          </h2>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 max-w-4xl mx-auto mb-12">
+            <a href="https://www.gse.harvard.edu" target="_blank" rel="noopener noreferrer" 
+               className="aspect-[4/3] card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-4 group
+                        transition-all duration-500 hover:scale-105">
+              <div className="w-full h-full flex items-center justify-center relative">
+                <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
+                  <div className="text-2xl font-serif mb-2">H</div>
+                  <div className="text-xs">HARVARD</div>
+                </div>
+              </div>
+            </a>
+            <a href="https://www.washington.edu" target="_blank" rel="noopener noreferrer"
+               className="aspect-[4/3] card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-4 group
+                        transition-all duration-500 hover:scale-105">
+              <div className="w-full h-full flex items-center justify-center relative">
+                <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
+                  <div className="text-2xl font-bold mb-2">UW</div>
+                  <div className="text-xs">WASHINGTON</div>
+                </div>
+              </div>
+            </a>
+            <a href="https://www.ncbi.nlm.nih.gov" target="_blank" rel="noopener noreferrer"
+               className="aspect-[4/3] card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-4 group
+                        transition-all duration-500 hover:scale-105">
+              <div className="w-full h-full flex items-center justify-center relative">
+                <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
+                  <div className="text-2xl font-bold mb-2">NCBI</div>
+                  <div className="text-xs">NIH</div>
+                </div>
+              </div>
+            </a>
+            <a href="https://www.frontiersin.org" target="_blank" rel="noopener noreferrer"
+               className="aspect-[4/3] card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-4 group
+                        transition-all duration-500 hover:scale-105">
+              <div className="w-full h-full flex items-center justify-center relative">
+                <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
+                  <div className="text-2xl font-bold mb-2">F</div>
+                  <div className="text-xs">FRONTIERS</div>
+                </div>
+              </div>
+            </a>
+            <a href="https://www.musictherapy.org" target="_blank" rel="noopener noreferrer"
+               className="aspect-[4/3] card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-4 group
+                        transition-all duration-500 hover:scale-105">
+              <div className="w-full h-full flex items-center justify-center relative">
+                <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
+                  <div className="text-2xl font-bold mb-2">AMTA</div>
+                  <div className="text-xs">MUSIC THERAPY</div>
+                </div>
+              </div>
+            </a>
+          </div>
+          
+          <div className="max-w-3xl mx-auto text-center relative">
+            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-[#FFD700]/50 to-transparent"></div>
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <div className="flex items-center gap-2 text-[#FFD700]/80">
+                <Star className="w-5 h-5" fill="currentColor" />
+                <span className="text-sm font-medium">Peer-Reviewed Research</span>
+              </div>
+              <div className="w-px h-4 bg-[#FFD700]/20"></div>
+              <div className="flex items-center gap-2 text-[#FFD700]/80">
+                <Brain className="w-5 h-5" />
+                <span className="text-sm font-medium">Neuroscience Backed</span>
+              </div>
+              <div className="w-px h-4 bg-[#FFD700]/20"></div>
+              <div className="flex items-center gap-2 text-[#FFD700]/80">
+                <Heart className="w-5 h-5" />
+                <span className="text-sm font-medium">Child Development Certified</span>
+              </div>
+            </div>
+            <p className="text-lg text-white/80 leading-relaxed">
+              Studies show that exposure to complex music before the age of 5 can significantly improve a child's pitch perception. 
+              In some cases, it even leads to perfect pitch, a rare auditory skill linked to stronger memory and language abilities.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              {[
+                {
+                  url: 'https://www.gse.harvard.edu/ideas/usable-knowledge/23/03/does-nature-or-nurture-determine-musical-ability',
+                  text: 'Harvard Research'
+                },
+                {
+                  url: 'https://www.washington.edu/news/2016/04/25/music-improves-baby-brain-responses-to-music-and-speech',
+                  text: 'UW Research'
+                },
+                {
+                  url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC4951961',
+                  text: 'NCBI Paper'
+                },
+                {
+                  url: 'https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2017.00297',
+                  text: 'Frontiers Study'
+                },
+                {
+                  url: 'https://www.musictherapy.org/assets/1/7/MT_Young_Children_2006.pdf',
+                  text: 'AMTA Study'
+                }
+              ].map(({ url, text }) => (
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 rounded-lg bg-[#FFD700]/[0.03] hover:bg-[#FFD700]/[0.08] text-white/70 hover:text-white
+                           transition-all duration-300 text-sm border border-[#FFD700]/10 hover:border-[#FFD700]/20
+                           hover:scale-105 backdrop-blur-sm"
+                >
+                  {text} →
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section id="features" className="py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

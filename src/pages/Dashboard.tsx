@@ -4,6 +4,7 @@ import MusicGenerator from '../components/MusicGenerator';
 import SongList from '../components/SongList';
 import { useErrorStore } from '../store/errorStore';
 import { useRealtime } from '../hooks/useRealtime';
+import Footer from '../components/Footer';
 
 export default function Dashboard() {
   const error = useErrorStore(state => state.error);
@@ -25,6 +26,7 @@ export default function Dashboard() {
           <SongList />
         </div>
       </section>
+      <Footer />
     </main>
   );
 }

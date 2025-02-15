@@ -1,7 +1,8 @@
 import React from 'react';
-import { Music2, Heart, Star, ArrowRight } from 'lucide-react';
+import { Music2, Heart, Star, ArrowRight, Sparkles } from 'lucide-react';
 import Hero from '../components/landing/Hero';
 import ResearchInstitutions from '../components/landing/ResearchInstitutions';
+import Footer from '../components/Footer';
 
 export default function Landing() {
   return (
@@ -315,18 +316,30 @@ export default function Landing() {
               <p className="text-base sm:text-lg text-white/70 mb-6 sm:mb-8 max-w-2xl mx-auto group-hover:text-white/80 transition-colors duration-500">
                 Create magical moments with your little one through the power of AI-crafted melodies. Your peaceful parenting journey starts here.
               </p>
-              <button 
-                onClick={() => document.querySelector<HTMLButtonElement>('[data-auth-trigger]')?.click()}
-                className="relative inline-flex items-center btn-primary text-sm sm:text-base px-5 py-2.5 sm:px-6 sm:py-3 
-                          hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-              >
-                Create Your First Song
-                <ArrowRight className="w-5 h-5 ml-2 inline-block" />
-              </button>
+              <div className="flex justify-center items-center gap-4">
+                <button 
+                  onClick={() => document.querySelector<HTMLButtonElement>('[data-auth-trigger]')?.click()}
+                  className="relative inline-flex items-center btn-primary text-sm sm:text-base px-5 py-2.5 sm:px-6 sm:py-3 
+                            hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                >
+                  Create Your First Song
+                  <Sparkles className="w-5 h-5 ml-2 inline-block" />
+                </button>
+                <a
+                  href="/methodology"
+                  className="bg-white/10 hover:bg-white/20 text-white/80 hover:text-white
+                           px-6 py-3 rounded-xl transition-all duration-300 backdrop-blur-sm"
+                >
+                  Methodology
+                </a>
+              </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

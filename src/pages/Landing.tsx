@@ -12,7 +12,7 @@ export default function Landing() {
       <Hero />
 
       {/* Problem vs Solution Section */}
-      <section className="py-24 relative bg-gradient-to-b from-background-dark/50 to-background-dark">
+      <section className="py-16 relative bg-gradient-to-b from-background-dark/50 to-background-dark">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white text-center mb-6 sm:mb-8">
             Is Your Baby's Music Helping or Harming?
@@ -196,7 +196,17 @@ export default function Landing() {
                     <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 sm:group-hover:text-primary
                                 transition-colors duration-300">{title}</h3>
                     <p className="text-sm sm:text-base text-white/70 leading-relaxed sm:group-hover:text-white/80
-                                transition-colors duration-300">{description}</p>
+                                transition-colors duration-300">
+                      {title === 'Peace of Mind' ? (
+                        <>
+                          Finally, screen-free entertainment you can trust, giving you{' '}
+                          <span className="text-primary/90 font-medium">guilt-free</span>{' '}
+                          moments to yourself
+                        </>
+                      ) : (
+                        description
+                      )}
+                    </p>
                   </div>
                 </div>
               </div>

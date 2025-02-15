@@ -116,8 +116,7 @@ export default function Landing() {
             ></iframe>
           </div>
           <p className="text-white/60 text-xs italic">
-            Research shows that fast-paced, overstimulating content can negatively impact attention spans
-            and cognitive development in young children.
+            Fast-paced, overstimulating content can damage attention span and cognitive development in young children.
           </p>
         </div>
       </div>

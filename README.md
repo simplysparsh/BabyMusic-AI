@@ -34,7 +34,8 @@ Baby Music AI is an innovative web application that creates personalized lullabi
 
 ### Environment Setup
 
-Create a `.env` file in the root directory:
+#### Development
+Create a `.env.local` file in the root directory with your development environment variables:
 
 ```env
 VITE_SUPABASE_URL=your_supabase_url
@@ -43,6 +44,25 @@ VITE_PIAPI_KEY=your_piapi_key
 VITE_WEBHOOK_URL=your_webhook_url
 VITE_WEBHOOK_SECRET=your_webhook_secret
 ```
+
+Note: `.env.local` is gitignored and should not be committed to version control.
+
+#### Production
+For production deployment, configure the following variables in Netlify's dashboard:
+
+1. `VITE_SUPABASE_URL` - Your Supabase project URL
+2. `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
+3. `VITE_PIAPI_KEY` - Your PIAPI.ai API key
+4. `VITE_WEBHOOK_URL` - Your webhook endpoint URL
+5. `VITE_WEBHOOK_SECRET` - Your webhook secret key
+
+To set up environment variables in Netlify:
+
+1. Go to your site's dashboard in Netlify
+2. Navigate to Site settings > Build & deploy > Environment
+3. Click "Edit variables"
+4. Add each environment variable with its corresponding value
+5. Make sure to mark sensitive variables as "Sensitive" for added security
 
 ### Installation
 

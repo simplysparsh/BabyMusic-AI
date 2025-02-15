@@ -41,15 +41,15 @@ export default function Landing() {
       {/* Problem vs Solution Section */}
       <section className="py-24 relative bg-gradient-to-b from-background-dark/50 to-background-dark">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-8">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white text-center mb-6 sm:mb-8">
             Why Most Baby Music & TV Might Be Harming Your Child
           </h2>
           
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto">
             {/* Problem Side */}
-            <div className="card p-8 bg-red-500/5 border-red-500/10 relative overflow-hidden group">
+            <div className="card p-6 sm:p-8 bg-red-500/5 border-red-500/10 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent"></div>
-              <div className="w-32 h-32 mx-auto mb-8 relative">
+              <div className="w-24 sm:w-32 h-24 sm:h-32 mx-auto mb-6 sm:mb-8 relative">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-24 h-24 bg-red-500/10 rounded-lg transform rotate-45 group-hover:rotate-90 transition-transform duration-700"></div>
                   <div className="w-24 h-24 bg-red-500/10 rounded-lg transform -rotate-45 group-hover:-rotate-90 transition-transform duration-700"></div>
@@ -85,7 +85,7 @@ export default function Landing() {
             </div>
 
             {/* Solution Side */}
-            <div className="card p-8 bg-green-500/5 border-green-500/10 relative overflow-hidden group">
+            <div className="card p-6 sm:p-8 bg-green-500/5 border-green-500/10 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent"></div>
               <div className="w-32 h-32 mx-auto mb-8 relative">
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -152,7 +152,7 @@ export default function Landing() {
       {/* Research & Credibility Section */}
       <section className="py-24 relative bg-gradient-to-b from-[#FFD700]/[0.08] to-background-dark">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#FFD700]/[0.03] via-transparent to-transparent opacity-30"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-6">
             Research is Clear: Music Shapes Your Baby's Mind
             <span className="block text-lg sm:text-xl font-normal text-white/60 mt-2">
@@ -160,7 +160,7 @@ export default function Landing() {
             </span>
           </h2>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 max-w-3xl mx-auto mb-12">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4 max-w-3xl mx-auto mb-8 sm:mb-12">
             <a href="https://www.gse.harvard.edu" target="_blank" rel="noopener noreferrer" 
                className="aspect-square card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-3 group
                         transition-all duration-500 hover:scale-105">
@@ -215,23 +215,23 @@ export default function Landing() {
           
           <div className="max-w-3xl mx-auto text-center relative">
             <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-[#FFD700]/50 to-transparent"></div>
-            <div className="flex items-center justify-center gap-4 mb-6">
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mb-4 sm:mb-6">
               <div className="flex items-center gap-2 text-[#FFD700]/80">
                 <Star className="w-5 h-5" fill="currentColor" />
-                <span className="text-sm font-medium">Peer-Reviewed Research</span>
+                <span className="text-xs sm:text-sm font-medium">Research</span>
               </div>
               <div className="w-px h-4 bg-[#FFD700]/20"></div>
               <div className="flex items-center gap-2 text-[#FFD700]/80">
                 <Brain className="w-5 h-5" />
-                <span className="text-sm font-medium">Neuroscience Backed</span>
+                <span className="text-xs sm:text-sm font-medium">Science</span>
               </div>
               <div className="w-px h-4 bg-[#FFD700]/20"></div>
               <div className="flex items-center gap-2 text-[#FFD700]/80">
                 <Heart className="w-5 h-5" />
-                <span className="text-sm font-medium">Child Development Certified</span>
+                <span className="text-xs sm:text-sm font-medium">Certified</span>
               </div>
             </div>
-            <p className="text-lg text-white/80 leading-relaxed">
+            <p className="text-base sm:text-lg text-white/80 leading-relaxed">
               Studies show that exposure to complex music before the age of 5 can significantly improve a child's pitch perception. 
               In some cases, it even leads to perfect pitch, a rare auditory skill linked to stronger memory and language abilities.
             </p>
@@ -278,16 +278,16 @@ export default function Landing() {
       {/* Features Section */}
       <section id="features" className="py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">
               Your Partner in Peaceful Parenting
             </h2>
-            <p className="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed px-4">
+            <p className="text-base sm:text-lg text-white/70 max-w-2xl mx-auto leading-relaxed px-4">
               What your baby hears shapes their brain. Replace overstimulation with high-quality melodies designed for learning and calm
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
             {[
               {
                 icon: Heart,
@@ -365,19 +365,42 @@ export default function Landing() {
       {/* CTA Section */}
       <section className="py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="card p-12 text-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10"></div>
+          <div className="card p-12 text-center relative overflow-hidden group">
+            {/* Background Effects */}
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 
+                          group-hover:from-primary/20 group-hover:via-secondary/20 group-hover:to-accent/20 
+                          transition-all duration-700"></div>
+            <div className="absolute inset-0 backdrop-blur-[2px] group-hover:backdrop-blur-[4px] transition-all duration-700"></div>
+            
+            {/* Floating Gradient Orbs */}
+            <div className="absolute top-0 left-1/4 w-64 h-64 bg-gradient-radial from-primary/20 to-transparent 
+                          rounded-full blur-2xl mix-blend-overlay animate-float opacity-0 group-hover:opacity-100 
+                          transition-opacity duration-700 delay-100"></div>
+            <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-gradient-radial from-secondary/20 to-transparent 
+                          rounded-full blur-2xl mix-blend-overlay animate-float-delayed opacity-0 group-hover:opacity-100 
+                          transition-opacity duration-700 delay-200"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 
+                          bg-gradient-radial from-accent/10 to-transparent rounded-full blur-3xl mix-blend-overlay 
+                          opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-300"></div>
+            
+            {/* Border Glow Effect */}
+            <div className="absolute inset-0 border border-white/5 rounded-2xl group-hover:border-white/10 
+                          group-hover:shadow-[inset_0_0_20px_rgba(255,255,255,0.05)] transition-all duration-700"></div>
+
             <div className="relative z-10">
               <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
                 Start Your Musical Journey Today
               </h2>
-              <p className="text-lg text-white/70 mb-8 max-w-2xl mx-auto">
+              <p className="text-lg text-white/70 mb-8 max-w-2xl mx-auto group-hover:text-white/80 transition-colors duration-500">
                 Create magical moments with your little one through the power of AI-crafted melodies. Your peaceful parenting journey starts here.
               </p>
               <button 
                 onClick={() => document.querySelector<HTMLButtonElement>('[data-auth-trigger]')?.click()}
-                className="btn-primary"
+                className="relative inline-flex items-center btn-primary transform hover:scale-105 hover:shadow-xl
+                          hover:shadow-primary/25 active:scale-95 transition-all duration-500"
               >
+                <span className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-xl 
+                               opacity-0 group-hover:opacity-100 transition-opacity duration-500"></span>
                 Create Your First Song
                 <ArrowRight className="w-5 h-5 ml-2 inline-block" />
               </button>

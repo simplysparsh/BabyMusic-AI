@@ -41,11 +41,13 @@ Create a `.env.local` file in the root directory with your development environme
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_PIAPI_KEY=your_piapi_key
-VITE_WEBHOOK_URL=your_webhook_url
+VITE_WEBHOOK_URL=your_webhook_url  # Only needed for testing with webhook.site
 VITE_WEBHOOK_SECRET=your_webhook_secret
 ```
 
 Note: `.env.local` is gitignored and should not be committed to version control.
+
+Note: The `VITE_WEBHOOK_URL` variable is only required when testing with webhook.site. In production, the webhook endpoint is automatically handled by the Supabase Edge Function.
 
 #### Production
 For production deployment, configure the following variables in Netlify's dashboard:
@@ -53,8 +55,7 @@ For production deployment, configure the following variables in Netlify's dashbo
 1. `VITE_SUPABASE_URL` - Your Supabase project URL
 2. `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
 3. `VITE_PIAPI_KEY` - Your PIAPI.ai API key
-4. `VITE_WEBHOOK_URL` - Your webhook endpoint URL
-5. `VITE_WEBHOOK_SECRET` - Your webhook secret key
+4. `VITE_WEBHOOK_SECRET` - Your webhook secret key
 
 To set up environment variables in Netlify:
 

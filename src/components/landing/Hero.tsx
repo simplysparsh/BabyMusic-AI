@@ -2,7 +2,11 @@ import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
-export default function Hero() {
+interface HeroProps {
+  onOpenAuth: (mode: 'signin' | 'signup') => void;
+}
+
+export default function Hero({ onOpenAuth }: HeroProps) {
   const { user } = useAuthStore();
   
   return (
@@ -22,7 +26,7 @@ export default function Hero() {
           <div className="flex justify-center">
             <a 
               href={user ? "/dashboard" : "#"}
-              onClick={() => !user && document.querySelector<HTMLButtonElement>('[data-auth-trigger]')?.click()}
+              onClick={() => !user && onOpenAuth('signup')}
               className="btn-primary text-sm sm:text-base px-5 py-2.5 sm:px-6 sm:py-3"
             >
               {user ? 'Go to Dashboard' : 'Get Started Free'}

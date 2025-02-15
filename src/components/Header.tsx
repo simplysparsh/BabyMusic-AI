@@ -3,11 +3,11 @@ import { Music2, Settings } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import AuthModal from './auth/AuthModal';
 import ProfileModal from './profile/ProfileModal';
-
 import { useEffect } from 'react';
 
 export default function Header() {
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+  const [authMode, setAuthMode] = React.useState<'signin' | 'signup'>('signup');
   const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
   const { user, signOut, error: authError } = useAuthStore();
 
@@ -61,14 +61,20 @@ export default function Header() {
               ) : (
                 <>
                   <button
-                    onClick={() => setIsAuthModalOpen(true)}
+                    onClick={() => {
+                      setAuthMode('signin');
+                      setIsAuthModalOpen(true);
+                    }}
                     className="btn-secondary text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3" 
                     data-auth-trigger
                   >
                     Sign In
                   </button>
                   <button
-                    onClick={() => setIsAuthModalOpen(true)}
+                    onClick={() => {
+                      setAuthMode('signup');
+                      setIsAuthModalOpen(true);
+                    }}
                     className="btn-primary text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3"
                   >
                     Try Free
@@ -81,6 +87,7 @@ export default function Header() {
       </header>
       <AuthModal
         isOpen={isAuthModalOpen}
+        defaultMode={authMode}
         onClose={() => setIsAuthModalOpen(false)}
       />
       <ProfileModal

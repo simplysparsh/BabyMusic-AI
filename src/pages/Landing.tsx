@@ -2,15 +2,26 @@ import React from 'react';
 import { Music2, Heart, Star, ArrowRight, Sparkles } from 'lucide-react';
 import Hero from '../components/landing/Hero';
 import ResearchInstitutions from '../components/landing/ResearchInstitutions';
+import AuthModal from '../components/auth/AuthModal';
 import Footer from '../components/Footer';
+import { useAuthStore } from '../store/authStore';
 
 export default function Landing() {
+  const { user } = useAuthStore();
+  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+  const [authMode, setAuthMode] = React.useState<'signin' | 'signup'>('signup');
+
+  const handleOpenAuth = (mode: 'signin' | 'signup') => {
+    setAuthMode(mode);
+    setIsAuthModalOpen(true);
+  };
+  
   return (
     <div className="min-h-screen bg-gradient-radial from-background-dark via-background-dark to-black">
       <div className="absolute inset-0 bg-stars bg-cover bg-center opacity-20"></div>
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-secondary/5 to-accent/5"></div>
       
-      <Hero />
+      <Hero onOpenAuth={handleOpenAuth} />
 
       {/* Problem vs Solution Section */}
       <section className="py-16 relative bg-gradient-to-b from-background-dark/50 to-background-dark">
@@ -318,9 +329,9 @@ export default function Landing() {
               </p>
               <div className="flex justify-center items-center gap-4">
                 <button 
-                  onClick={() => document.querySelector<HTMLButtonElement>('[data-auth-trigger]')?.click()}
+                  onClick={() => handleOpenAuth('signup')}
                   className="relative inline-flex items-center btn-primary text-sm sm:text-base px-5 py-2.5 sm:px-6 sm:py-3 
-                            hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                            hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 group"
                 >
                   Create Your First Song
                   <Sparkles className="w-5 h-5 ml-2 inline-block" />
@@ -340,6 +351,12 @@ export default function Landing() {
 
       {/* Footer */}
       <Footer />
+      
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        defaultMode={authMode}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
     </div>
   );
 }

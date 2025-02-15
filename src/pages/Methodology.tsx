@@ -1,8 +1,17 @@
 import React from 'react';
 import { Brain, ArrowLeft, ArrowRight, Zap, Music2, Heart, Star, Sparkles, BookOpen } from 'lucide-react';
 import Footer from '../components/Footer';
+import AuthModal from '../components/auth/AuthModal';
 
 export default function Methodology() {
+  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+  const [authMode, setAuthMode] = React.useState<'signin' | 'signup'>('signup');
+
+  const handleOpenAuth = (mode: 'signin' | 'signup') => {
+    setAuthMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-radial from-background-dark via-background-dark to-black pt-20 pb-32">
       <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-[0.07]"></div>
@@ -55,7 +64,7 @@ export default function Methodology() {
 
           <div className="flex justify-between items-center">
             <button
-              onClick={() => document.querySelector<HTMLButtonElement>('[data-auth-trigger]')?.click()}
+              onClick={() => handleOpenAuth('signup')}
               className="btn-primary text-sm px-6 py-3 flex items-center gap-2"
             >
               Try It Free
@@ -173,7 +182,7 @@ export default function Methodology() {
                 </p>
               </div>
               <button
-                onClick={() => document.querySelector<HTMLButtonElement>('[data-auth-trigger]')?.click()}
+                onClick={() => handleOpenAuth('signup')}
                 className="shrink-0 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl
                          transition-all duration-300 flex items-center gap-2 group"
               >
@@ -250,7 +259,7 @@ export default function Methodology() {
               Ready to give your baby the gift of scientifically-crafted music?
             </p>
             <button
-              onClick={() => document.querySelector<HTMLButtonElement>('[data-auth-trigger]')?.click()}
+              onClick={() => handleOpenAuth('signup')}
               className="btn-primary text-sm px-6 py-3 flex items-center gap-2 mx-auto"
             >
               Create Your First Song
@@ -262,6 +271,12 @@ export default function Methodology() {
         <div className="mt-16">
           <Footer />
         </div>
+        
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          defaultMode={authMode}
+          onClose={() => setIsAuthModalOpen(false)}
+        />
       </div>
     </div>
   );

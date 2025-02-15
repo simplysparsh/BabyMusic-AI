@@ -1,7 +1,11 @@
 import React from 'react';
 import { Music2, Heart, Star, ArrowRight } from 'lucide-react';
 
-export default function CTASection() {
+interface CTASectionProps {
+  onOpenAuth: (mode: 'signin' | 'signup') => void;
+}
+
+export default function CTASection({ onOpenAuth }: CTASectionProps) {
   return (
     <section className="py-24 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,7 +43,7 @@ export default function CTASection() {
               Create magical moments with your little one through the power of AI-crafted melodies. Your peaceful parenting journey starts here.
             </p>
             <button 
-              onClick={() => document.querySelector<HTMLButtonElement>('[data-auth-trigger]')?.click()}
+              onClick={() => onOpenAuth('signup')}
               className="relative inline-flex items-center btn-primary text-sm sm:text-base px-5 py-2.5 sm:px-6 sm:py-3 
                         hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
             >

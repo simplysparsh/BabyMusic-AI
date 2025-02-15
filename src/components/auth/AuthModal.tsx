@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { X } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultMode?: 'signin' | 'signup';
 }
 
-export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const [isSignIn, setIsSignIn] = useState(true);
+export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModalProps) {
+  const [isSignIn, setIsSignIn] = useState(defaultMode === 'signin');
   const [email, setEmail] = useState('');
   const [babyName, setBabyName] = useState('');
   const [babyNameError, setBabyNameError] = useState('');
@@ -16,6 +17,18 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [error, setError] = useState('');
   const [step, setStep] = useState<'credentials' | 'babyName'>('credentials');
   const { signIn, signUp } = useAuthStore();
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsSignIn(defaultMode === 'signin');
+      setStep('credentials');
+      setEmail('');
+      setPassword('');
+      setBabyName('');
+      setError('');
+      setBabyNameError('');
+    }
+  }, [isOpen, defaultMode]);
 
   if (!isOpen) return null;
 

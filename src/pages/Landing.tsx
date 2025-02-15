@@ -127,6 +127,30 @@ export default function Landing() {
           </div>
         </div>
       </section>
+      
+      {/* Video Evidence Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 mb-16 relative z-10">
+        <div className="card p-4 bg-red-500/5 border-red-500/10 max-w-lg mx-auto">
+          <h3 className="text-base font-medium text-white mb-2 flex items-center gap-2">
+            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse opacity-75"></span>
+            Video Evidence: The Impact of Overstimulating Content
+          </h3>
+          <div className="aspect-video w-full rounded-lg overflow-hidden bg-black/50 mb-2" style={{ maxHeight: '160px' }}>
+            <iframe
+              src="https://www.youtube.com/embed/YEFptHp0AmM?rel=0&modestbranding=1&showinfo=0&controls=1&fs=0&playsinline=1"
+              title="The Impact of Overstimulating Content on Child Development"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full"
+              loading="lazy"
+            ></iframe>
+          </div>
+          <p className="text-white/60 text-xs italic">
+            Research shows that fast-paced, overstimulating content can negatively impact attention spans
+            and cognitive development in young children.
+          </p>
+        </div>
+      </div>
 
       {/* Research & Credibility Section */}
       <section className="py-24 relative bg-gradient-to-b from-[#FFD700]/[0.08] to-background-dark">
@@ -259,45 +283,45 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Why Choose MelodyNest?
+              Your Partner in Peaceful Parenting
             </h2>
-            <p className="text-lg text-white/70 max-w-2xl mx-auto">
-              Discover a world of musical possibilities designed specifically for your child's development.
+            <p className="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed px-4">
+              What your baby hears shapes their brain. Replace overstimulation with high-quality melodies designed for learning and calm
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {[
               {
-                icon: Music2,
-                title: 'AI-Powered Music',
-                description: 'Unique melodies tailored to your child\'s development stage'
-              },
-              {
                 icon: Heart,
-                title: 'Special Moments',
-                description: 'Create songs for playtime, mealtime, bedtime, and more'
+                title: 'Peace of Mind',
+                description: 'Finally, screen-free entertainment you can trust, giving you guilt-free moments to yourself'
               },
               {
-                icon: Brain,
-                title: 'Development Focused',
-                description: 'Support cognitive growth through musical engagement'
+                icon: Music2,
+                title: 'Daily Routines Made Easy',
+                description: 'Transform challenging moments into joyful experiences with music designed for every situation'
               },
               {
                 icon: Star,
-                title: 'Multiple Variations',
-                description: 'Get different versions of each song to keep things fresh'
+                title: 'Smart Development',
+                description: 'While you relax, your baby naturally develops musical intelligence and emotional awareness'
               }
             ].map(({ icon: Icon, title, description }) => (
               <div
                 key={title}
-                className="card p-6 text-center hover:scale-105 transition-all duration-500"
+                className="card p-8 text-center group hover:scale-105 transition-all duration-500 relative overflow-hidden"
               >
-                <div className="w-16 h-16 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
-                  <Icon className="w-8 h-8 text-primary" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 
+                              group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-primary/20 to-secondary/10 rounded-2xl 
+                              flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500
+                              relative">
+                  <div className="absolute inset-0 bg-primary/5 rounded-2xl animate-pulse"></div>
+                  <Icon className="w-10 h-10 text-primary relative z-10" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">{title}</h3>
-                <p className="text-white/70">{description}</p>
+                <h3 className="text-xl font-semibold text-white mb-4 group-hover:text-primary transition-colors">{title}</h3>
+                <p className="text-white/70 leading-relaxed">{description}</p>
               </div>
             ))}
           </div>
@@ -309,43 +333,32 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Benefits of Early Music Education
+              Proven Impact
             </h2>
-            <p className="text-lg text-white/70 max-w-2xl mx-auto">
-              Research shows that early exposure to music has profound effects on child development.
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {[
               {
-                title: 'Cognitive Development',
-                stat: '23%',
-                description: 'Increase in problem-solving abilities'
+                title: 'Sleep Quality',
+                stat: '35%',
+                description: 'Improvement in sleep onset time with calming music'
               },
               {
-                title: 'Language Skills',
-                stat: '6mo',
-                description: 'Faster language development'
-              },
-              {
-                title: 'Emotional Growth',
-                stat: '37%',
-                description: 'Reduction in stress levels'
-              },
-              {
-                title: 'Memory Capacity',
-                stat: '20%',
-                description: 'Improvement in memory retention'
+                title: 'Cognitive Growth',
+                stat: '27%',
+                description: 'Enhanced neural processing from musical exposure'
               }
             ].map(({ title, stat, description }) => (
               <div
                 key={title}
-                className="card p-8 text-center hover:scale-105 transition-all duration-500"
+                className="card p-6 text-center hover:scale-105 transition-all duration-500 group"
               >
-                <div className="text-4xl font-bold text-primary mb-2">{stat}</div>
+                <div className="text-5xl font-bold bg-gradient-to-r from-primary to-secondary 
+                              bg-clip-text text-transparent mb-3 group-hover:scale-110 
+                              transition-transform duration-500">{stat}</div>
                 <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
-                <p className="text-white/70">{description}</p>
+                <p className="text-white/70 text-sm">{description}</p>
               </div>
             ))}
           </div>
@@ -362,7 +375,7 @@ export default function Landing() {
                 Start Your Musical Journey Today
               </h2>
               <p className="text-lg text-white/70 mb-8 max-w-2xl mx-auto">
-                Join thousands of parents who are enriching their children's lives through the power of personalized music.
+                Create magical moments with your little one through the power of AI-crafted melodies. Your peaceful parenting journey starts here.
               </p>
               <button 
                 onClick={() => document.querySelector<HTMLButtonElement>('[data-auth-trigger]')?.click()}

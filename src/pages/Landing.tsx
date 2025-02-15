@@ -24,7 +24,7 @@ export default function Landing() {
               Create personalized melodies that inspire learning, creativity, and development
               through the magic of AI-powered music.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
+            <div className="flex justify-center">
               <a 
                 href={user ? "/dashboard" : "#"}
                 onClick={() => !user && document.querySelector<HTMLButtonElement>('[data-auth-trigger]')?.click()}
@@ -32,9 +32,6 @@ export default function Landing() {
               >
                 {user ? 'Go to Dashboard' : 'Get Started Free'}
                 <ArrowRight className="w-5 h-5 ml-2 inline-block" />
-              </a>
-              <a href="#features" className="btn-secondary">
-                Learn More
               </a>
             </div>
           </div>
@@ -163,9 +160,9 @@ export default function Landing() {
             </span>
           </h2>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 max-w-4xl mx-auto mb-12">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 max-w-3xl mx-auto mb-12">
             <a href="https://www.gse.harvard.edu" target="_blank" rel="noopener noreferrer" 
-               className="aspect-[4/3] card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-4 group
+               className="aspect-square card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-3 group
                         transition-all duration-500 hover:scale-105">
               <div className="w-full h-full flex items-center justify-center relative">
                 <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
@@ -175,7 +172,7 @@ export default function Landing() {
               </div>
             </a>
             <a href="https://www.washington.edu" target="_blank" rel="noopener noreferrer"
-               className="aspect-[4/3] card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-4 group
+               className="aspect-square card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-3 group
                         transition-all duration-500 hover:scale-105">
               <div className="w-full h-full flex items-center justify-center relative">
                 <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
@@ -185,7 +182,7 @@ export default function Landing() {
               </div>
             </a>
             <a href="https://www.ncbi.nlm.nih.gov" target="_blank" rel="noopener noreferrer"
-               className="aspect-[4/3] card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-4 group
+               className="aspect-square card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-3 group
                         transition-all duration-500 hover:scale-105">
               <div className="w-full h-full flex items-center justify-center relative">
                 <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
@@ -195,7 +192,7 @@ export default function Landing() {
               </div>
             </a>
             <a href="https://www.frontiersin.org" target="_blank" rel="noopener noreferrer"
-               className="aspect-[4/3] card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-4 group
+               className="aspect-square card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-3 group
                         transition-all duration-500 hover:scale-105">
               <div className="w-full h-full flex items-center justify-center relative">
                 <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
@@ -205,7 +202,7 @@ export default function Landing() {
               </div>
             </a>
             <a href="https://www.musictherapy.org" target="_blank" rel="noopener noreferrer"
-               className="aspect-[4/3] card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-4 group
+               className="aspect-square card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-3 group
                         transition-all duration-500 hover:scale-105">
               <div className="w-full h-full flex items-center justify-center relative">
                 <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">

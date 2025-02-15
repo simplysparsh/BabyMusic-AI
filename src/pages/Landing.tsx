@@ -1,42 +1,15 @@
 import React from 'react';
-import { Music2, Heart, Brain, Star, ArrowRight } from 'lucide-react';
-import { useAuthStore } from '../store/authStore';
+import { Music2, Heart, Star, ArrowRight } from 'lucide-react';
+import Hero from '../components/landing/Hero';
+import ResearchInstitutions from '../components/landing/ResearchInstitutions';
 
 export default function Landing() {
-  const { user } = useAuthStore();
-  
   return (
     <div className="min-h-screen bg-gradient-radial from-background-dark via-background-dark to-black">
       <div className="absolute inset-0 bg-stars bg-cover bg-center opacity-20"></div>
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-secondary/5 to-accent/5"></div>
       
-      {/* Hero Section */}
-      <section className="relative pt-24 pb-32 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center">
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold text-white mb-4 sm:mb-6 tracking-tight">
-              Musical Adventures for Your
-              <span className="block bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Little One
-              </span>
-            </h1>
-            <p className="text-base sm:text-xl text-white/80 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-2">
-              Create personalized melodies that inspire learning, creativity, and development
-              through the magic of AI-powered music.
-            </p>
-            <div className="flex justify-center">
-              <a 
-                href={user ? "/dashboard" : "#"}
-                onClick={() => !user && document.querySelector<HTMLButtonElement>('[data-auth-trigger]')?.click()}
-                className="btn-primary text-sm sm:text-base px-5 py-2.5 sm:px-6 sm:py-3"
-              >
-                {user ? 'Go to Dashboard' : 'Get Started Free'}
-                <ArrowRight className="w-5 h-5 ml-2 inline-block" />
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
+      <Hero />
 
       {/* Problem vs Solution Section */}
       <section className="py-24 relative bg-gradient-to-b from-background-dark/50 to-background-dark">
@@ -149,163 +122,7 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* Research & Credibility Section */}
-      <section className="py-24 relative bg-gradient-to-b from-[#FFD700]/[0.08] to-background-dark">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#FFD700]/[0.03] via-transparent to-transparent opacity-30"></div>
-        <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
-          <h2 className="text-2xl sm:text-4xl font-bold text-white text-center mb-4 sm:mb-6">
-            Research is Clear: Music Shapes Your Baby's Mind
-            <span className="block text-base sm:text-xl font-normal text-white/60 mt-2">
-              Leading institutions confirm the profound impact of early musical exposure
-            </span>
-          </h2>
-          
-          {/* Mobile pyramid layout */}
-          <div className="sm:hidden max-w-3xl mx-auto mb-8">
-            <div className="flex justify-center gap-4 mb-4">
-              <a href="https://www.gse.harvard.edu" target="_blank" rel="noopener noreferrer" 
-                 className="aspect-square w-24 card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-3 group
-                          transition-all duration-500 hover:scale-105">
-                <div className="w-full h-full flex items-center justify-center relative">
-                  <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
-                    <div className="text-2xl font-serif mb-2">H</div>
-                    <div className="text-xs">HARVARD</div>
-                  </div>
-                </div>
-              </a>
-              <a href="https://www.washington.edu" target="_blank" rel="noopener noreferrer"
-                 className="aspect-square w-24 card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-3 group
-                          transition-all duration-500 hover:scale-105">
-                <div className="w-full h-full flex items-center justify-center relative">
-                  <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
-                    <div className="text-2xl font-bold mb-2">UW</div>
-                    <div className="text-xs">WASHINGTON</div>
-                  </div>
-                </div>
-              </a>
-            </div>
-            <div className="flex justify-center gap-4">
-              <a href="https://www.ncbi.nlm.nih.gov" target="_blank" rel="noopener noreferrer"
-                 className="aspect-square w-24 card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-3 group
-                          transition-all duration-500 hover:scale-105">
-                <div className="w-full h-full flex items-center justify-center relative">
-                  <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
-                    <div className="text-2xl font-bold mb-2">NCBI</div>
-                    <div className="text-xs">NIH</div>
-                  </div>
-                </div>
-              </a>
-              <a href="https://www.frontiersin.org" target="_blank" rel="noopener noreferrer"
-                 className="aspect-square w-24 card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-3 group
-                          transition-all duration-500 hover:scale-105">
-                <div className="w-full h-full flex items-center justify-center relative">
-                  <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
-                    <div className="text-2xl font-bold mb-2">F</div>
-                    <div className="text-xs">FRONTIERS</div>
-                  </div>
-                </div>
-              </a>
-              <a href="https://www.musictherapy.org" target="_blank" rel="noopener noreferrer"
-                 className="aspect-square w-24 card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-3 group
-                          transition-all duration-500 hover:scale-105">
-                <div className="w-full h-full flex items-center justify-center relative">
-                  <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
-                    <div className="text-2xl font-bold mb-2">AMTA</div>
-                    <div className="text-xs">MUSIC THERAPY</div>
-                  </div>
-                </div>
-              </a>
-            </div>
-          </div>
-          
-          {/* Desktop grid layout */}
-          <div className="hidden sm:grid sm:grid-cols-5 gap-4 max-w-3xl mx-auto mb-12">
-            {[
-              { name: 'H', text: 'HARVARD', url: 'https://www.gse.harvard.edu', isSerif: true },
-              { name: 'UW', text: 'WASHINGTON', url: 'https://www.washington.edu' },
-              { name: 'NCBI', text: 'NIH', url: 'https://www.ncbi.nlm.nih.gov' },
-              { name: 'F', text: 'FRONTIERS', url: 'https://www.frontiersin.org' },
-              { name: 'AMTA', text: 'MUSIC THERAPY', url: 'https://www.musictherapy.org' }
-            ].map(({ name, text, url, isSerif }) => (
-              <a
-                key={name}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="aspect-square card bg-[#FFD700]/[0.02] hover:bg-[#FFD700]/[0.05] p-3 group
-                         transition-all duration-500 hover:scale-105"
-              >
-                <div className="w-full h-full flex items-center justify-center relative">
-                  <div className="text-white/70 group-hover:text-white transition-all duration-300 text-center">
-                    <div className={`text-2xl mb-2 ${isSerif ? 'font-serif' : 'font-bold'}`}>{name}</div>
-                    <div className="text-xs">{text}</div>
-                  </div>
-                </div>
-              </a>
-            ))}
-          </div>
-          
-          <div className="max-w-3xl mx-auto text-center relative">
-            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-[#FFD700]/50 to-transparent"></div>
-            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-              <div className="flex items-center gap-2 text-[#FFD700]/80">
-                <Star className="w-5 h-5" fill="currentColor" />
-                <span className="text-xs sm:text-sm font-medium">Research</span>
-              </div>
-              <div className="w-px h-4 bg-[#FFD700]/20"></div>
-              <div className="flex items-center gap-2 text-[#FFD700]/80">
-                <Brain className="w-5 h-5" />
-                <span className="text-xs sm:text-sm font-medium">Science</span>
-              </div>
-              <div className="w-px h-4 bg-[#FFD700]/20"></div>
-              <div className="flex items-center gap-2 text-[#FFD700]/80">
-                <Heart className="w-5 h-5" />
-                <span className="text-xs sm:text-sm font-medium">Certified</span>
-              </div>
-            </div>
-            <p className="text-base sm:text-lg text-white/80 leading-relaxed">
-              Studies show that exposure to complex music before the age of 5 can significantly improve a child's pitch perception. 
-              In some cases, it even leads to perfect pitch, a rare auditory skill linked to stronger memory and language abilities.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              {[
-                {
-                  url: 'https://www.gse.harvard.edu/ideas/usable-knowledge/23/03/does-nature-or-nurture-determine-musical-ability',
-                  text: 'Harvard Research'
-                },
-                {
-                  url: 'https://www.washington.edu/news/2016/04/25/music-improves-baby-brain-responses-to-music-and-speech',
-                  text: 'UW Research'
-                },
-                {
-                  url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC4951961',
-                  text: 'NCBI Paper'
-                },
-                {
-                  url: 'https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2017.00297',
-                  text: 'Frontiers Study'
-                },
-                {
-                  url: 'https://www.musictherapy.org/assets/1/7/MT_Young_Children_2006.pdf',
-                  text: 'AMTA Study'
-                }
-              ].map(({ url, text }) => (
-                <a
-                  key={url}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 rounded-lg bg-[#FFD700]/[0.03] hover:bg-[#FFD700]/[0.08] text-white/70 hover:text-white
-                           transition-all duration-300 text-sm border border-[#FFD700]/10 hover:border-[#FFD700]/20
-                           hover:scale-105 backdrop-blur-sm"
-                >
-                  {text} →
-                </a>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      <ResearchInstitutions />
 
       {/* Features Section */}
       <section id="features" className="py-24 relative">

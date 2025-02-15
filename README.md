@@ -77,7 +77,7 @@ To set up environment variables in Netlify:
    npm run dev
    ```
 
-## 🏗️ Project Structure
+## 🏗️ Project Structure.
 
 ```
 src/
@@ -152,9 +152,26 @@ The application uses Zustand for state management with the following stores:
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under **CC BY-NC-SA+RS v1.0** (Attribution-NonCommercial-ShareAlike + Revenue Sharing).
+
+- **Personal and Non-Commercial Use:** You are free to use, modify, and share this work for non-commercial purposes as long as you provide proper attribution.  
+- **Commercial Use:** If you use this work for any commercial purpose (including sales, ads, SaaS, or monetized services), you must **share 10% of gross revenue** with the original author.  
+- **Derivative Works:** Any modifications or derivatives must be licensed under the same terms (ShareAlike).  
+
+### Attribution Requirement
+If you use or distribute this project, you must credit the original author in a **visible location**, such as:  
+- The **UI or footer** of a published application.  
+- The **README file or documentation** of derivative projects.  
+- An **"About" section** or similar public acknowledgment.  
+
+### Full License Details
+For complete terms, refer to the **[LICENSE](./LICENSE)** file.  
+
+If you require a **custom commercial license** or an exemption from revenue-sharing, please contact the original author to discuss separate terms.
+
 
 ## 🙏 Acknowledgments
 

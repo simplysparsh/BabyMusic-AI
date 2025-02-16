@@ -80,3 +80,11 @@
   50% { transform: translateY(-10px); }
   100% { transform: translateY(0px); }
 }
+
+.hexagon-container {
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+}
+
+.hexagon-inner {
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+}

@@ -144,36 +144,36 @@ export default function Dashboard() {
                   {
                     icon: Star,
                     label: 'First Song',
-                    color: '#FFD700',
-                    borderColor: '#FFA000',
+                    color: '#FFC107',
+                    borderColor: '#FFB300',
                     earned: true
                   },
                   { 
                     icon: Flame, 
                     label: '3 Days',
-                    color: '#FF6B6B',
-                    borderColor: '#E03131',
+                    color: '#FF5722',
+                    borderColor: '#F4511E',
                     earned: true 
                   },
                   { 
                     icon: Music2, 
                     label: '10 Songs',
-                    color: '#51CF66',
-                    borderColor: '#2F9E44',
+                    color: '#4CAF50',
+                    borderColor: '#43A047',
                     earned: true 
                   },
                   { 
                     icon: Zap, 
                     label: '7 Days',
-                    color: '#CC5DE8',
-                    borderColor: '#9C36B5',
+                    color: '#9C27B0',
+                    borderColor: '#8E24AA',
                     earned: false 
                   },
                   {
                     icon: Heart,
                     label: '20 Songs',
-                    color: '#FF8787',
-                    borderColor: '#FA5252',
+                    color: '#E91E63',
+                    borderColor: '#D81B60',
                     earned: false
                   }
                 ].map(({ icon: Icon, label, color, borderColor, earned }) => (
@@ -182,12 +182,14 @@ export default function Dashboard() {
                     className={`flex-none group relative ${earned ? '' : 'opacity-40 grayscale'}`}
                     title={label}
                   >
-                    <div className="relative w-8 h-8">
+                    <div className="relative w-10 h-10">
                       <div 
-                        className="w-full h-full rounded-full relative overflow-hidden"
+                        className="w-full h-full relative"
                         style={{
-                          backgroundColor: earned ? color : '#4A5568',
-                          border: `2px solid ${earned ? borderColor : '#2D3748'}`
+                          clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                          background: earned 
+                            ? `linear-gradient(135deg, ${color}, ${borderColor})`
+                            : 'linear-gradient(135deg, #4A5568, #2D3748)',
                         }}
                       >
                         <div className="absolute inset-0 flex items-center justify-center">

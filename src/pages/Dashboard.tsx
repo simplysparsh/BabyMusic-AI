@@ -5,7 +5,7 @@ import SongList from '../components/SongList';
 import { useErrorStore } from '../store/errorStore';
 import { useRealtime } from '../hooks/useRealtime';
 import Footer from '../components/Footer';
-import { Sparkles, Star, Trophy, Music2, Heart, Zap } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import MiniStreak from '../components/dashboard/MiniStreak';
 import DetailedStreak from '../components/dashboard/DetailedStreak';
@@ -14,12 +14,6 @@ export default function Dashboard() {
   const error = useErrorStore(state => state.error);
   const { profile } = useAuthStore();
   useRealtime();
-
-  const achievements = [
-    { icon: Star, label: 'First Song', description: 'Created your first melody', completed: true },
-    { icon: Trophy, label: 'Bedtime Master', description: '5 bedtime songs created', completed: true },
-    { icon: Zap, label: 'Melody Maker', description: '10 songs generated', completed: false }
-  ];
 
   const streakDays = 5;
   const dailyGoal = 3;
@@ -48,35 +42,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Achievements Section */}
-        <div className="max-w-3xl mx-auto mb-12 px-4">
-          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-            <Trophy className="w-6 h-6 text-primary" />
-            Achievements
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {achievements.map(({ icon: Icon, label, description, completed }) => (
-              <div key={label} className={`card p-4 relative overflow-hidden
-                                       ${completed 
-                                         ? 'bg-gradient-to-br from-primary/20 to-secondary/20' 
-                                         : 'bg-white/5'}`}>
-                <div className="flex items-start gap-3">
-                  <div className={`p-2 rounded-lg ${completed ? 'bg-primary/20' : 'bg-white/10'}`}>
-                    <Icon className={`w-6 h-6 ${completed ? 'text-primary' : 'text-white/40'}`} />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-white mb-1">{label}</h3>
-                    <p className="text-sm text-white/60">{description}</p>
-                  </div>
-                  {completed && (
-                    <Sparkles className="absolute top-2 right-2 w-4 h-4 text-primary animate-pulse" />
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         <PresetSongs />
         <MusicGenerator />
         <div className="mt-16 max-w-2xl mx-auto relative z-10">
@@ -87,7 +52,7 @@ export default function Dashboard() {
         </div>
 
         {/* Detailed Streak Section */}
-        <div className="mt-24 max-w-3xl mx-auto">
+        <div className="mt-24 max-w-2xl mx-auto">
           <h2 className="text-3xl font-bold text-white mb-8 text-center">
             Your Progress
           </h2>

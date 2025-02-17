@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Wand2 } from 'lucide-react';
-import type { ThemeType, VoiceType, Tempo, MusicMood } from '../types';
-import { useSongStore } from '../store/songStore';
-import { useAuthStore } from '../store/authStore';
-import ThemeSelector from './music-generator/ThemeSelector';
-import VoiceSelector from './music-generator/VoiceSelector';
-import CustomOptions from './music-generator/CustomOptions';
-import LyricsInput from './music-generator/LyricsInput';
-import GenerationProgress from './music-generator/GenerationProgress';
+import type { ThemeType, VoiceType, Tempo, MusicMood } from '../../types';
+import { useSongStore } from '../../store/songStore';
+import { useAuthStore } from '../../store/authStore';
+import ThemeSelector from './ThemeSelector';
+import VoiceSelector from './VoiceSelector';
+import CustomOptions from './CustomOptions';
+import LyricsInput from './LyricsInput';
+import GenerationProgress from './GenerationProgress';
 
 type TabType = 'themes' | 'custom';
 const GENERATION_TIME = 240; // 4 minutes in seconds

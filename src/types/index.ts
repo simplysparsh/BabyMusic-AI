@@ -9,6 +9,9 @@ export type ThemeType =
   | 'musicalDevelopment'
   | 'indianClassical'
   | 'westernClassical'
+  | 'musicalDevelopment'
+  | 'indianClassical'
+  | 'westernClassical'
   | 'custom';
 
 export type Tempo = 'slow' | 'medium' | 'fast';

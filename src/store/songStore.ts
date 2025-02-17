@@ -11,6 +11,7 @@ interface SongState {
   generatingSongs: Set<string>;
   presetSongTypes: Set<string>;
   processingTaskIds: Set<string>;
+  stagedTaskIds: Set<string>;
   isDeleting: boolean;
   setState: (updater: (state: SongState) => Partial<SongState>) => void;
   clearGeneratingState: (songId: string) => void;
@@ -31,6 +32,7 @@ export const useSongStore = create<SongState>((set, get) => ({
   generatingSongs: new Set<string>(),
   presetSongTypes: new Set<string>(),
   processingTaskIds: new Set<string>(),
+  stagedTaskIds: new Set<string>(),
   error: null,
   isDeleting: false,
 
@@ -149,6 +151,13 @@ export const useSongStore = create<SongState>((set, get) => ({
               }));
             }
 
+            // Handle staged tasks
+            if (newSong.status === 'staged' && !get().stagedTaskIds.has(newSong.task_id)) {
+              set(state => ({
+                stagedTaskIds: new Set(state.stagedTaskIds).add(newSong.task_id)
+              }));
+            }
+
             // Fetch the complete song with variations
             const { data: updatedSong } = await supabase
               .from('songs')
@@ -162,7 +171,8 @@ export const useSongStore = create<SongState>((set, get) => ({
             }
 
             // Clear generating state when we have audio URL or an error
-            if (updatedSong.audio_url || updatedSong.error) {
+            if (updatedSong.audio_url || updatedSong.error || 
+                updatedSong.status === 'failed') {
               get().clearGeneratingState(updatedSong.id);
             }
 
@@ -336,6 +346,7 @@ export const useSongStore = create<SongState>((set, get) => ({
   createSong: async ({ name, mood, instrument, lyrics }) => {
     let newSong;
     try {
+      // Create initial song with staged status
       const user = useAuthStore.getState().user;
       const profile = useAuthStore.getState().profile;
       const errorStore = useErrorStore.getState();
@@ -431,7 +442,8 @@ export const useSongStore = create<SongState>((set, get) => ({
           instrument,
           lyrics,
           user_id: user.id,
-          audio_url: null
+          audio_url: null,
+          status: 'staged'
         }])
         .select()
         .single();

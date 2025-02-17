@@ -6,16 +6,29 @@ interface ProfileUpdateParams {
   userId: string;
   babyName: string;
   preferredLanguage?: Language;
+  birthMonth?: number;
+  birthYear?: number;
+  ageGroup?: AgeGroup;
 }
 
 export class ProfileService {
-  static async updateProfile({ userId, babyName, preferredLanguage }: ProfileUpdateParams): Promise<UserProfile> {
+  static async updateProfile({ 
+    userId, 
+    babyName, 
+    preferredLanguage,
+    birthMonth,
+    birthYear,
+    ageGroup
+  }: ProfileUpdateParams): Promise<UserProfile> {
     const trimmedBabyName = babyName.trim();
     
     console.log('Starting profile update:', { 
       userId, 
       newName: trimmedBabyName,
-      preferredLanguage
+      preferredLanguage,
+      birthMonth,
+      birthYear,
+      ageGroup
     });
     
     // Basic validation
@@ -26,9 +39,13 @@ export class ProfileService {
     const { data: profile, error: updateError } = await supabase
       .from('profiles')
       .update(
-        preferredLanguage 
-          ? { baby_name: trimmedBabyName, preferred_language: preferredLanguage }
-          : { baby_name: trimmedBabyName }
+        {
+          baby_name: trimmedBabyName,
+          ...(preferredLanguage && { preferred_language: preferredLanguage }),
+          ...(birthMonth && { birth_month: birthMonth }),
+          ...(birthYear && { birth_year: birthYear }),
+          ...(ageGroup && { age_group: ageGroup })
+        }
       )
       .eq('id', userId)
       .select('*')

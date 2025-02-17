@@ -6,3 +6,4 @@ Use icons from lucide-react for logos.
 
 Use stock photos from unsplash where appropriate, only valid URLs you know exist. Do not download the images, only link to them in image tags.
 
+If a file exceeds 350 lines, abstract the code into multiple files.

@@ -81,6 +81,26 @@ serve(async (req) => {
     const status = payload?.data?.status;
     const output = payload?.data?.output;
     const error = payload?.data?.error;
+    
+    // Log status update in a clear format
+    console.log('\n#######################');
+    console.log('# Status now:', status);
+    console.log('# Task ID:', task_id);
+    console.log('# Progress:', output?.progress || 'N/A');
+    console.log('#######################\n');
+    
+    // Log status update in a clear format
+    console.log('\n##### Status now:', status, '#####\n');
+    const errorMessage = error?.message || payload?.error_message;
+
+    // Log status for debugging
+    console.log('Task status update:', {
+      taskId: task_id,
+      status,
+      hasOutput: !!output,
+      hasError: !!error || !!errorMessage,
+      progress: output?.progress
+    });
 
     if (!task_id) {
       throw new Error(`No task_id provided in webhook payload: ${JSON.stringify(payload)}`);
@@ -113,22 +133,49 @@ serve(async (req) => {
       taskId: songs.task_id
     });
 
-    // Update song based on status
-    if (status === 'completed' && output?.clips) {
-      const clips = Object.values(output.clips) as AudioClip[];
-      const clipsWithAudio = clips.filter((clip): clip is AudioClip => !!clip?.audio_url);
+    // Handle all possible statuses
+    if (status === 'pending') {
+      // Task is queued, no action needed
+      console.log('Task is queued and waiting to start');
+    } 
+    else if (status === 'processing') {
+      // Task is being processed
+      console.log('Task is actively being processed');
+
+      // Update song status
+      const { error: updateError } = await supabase
+        .from('songs')
+        .update({ 
+          status: 'processing',
+          error: null
+        })
+        .eq('id', songs.id)
+        .eq('task_id', task_id.toString());
+
+      if (updateError) throw updateError;
+    } 
+    else if (status === 'staged') {
+      // Task is staged but not yet processing
+      console.log('Task is staged and ready for processing');
+    } 
+    else if (status === 'completed' && output?.clips) {
+      console.log('Task completed successfully');
+      
+      // Handle completed status
+      const clip = Object.values(output.clips)[0] as AudioClip;
       
       console.log('Processing audio clips:', {
         songId: songs.id,
-        clipCount: clipsWithAudio.length
+        hasAudio: !!clip?.audio_url
       });
       
-      if (clipsWithAudio.length > 0) {
-        // First update the main song
+      if (clip?.audio_url) {
+        // Update the main song with the first clip's audio URL
         const { error: updateError } = await supabase
           .from('songs')
           .update({ 
-            audio_url: clipsWithAudio[0]?.audio_url,
+            audio_url: clip.audio_url,
+            status: 'completed',
             error: null
           })
           .eq('id', songs.id)
@@ -137,57 +184,62 @@ serve(async (req) => {
         if (updateError) {
           throw updateError;
         }
-
-        // Then create variations
-        const variations = clipsWithAudio.map((clip) => ({
-          song_id: songs.id,
-          audio_url: clip.audio_url,
-          title: clip.title || null,
-          metadata: {
-            tags: clip.metadata?.tags || null,
-            prompt: clip.metadata?.prompt || null
-          }
-        }));
-        
-        console.log('Creating variations:', variations.length);
-        
-        // Delete any existing variations first
-        const { error: deleteError } = await supabase
-          .from('song_variations')
-          .delete()
-          .eq('song_id', songs.id);
-
-        if (deleteError) {
-          throw deleteError;
-        }
-        
-        const { error: variationError } = await supabase
-          .from('song_variations')
-          .insert(variations);
-
-        if (variationError) {
-          throw variationError;
-        }
         
         console.log('Successfully processed song and variations:', {
-          songId: songs.id,
-          variationCount: variations.length
+          songId: songs.id
         });
       }
-    } else if (status === 'failed' || error) {
-      const errorMsg = error?.message || 'Music generation failed';
+    }
+    else if (status === 'failed' || error) {
+      console.log('Task failed with error');
+      
+      let errorMsg = errorMessage || 'Music generation failed';
+      let retryable = false;
+
+      // Handle specific error cases
+      if (errorMsg.includes("doesn't have enough credits")) {
+        errorMsg = 'Service temporarily unavailable. Please try again.';
+        retryable = true;
+      } else if (errorMsg.includes('suno api status: 429')) {
+        errorMsg = 'Too many requests. Please wait a moment and try again.';
+        retryable = true;
+      }
+
+      console.log('Task failed:', {
+        taskId: task_id,
+        error: errorMsg,
+        retryable
+      });
+
       const { error: updateError } = await supabase
         .from('songs')
         .update({ 
+          status: 'failed',
           error: errorMsg,
+          retryable,
           audio_url: null 
         })
         .eq('id', songs.id)
         .eq('task_id', task_id.toString());
 
+      // Also update any variations to failed state
+      const { error: variationError } = await supabase
+        .from('song_variations')
+        .update({
+          status: 'failed',
+          retryable
+        })
+        .eq('song_id', songs.id);
+
+      if (variationError) {
+        throw variationError;
+      }
       if (updateError) {
         throw updateError;
       }
+    }
+    else {
+      console.log('Unhandled task status:', { taskId: task_id, status });
     }
 
     return new Response(JSON.stringify({ success: true }), {

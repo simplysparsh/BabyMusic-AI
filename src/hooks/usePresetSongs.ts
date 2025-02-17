@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useSongStore } from '../store/songStore';
 import { useAudioStore } from '../store/audioStore';
-import type { PresetType } from '../types';
+import type { PresetType, Song } from '../types';
 
 const PRESET_CONFIGS = {
   playing: {
@@ -31,6 +31,12 @@ export function usePresetSongs() {
   const { user, profile } = useAuthStore();
   const { songs, presetSongTypes, generatingSongs, createSong } = useSongStore();
   const { playAudio, currentUrl, isPlaying } = useAudioStore();
+  const [presetSongs, setPresetSongs] = useState<Record<PresetType, Song | null>>({
+    playing: null,
+    eating: null,
+    sleeping: null,
+    pooping: null
+  });
   const [songNames, setSongNames] = useState<Record<PresetType, string>>({});
 
   useEffect(() => {
@@ -43,6 +49,17 @@ export function usePresetSongs() {
       pooping: PRESET_CONFIGS.pooping.name(profile.babyName)
     });
   }, [user, profile?.babyName]);
+
+  // Update preset songs when songs change
+  useEffect(() => {
+    if (!songNames) return;
+
+    const newPresetSongs = {} as Record<PresetType, Song | null>;
+    Object.entries(songNames).forEach(([type, name]) => {
+      newPresetSongs[type as PresetType] = songs.find(s => s.name === name) || null;
+    });
+    setPresetSongs(newPresetSongs);
+  }, [songs, songNames]);
 
   const handlePlay = useCallback((audioUrl: string) => {
     playAudio(audioUrl);
@@ -61,8 +78,10 @@ export function usePresetSongs() {
       return;
     }
 
-    const isGenerating = presetSongTypes.has(type);
     const existingSong = songs.find(s => s.name === songName);
+    const isGenerating = presetSongTypes.has(type) || 
+                        (existingSong && !existingSong.audio_url && 
+                         ['staged', 'pending', 'processing'].includes(existingSong.status));
 
     console.log('Preset song state:', {
       type,
@@ -107,6 +126,7 @@ export function usePresetSongs() {
   return {
     isPlaying,
     currentSong: currentUrl,
+    presetSongs,
     songNames,
     presetSongTypes,
     generatingSongs,

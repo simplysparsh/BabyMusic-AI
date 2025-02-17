@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { X } from 'lucide-react';
+import OnboardingModal from './OnboardingModal';
+import type { BabyProfile } from '../../types';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -14,7 +16,9 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
   const [babyName, setBabyName] = useState('');
   const [babyNameError, setBabyNameError] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [step, setStep] = useState<'credentials' | 'babyName'>('credentials');
   const { signIn, signUp } = useAuthStore();
 
@@ -55,25 +59,68 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
+    setIsLoading(true);
     setBabyNameError('');
     
-    if (!babyName.trim()) {
+    const trimmedBabyName = babyName.trim();
+    const trimmedEmail = email.trim();
+    
+    // Client-side validation
+    if (!trimmedBabyName) {
       setBabyNameError('Please enter your baby\'s name');
+      setIsLoading(false);
+      setIsLoading(false);
+      return;
+    }
+    
+    if (!trimmedEmail) {
+      setError('Please enter your email');
+      setIsLoading(false);
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      setIsLoading(false);
       return;
     }
     
     try {
-      await signUp(email, password, babyName);
-      onClose();
+      await signUp(trimmedEmail, password, trimmedBabyName);
+      setShowOnboarding(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const message = err instanceof Error ? err.message : 'An error occurred';
+      setError(
+        message.includes('already registered') 
+          ? 'This email is already registered. Please sign in instead.'
+          : message
+      );
+      setIsLoading(false);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleOnboardingComplete = (babyProfile: BabyProfile) => {
+    setShowOnboarding(false);
+    onClose();
   };
 
   const handleBack = () => {
     setStep('credentials');
     setError('');
   };
+
+  if (showOnboarding) {
+    return (
+      <OnboardingModal
+        isOpen={true}
+        onComplete={handleOnboardingComplete}
+        initialBabyName={babyName.trim()}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-lg z-50 flex items-center justify-center p-4">
@@ -189,19 +236,31 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
               <button
                 type="button"
                 onClick={handleBack}
+                disabled={isLoading}
                 className="flex-1 bg-white/5 text-white py-3 rounded-xl border border-white/10
-                         hover:bg-white/10 transition-all duration-300 hover:border-white/20"
+                         hover:bg-white/10 transition-all duration-300 hover:border-white/20
+                         disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Back
               </button>
               <button
                 type="submit"
+                disabled={isLoading}
                 className="flex-1 bg-gradient-to-r from-primary to-secondary text-black font-medium
                          py-3 rounded-xl hover:opacity-90 transition-all duration-300
                          shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40
-                         hover:scale-[1.02] active:scale-[0.98]"
+                         hover:scale-[1.02] active:scale-[0.98]
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         disabled:hover:scale-100 disabled:hover:shadow-none"
               >
-                Complete Sign Up
+                {isLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-black/20 border-t-black/80 rounded-full animate-spin"></div>
+                    <span>Creating Account...</span>
+                  </div>
+                ) : (
+                  'Complete Sign Up'
+                )}
               </button>
             </div>
           </form>

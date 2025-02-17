@@ -1,8 +1,16 @@
 export type MusicMood = 'calm' | 'playful' | 'learning' | 'energetic';
 export type Instrument = 'piano' | 'harp' | 'strings' | 'whiteNoise';
 export type VoiceType = 'softFemale' | 'calmMale' | 'gentleChorus';
-export type AgeGroup = '0-6' | '6-12' | '12-24';
+export type AgeGroup = '0-6' | '7-12' | '13-24';
 export type PresetType = 'playing' | 'eating' | 'sleeping' | 'pooping';
+export type TaskStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'staged';
+
+export interface BabyProfile {
+  name: string;
+  birthMonth: number;
+  birthYear: number;
+  ageGroup: AgeGroup;
+}
 
 export interface Song {
   id: string;
@@ -14,6 +22,8 @@ export interface Song {
   audioUrl?: string;
   createdAt: Date;
   userId: string;
+  status?: TaskStatus;
+  retryable?: boolean;
   variations?: SongVariation[];
 }
 
@@ -35,5 +45,5 @@ export interface UserProfile {
   isPremium: boolean;
   dailyGenerations: number;
   lastGenerationDate: Date;
-  babyName: string;
+  babyProfile: BabyProfile;
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Baby, UtensilsCrossed, Moon, Waves, Play, Pause, Wand2, Music, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Baby, UtensilsCrossed, Moon, Waves, Play, Pause, Wand2, Music, ChevronRight, ChevronLeft, RefreshCw } from 'lucide-react';
 import { usePresetSongs } from '../hooks/usePresetSongs';
 import type { PresetType } from '../types';
 import { useAuthStore } from '../store/authStore';
@@ -43,8 +43,25 @@ export default function PresetSongs() {
   const { user, profile } = useAuthStore();
   const { isPlaying, currentSong, songNames, presetSongTypes, generatingSongs, handlePresetClick } = usePresetSongs();
   const { songs } = useSongStore();
+  const [timeLeft, setTimeLeft] = useState(240); // 4 minutes in seconds
   const { playAudio, stopAllAudio } = useAudioStore();
   const [currentVariation, setCurrentVariation] = useState<Record<string, number>>({});
+
+  // Handle countdown timer
+  useEffect(() => {
+    let timer: number;
+    if (presetSongTypes.size > 0 || generatingSongs.size > 0) {
+      timer = window.setInterval(() => {
+        setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    } else {
+      setTimeLeft(240);
+    }
+    return () => {
+      clearInterval(timer);
+      setTimeLeft(240);
+    };
+  }, [presetSongTypes.size, generatingSongs.size]);
 
   // Clean up audio on unmount
   useEffect(() => {
@@ -93,13 +110,18 @@ export default function PresetSongs() {
         </span>
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 relative">
-        {PRESETS.map(({ type, icon: Icon, title, description }) => (
-          <div
-            key={type}
-            onClick={() => handlePresetClick(type)}
-            role="button"
-            aria-disabled={presetSongTypes.has(type)}
-            className="relative overflow-hidden rounded-2xl p-5 sm:p-7 text-left min-h-[100px] cursor-pointer
+        {PRESETS.map(({ type, icon: Icon, title, description }) => {
+          const song = songs.find(s => s.name === songNames[type]);
+          const isGenerating = presetSongTypes.has(type) || 
+                             (song && !song.audio_url && ['staged', 'pending', 'processing'].includes(song.status));
+          
+          return (
+            <div
+              key={type}
+              onClick={() => handlePresetClick(type)}
+              role="button"
+              aria-disabled={isGenerating}
+              className="relative overflow-hidden rounded-2xl p-5 sm:p-7 text-left min-h-[100px] cursor-pointer
                      aria-disabled:opacity-50 aria-disabled:cursor-not-allowed
                      aria-disabled:hover:scale-100 aria-disabled:hover:shadow-none
                      aria-disabled:hover:from-current aria-disabled:hover:to-current
@@ -116,108 +138,119 @@ export default function PresetSongs() {
                        type === 'sleeping' ? '[#40C4FF]' :
                        '[#E040FB]'
                      }/20"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-white/[0.07] to-transparent opacity-0
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-white/[0.07] to-transparent opacity-0
                           group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center
+              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center
                           group-hover:scale-110 group-hover:rotate-[360deg] 
                           transition-all duration-700 ease-in-out group-hover:bg-opacity-20
                           ${type === 'playing' ? 'bg-[#FF5252]' :
                             type === 'eating' ? 'bg-[#00E676]' :
                             type === 'sleeping' ? 'bg-[#40C4FF]' :
                             'bg-[#E040FB]'}"
-            >
-              <Icon className={`w-6 h-6 
+              >
+                <Icon className={`w-6 h-6 
                              ${type === 'playing' ? 'text-[#FF5252] group-hover:text-[#FF3333]' :
                                type === 'eating' ? 'text-[#00E676] group-hover:text-[#00C853]' :
                                type === 'sleeping' ? 'text-[#40C4FF] group-hover:text-[#00B0FF]' :
                                'text-[#E040FB] group-hover:text-[#D500F9]'}`} />
-            </div>
-            <div className="relative">
-              <h3 className="text-base font-medium text-white mb-1 flex items-center gap-1.5
+              </div>
+              <div className="relative">
+                <h3 className="text-base font-medium text-white mb-1 flex items-center gap-1.5
                            group-hover:text-opacity-90">
-                {title}
-                <span className="text-base">
-                  {type === 'playing' ? '🎈' :
-                    type === 'eating' ? '🍼' :
-                    type === 'sleeping' ? '🌙' :
-                    '🚽'}
-                </span>
-                {(presetSongTypes.has(type) || songs.some(s => s.name === songNames[type] && generatingSongs.has(s.id))) && (
-                  <span className="inline-flex items-center text-xs bg-primary/20 text-white
-                                 px-3 py-1.5 rounded-full ml-2 border border-primary/20
-                                 shadow-lg animate-pulse z-10 whitespace-nowrap">
-                    <span className="w-2 h-2 bg-primary rounded-full mr-2 animate-ping"></span>
-                    Generating...
+                  {title}
+                  <span className="text-base">
+                    {type === 'playing' ? '🎈' :
+                      type === 'eating' ? '🍼' :
+                      type === 'sleeping' ? '🌙' :
+                      '🚽'}
                   </span>
-                )}
-                {!presetSongTypes.has(type) && 
-                 !songs.some(s => s.name === songNames[type] && generatingSongs.has(s.id)) && 
-                 songNames[type] && 
-                 songs.find(s => s.name === songNames[type])?.audio_url && (
-                  <span className="inline-flex items-center text-xs bg-green-500/20 text-white
-                                 px-3 py-1.5 rounded-full ml-2 border border-green-500/20
-                                 shadow-lg z-10 whitespace-nowrap">
-                    <Play className="w-3 h-3 mr-1" />
-                    Play
-                  </span>
-                )}
+                  {/* Status indicator */}
+                  {(() => {
+                    if (isGenerating) {
+                      return (
+                        <span className="inline-flex items-center text-xs bg-primary/20 text-white
+                                     px-3 py-1.5 rounded-full ml-2 border border-primary/20
+                                     shadow-lg animate-pulse z-10 whitespace-nowrap">
+                          <span className="w-2 h-2 bg-primary rounded-full mr-2 animate-ping"></span>
+                          Generating...
+                        </span>
+                      );
+                    }
+                    
+                    if (song?.error && !song.audio_url) {
+                      return (
+                        <span className="inline-flex items-center text-xs bg-red-500/20 text-white
+                                     px-3 py-1.5 rounded-full ml-2 border border-red-500/20
+                                     shadow-lg z-10 whitespace-nowrap">
+                          <RefreshCw className="w-3 h-3 mr-1" />
+                          {song.retryable ? 'Try Again' : 'Failed'}
+                        </span>
+                      );
+                    }
+                    
+                    if (song?.audio_url) {
+                      return (
+                        <span className="inline-flex items-center text-xs bg-green-500/20 text-white
+                                     px-3 py-1.5 rounded-full ml-2 border border-green-500/20
+                                     shadow-lg z-10 whitespace-nowrap">
+                          <Play className="w-3 h-3 mr-1" />
+                          Play
+                        </span>
+                      );
+                    }
+                    
+                    return (
+                      <span className="inline-flex items-center text-xs bg-white/20 text-white
+                                   px-3 py-1.5 rounded-full ml-2 border border-white/20
+                                   shadow-lg z-10 whitespace-nowrap">
+                        <Wand2 className="w-3 h-3 mr-1" />
+                        Generate
+                      </span>
+                    );
+                  })()}
+                </h3>
+                <p className="text-xs text-white/60 group-hover:text-white/80 transition-colors">
+                  {presetSongTypes.has(type) ? (
+                    <span className="text-primary animate-pulse">Creating your special song...</span>
+                  ) : description}
+                </p>
                 {!presetSongTypes.has(type) &&
                  !songs.some(s => s.name === songNames[type] && generatingSongs.has(s.id)) &&
                  songNames[type] &&
-                 songs.find(s => s.name === songNames[type])?.error && (
-                  <span className="inline-flex items-center text-xs bg-red-500/20 text-white
-                                px-3 py-1.5 rounded-full ml-2 border border-red-500/20
-                                shadow-lg z-10 whitespace-nowrap">
-                    <Wand2 className="w-3 h-3 mr-1" />
-                    Generate
-                  </span>
+                 songs.find(s => s.name === songNames[type])?.variations?.length > 0 && (
+                  <div className="flex items-center gap-1 mt-3 text-white/60">
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => handleVariationChange(e, type, 'prev')}
+                      onKeyDown={(e) => e.key === 'Enter' && handleVariationChange(e, type, 'prev')}
+                      className="p-1 rounded-full hover:bg-white/10 transition-colors"
+                    >
+                      <ChevronLeft className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs">
+                      {(currentVariation[type] || 0) + 1}/{songs.find(s => s.name === songNames[type])?.variations?.length}
+                    </span>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => handleVariationChange(e, type, 'next')}
+                      onKeyDown={(e) => e.key === 'Enter' && handleVariationChange(e, type, 'next')}
+                      className="p-1 rounded-full hover:bg-white/10 transition-colors"
+                    >
+                      <ChevronRight className="w-3 h-3" />
+                    </div>
+                  </div>
                 )}
-                {!presetSongTypes.has(type) &&
-                 !songs.some(s => s.name === songNames[type] && generatingSongs.has(s.id)) &&
-                 songNames[type] &&
-                 songs.find(s => s.name === songNames[type])?.variations?.length > 0 && null}
-              </h3>
-              <p className="text-xs text-white/60 group-hover:text-white/80 transition-colors">
-                {presetSongTypes.has(type) ? (
-                  <span className="text-primary animate-pulse">Creating your special song...</span>
-                ) : description}
-              </p>
-              {!presetSongTypes.has(type) &&
-               !songs.some(s => s.name === songNames[type] && generatingSongs.has(s.id)) &&
-               songNames[type] &&
-               songs.find(s => s.name === songNames[type])?.variations?.length > 0 && (
-                <div className="flex items-center gap-1 mt-3 text-white/60">
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => handleVariationChange(e, type, 'prev')}
-                    onKeyDown={(e) => e.key === 'Enter' && handleVariationChange(e, type, 'prev')}
-                    className="p-1 rounded-full hover:bg-white/10 transition-colors"
-                  >
-                    <ChevronLeft className="w-3 h-3" />
-                  </div>
-                  <span className="text-xs">
-                    {(currentVariation[type] || 0) + 1}/{songs.find(s => s.name === songNames[type])?.variations?.length}
-                  </span>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => handleVariationChange(e, type, 'next')}
-                    onKeyDown={(e) => e.key === 'Enter' && handleVariationChange(e, type, 'next')}
-                    className="p-1 rounded-full hover:bg-white/10 transition-colors"
-                  >
-                    <ChevronRight className="w-3 h-3" />
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="absolute bottom-0 right-0 w-24 h-24 
+              </div>
+              <div className="absolute bottom-0 right-0 w-24 h-24 
                           bg-gradient-radial from-white/5 to-transparent 
                           rounded-full -mr-12 -mb-12 
                           group-hover:scale-150 transition-transform duration-700"></div>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

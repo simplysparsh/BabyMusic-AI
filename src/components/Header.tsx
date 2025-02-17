@@ -53,7 +53,16 @@ export default function Header() {
                   </button>
                   <button
                     onClick={() => signOut()}
-                    className="text-white/80 hover:text-white transition-colors px-3 py-1.5 sm:px-4 sm:py-2 hover:bg-white/5 rounded-lg text-sm sm:text-base"
+                    className="text-white/80 hover:text-white transition-all duration-300 px-3 py-1.5 sm:px-4 sm:py-2 
+                             hover:bg-white/5 rounded-lg text-sm sm:text-base active:scale-95"
+                    onClick={async () => {
+                      try {
+                        await signOut();
+                      } catch (error) {
+                        console.error('Sign out failed:', error);
+                        window.location.reload();
+                      }
+                    }}
                   >
                     Sign Out
                   </button>

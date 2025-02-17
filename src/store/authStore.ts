@@ -11,7 +11,13 @@ interface AuthState {
   user: User | null;
   profile: UserProfile | null;
   isLoading: boolean;
-  updateProfile: (updates: { babyName: string; preferredLanguage?: Language }) => Promise<void>;
+  updateProfile: (updates: { 
+    babyName: string; 
+    preferredLanguage?: Language;
+    birthMonth?: number;
+    birthYear?: number;
+    ageGroup?: AgeGroup;
+  }) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, babyName: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -124,7 +130,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   
-  updateProfile: async ({ babyName: newBabyName, preferredLanguage }) => {
+  updateProfile: async ({ babyName: newBabyName, preferredLanguage, birthMonth, birthYear, ageGroup }) => {
     const user = get().user;
     if (!user) throw new Error('Not authenticated');
     const songStore = useSongStore.getState();
@@ -159,7 +165,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const updatedProfile = await ProfileService.updateProfile({
         userId: user.id,
         babyName: trimmedNewName,
-        preferredLanguage
+        preferredLanguage,
+        birthMonth,
+        birthYear,
+        ageGroup
       });
 
       // Update profile state with server response
@@ -181,22 +190,40 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   signIn: async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    if (error) throw error;
-    
-    // Get the user data immediately after sign in
-    const { data: { user } } = await supabase.auth.getUser();
-    set({ user });
-    
-    // Load the profile
-    await get().loadProfile();
+    set({ isLoading: true });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        console.error('Sign in error:', error);
+        throw error;
+      }
+      
+      if (!data.session) {
+        throw new Error('No session returned after sign in');
+      }
+      
+      // Get the user data immediately after sign in
+      set({ user: data.user });
+      
+      // Load the profile
+      await get().loadProfile();
+    } finally {
+      set({ isLoading: false });
+    }
   },
   signUp: async (email: string, password: string, babyName: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
+    console.log('Starting sign up process:', { email, babyName });
+    
+    if (!email.trim() || !password.trim() || !babyName.trim()) {
+      throw new Error('All fields are required');
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
       password,
       options: {
         data: {
@@ -205,14 +232,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
       }
     });
-    if (error) throw error;
-    
-    // Load user data after successful sign up
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Failed to create user');
 
-    // Wait a moment for the trigger to create the profile
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    if (error) {
+      console.error('Sign up error:', error);
+      throw error;
+    }
+    
+    if (!data.user) {
+      throw new Error('No user returned after sign up');
+    }
+    
+    // Set user state immediately
+    set({ user: data.user });
+
+    // Reduced wait time for profile creation
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     // Update profile with baby name
     const { error: updateError } = await supabase
@@ -222,89 +256,127 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         preset_songs_generated: false,
         preferred_language: 'English'
       })
-      .eq('id', user.id);
+      .eq('id', data.user.id);
 
     if (updateError) throw updateError;
 
-    // Load the updated profile
-    await get().loadProfile();
+    // Set profile state immediately
+    set({ 
+      profile: {
+        id: data.user.id,
+        email: data.user.email || '',
+        isPremium: false,
+        dailyGenerations: 0,
+        lastGenerationDate: new Date(),
+        babyName: babyName.trim(),
+        preferredLanguage: 'English'
+      }
+    });
 
     // Generate initial preset songs for new user
     console.log('Generating initial preset songs for new user');
     await PresetService.regenerateAllPresets({
-      userId: user.id,
-      babyName,
+      userId: data.user.id,
+      babyName: babyName.trim(),
       language: 'English'
     });
-    
-    set({ user });
   },
   signOut: async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    set({ user: null, profile: null });
+    console.log('Starting sign out process');
+    set({ isLoading: true });
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Sign out error:', error);
+        throw error;
+      }
+  
+      // Clear all state
+      set({ 
+        user: null, 
+        profile: null,
+        isLoading: false
+      });
+  
+      // Clear other stores
+      useSongStore.getState().setState(state => ({
+        songs: [],
+        generatingSongs: new Set(),
+        presetSongTypes: new Set(),
+        processingTaskIds: new Set()
+      }));
+  
+      useErrorStore.getState().clearError();
+  
+      console.log('Sign out complete');
+    } catch (error) {
+      console.error('Failed to sign out:', error);
+      // Force clear state even if sign out fails
+      set({ 
+        user: null, 
+        profile: null,
+        isLoading: false
+      });
+      throw error;
+    }
   },
   loadUser: async () => {
     try {
-      let retryCount = 0;
-      const MAX_RETRIES = 3;
-      const RETRY_DELAY = 1000;
+      // First try to get an existing session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      while (retryCount < MAX_RETRIES) {
-        try {
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-          
-          if (sessionError) throw sessionError;
-          
-          if (!session) {
-            set({ user: null, profile: null, isLoading: false });
-            return;
-          }
-          
-          const user = session.user;
-          set({ user });
-          
-          if (user) {
-            await get().loadProfile();
-          }
-          
-          // Set up auth state change listener
-          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-              set({ user: null, profile: null });
-              return;
-            }
-
-            if (!session) {
-              set({ user: null, profile: null });
-              return;
-            }
-
-            const newUser = session.user;
-            set({ user: newUser });
-
-            if (newUser) {
-              try {
-                await get().loadProfile();
-              } catch (error) {
-                console.error('Error loading profile on auth change:', error);
-              }
-            }
-          });
-          
-          set({ isLoading: false });
-          return () => subscription.unsubscribe();
-        } catch (error) {
-          console.error(`Auth attempt ${retryCount + 1} failed:`, error);
-          retryCount++;
-
-          if (retryCount === MAX_RETRIES) {
-            throw error;
-          }
-          
-          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retryCount));
-        }
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        await supabase.auth.signOut();
+        set({ user: null, profile: null, isLoading: false });
+        return;
       }
+      
+      if (!session) {
+        set({ user: null, profile: null, isLoading: false });
+        return;
+      }
+      
+      const user = session.user;
+      set({ user });
+      
+      if (user) {
+        await get().loadProfile();
+      }
+      
+      // Set up auth state change listener
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('Auth state changed:', { event, hasSession: !!session });
+        
+        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          set({ user: null, profile: null });
+          return;
+        }
+
+        if (!session) {
+          set({ user: null, profile: null });
+          return;
+        }
+
+        const newUser = session.user;
+        set({ user: newUser });
+
+        if (newUser) {
+          try {
+            await get().loadProfile();
+          } catch (error) {
+            console.error('Error loading profile on auth change:', error);
+            // If profile load fails, sign out and reset state
+            await supabase.auth.signOut();
+            set({ user: null, profile: null });
+          }
+        }
+      });
+      
+      set({ isLoading: false });
+      return () => subscription.unsubscribe();
+
     } catch (error) {
       console.error('Failed to load user after retries:', error);
       await supabase.auth.signOut();

@@ -1,6 +1,18 @@
 export type MusicMood = 'calm' | 'playful' | 'learning' | 'energetic';
 export type Instrument = 'piano' | 'harp' | 'strings' | 'whiteNoise';
-export type VoiceType = 'softFemale' | 'calmMale' | 'gentleChorus';
+export type VoiceType = 'softFemale' | 'calmMale';
+export type ThemeType = 
+  | 'pitchDevelopment' 
+  | 'cognitiveSpeech' 
+  | 'sleepRegulation'
+  | 'socialEngagement'
+  | 'musicalDevelopment'
+  | 'indianClassical'
+  | 'westernClassical'
+  | 'custom';
+
+export type Tempo = 'slow' | 'medium' | 'fast';
+
 export type AgeGroup = '0-6' | '7-12' | '13-24';
 export type PresetType = 'playing' | 'eating' | 'sleeping' | 'pooping';
 export type TaskStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'staged';

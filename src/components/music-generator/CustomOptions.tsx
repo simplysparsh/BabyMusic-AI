@@ -2,16 +2,16 @@ import React from 'react';
 import type { MusicMood, Tempo } from '../../types';
 
 const TEMPO_OPTIONS: { type: Tempo; label: string }[] = [
-  { type: 'slow', label: 'Slow & Gentle' },
-  { type: 'medium', label: 'Medium & Balanced' },
-  { type: 'fast', label: 'Fast & Energetic' }
+  { type: 'slow', label: 'Slow' },
+  { type: 'medium', label: 'Medium' },
+  { type: 'fast', label: 'Fast' }
 ];
 
 const MOOD_OPTIONS: { type: MusicMood; label: string }[] = [
-  { type: 'calm', label: 'Calm & Peaceful' },
-  { type: 'playful', label: 'Playful & Fun' },
-  { type: 'learning', label: 'Learning & Focus' },
-  { type: 'energetic', label: 'Energetic & Active' }
+  { type: 'calm', label: 'Calm' },
+  { type: 'playful', label: 'Playful' },
+  { type: 'learning', label: 'Learning' },
+  { type: 'energetic', label: 'Energetic' }
 ];
 
 interface CustomOptionsProps {

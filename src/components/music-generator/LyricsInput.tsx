@@ -4,10 +4,16 @@ interface LyricsInputProps {
   value: string;
   onChange: (value: string) => void;
   isCustom?: boolean;
+  onHasIdeasChange?: (hasIdeas: boolean) => void;
 }
 
-export default function LyricsInput({ value, onChange, isCustom = false }: LyricsInputProps) {
+export default function LyricsInput({ value, onChange, isCustom = false, onHasIdeasChange }: LyricsInputProps) {
   const [hasIdeas, setHasIdeas] = React.useState(false);
+
+  const handleHasIdeasChange = (newHasIdeas: boolean) => {
+    setHasIdeas(newHasIdeas);
+    onHasIdeasChange?.(newHasIdeas);
+  };
 
   return (
     <div>
@@ -20,7 +26,7 @@ export default function LyricsInput({ value, onChange, isCustom = false }: Lyric
           <div className="flex gap-3">
             <button
               onClick={() => {
-                setHasIdeas(false);
+                handleHasIdeasChange(false);
                 onChange('');
               }}
               className={`px-4 py-2 rounded-xl text-sm transition-all duration-300
@@ -31,7 +37,7 @@ export default function LyricsInput({ value, onChange, isCustom = false }: Lyric
               Build for me
             </button>
             <button
-              onClick={() => setHasIdeas(true)}
+              onClick={() => handleHasIdeasChange(true)}
               className={`px-4 py-2 rounded-xl text-sm transition-all duration-300
                        ${hasIdeas
                          ? 'bg-gradient-to-r from-primary to-secondary text-black'

@@ -22,6 +22,7 @@ export default function MusicGenerator() {
   const [customText, setCustomText] = useState('');
   const [timeLeft, setTimeLeft] = useState(GENERATION_TIME);
   const [error, setError] = useState<string | null>(null);
+  const [hasIdeas, setHasIdeas] = useState(false);
   
   const { createSong, generatingSongs } = useSongStore();
   const { user } = useAuthStore();
@@ -110,6 +111,7 @@ export default function MusicGenerator() {
               <LyricsInput
                 value={customText}
                 onChange={setCustomText}
+                onHasIdeasChange={setHasIdeas}
               />
             </>
           ) : (
@@ -127,13 +129,16 @@ export default function MusicGenerator() {
               />
             </>
           )}
-
-          <VoiceSelector
-            isInstrumental={isInstrumental}
-            selectedVoice={voice}
-            onVoiceSelect={setVoice}
-            onInstrumentalToggle={setIsInstrumental}
-          />
+          
+          {/* Only show voice options if user has ideas or in custom mode */}
+          {(hasIdeas || activeTab === 'custom') && (
+            <VoiceSelector
+              isInstrumental={isInstrumental}
+              selectedVoice={voice}
+              onVoiceSelect={setVoice}
+              onInstrumentalToggle={setIsInstrumental}
+            />
+          )}
         </div>
 
         {/* Generate Button */}

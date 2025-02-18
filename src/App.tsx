@@ -3,11 +3,11 @@ import Header from './components/Header';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Methodology from './pages/Methodology';
-import { useAuthStore } from './store/authStore';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useAuthStore } from './store/authStore'; 
 
 function App() {
-  const { user } = useAuthStore();
+  const { user, initialized } = useAuthStore();
   const [path, setPath] = useState(window.location.pathname);
 
   useEffect(() => {
@@ -37,14 +37,25 @@ function App() {
     return () => document.removeEventListener('click', handleClick);
   }, []);
 
+  // Show loading spinner while auth state is initializing
+  if (!initialized) {
+    return (
+      <div className="min-h-screen bg-background-dark flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background-dark">
       <Header />
-      {path === '/methodology' ? (
-        <Methodology />
-      ) : (
-        user ? <Dashboard /> : <Landing />
-      )}
+      <Suspense fallback={null}>
+        {path === '/methodology' ? (
+          <Methodology />
+        ) : (
+          user ? <Dashboard /> : <Landing />
+        )}
+      </Suspense>
     </div>
   );
 }

@@ -103,7 +103,7 @@ export default function PresetSongs() {
     <div className="w-full max-w-2xl mx-auto mb-6 sm:mb-8 relative px-4">
       <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 
                     rounded-3xl blur-3xl"></div>
-      <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6 sm:mb-8 text-center relative">
+      <h2 className="text-3xl font-bold text-white mb-6 sm:mb-8 text-center relative z-10 bg-transparent">
         {profile?.babyName ? `${profile.babyName}'s Special Songs` : 'Special Songs'}
         <span className="block text-base sm:text-lg font-normal text-white/60 mt-2">
           ✨ Magical melodies for every moment ✨

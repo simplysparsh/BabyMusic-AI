@@ -10,7 +10,7 @@ import type { UserProfile } from '../types';
 interface AuthState {
   user: User | null;
   profile: UserProfile | null;
-  isLoading: boolean;
+  initialized: boolean;
   updateProfile: (updates: { 
     babyName: string; 
     preferredLanguage?: Language;
@@ -27,7 +27,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
-  isLoading: true,
+  initialized: false,
   loadProfile: async () => {
     const user = get().user;
     if (!user) return;
@@ -190,7 +190,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   signIn: async (email: string, password: string) => {
-    set({ isLoading: true });
+    set({ initialized: false });
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -210,13 +210,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user: data.user });
       
       // Load the profile
-      await get().loadProfile();
+      await get().loadProfile(); 
+      set({ initialized: true });
     } finally {
-      set({ isLoading: false });
+      set({ initialized: true });
     }
   },
   signUp: async (email: string, password: string, babyName: string) => {
     console.log('Starting sign up process:', { email, babyName });
+    set({ initialized: false });
     
     if (!email.trim() || !password.trim() || !babyName.trim()) {
       throw new Error('All fields are required');
@@ -262,6 +264,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     // Set profile state immediately
     set({ 
+      initialized: true,
       profile: {
         id: data.user.id,
         email: data.user.email || '',
@@ -283,7 +286,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   signOut: async () => {
     console.log('Starting sign out process');
-    set({ isLoading: true });
+    set({ initialized: false });
     try {
       const { error } = await supabase.auth.signOut();
       
@@ -296,7 +299,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ 
         user: null, 
         profile: null,
-        isLoading: false
+        initialized: true
       });
   
       // Clear other stores
@@ -316,7 +319,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ 
         user: null, 
         profile: null,
-        isLoading: false
+        initialized: true
       });
       throw error;
     }
@@ -325,16 +328,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       // First try to get an existing session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      set({ initialized: false });
       
       if (sessionError) {
         console.error('Session error:', sessionError);
         await supabase.auth.signOut();
-        set({ user: null, profile: null, isLoading: false });
+        set({ user: null, profile: null, initialized: true });
         return;
       }
       
       if (!session) {
-        set({ user: null, profile: null, isLoading: false });
+        set({ user: null, profile: null, initialized: true });
         return;
       }
       
@@ -344,6 +348,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (user) {
         await get().loadProfile();
       }
+      set({ initialized: true });
       
       // Set up auth state change listener
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -374,7 +379,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
       });
       
-      set({ isLoading: false });
       return () => subscription.unsubscribe();
 
     } catch (error) {
@@ -383,7 +387,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ 
         user: null, 
         profile: null,
-        isLoading: false 
+        initialized: true
       });
     }
   }

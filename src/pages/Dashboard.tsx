@@ -12,12 +12,20 @@ import DetailedStreak from '../components/dashboard/DetailedStreak';
 
 export default function Dashboard() {
   const error = useErrorStore(state => state.error);
-  const { profile } = useAuthStore();
+  const { profile, initialized } = useAuthStore();
   useRealtime();
 
   const streakDays = 5;
   const dailyGoal = 3;
   const songsToday = 2;
+
+  if (!initialized) {
+    return (
+      <div className="min-h-screen bg-background-dark flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <main>
@@ -31,11 +39,13 @@ export default function Dashboard() {
         
         {/* Header with Mini Streak */}
         <div className="max-w-4xl mx-auto mb-8">
-          <div className="text-center mb-4">
+          <div className="text-center mb-4 relative z-10">
             <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-              Welcome back, {profile?.babyName}'s Parent! 👋
+              {profile?.babyName ? `Welcome back, ${profile.babyName}'s Parent! 👋` : 'Welcome back! 👋'}
             </h1>
-            <p className="text-white/60">Let's create some magical melodies together</p>
+            <p className="text-white/70">
+              Let's create some magical melodies together
+            </p>
           </div>
           <div className="flex justify-center">
             <MiniStreak streakDays={streakDays} />

@@ -121,7 +121,7 @@ export default function SongList() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">Your Melodies</h2>
+        <div className="w-8"></div>
         {songs.length > 0 && (
           <div className="relative">
             {!showDeleteConfirm ? (

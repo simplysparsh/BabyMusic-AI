@@ -92,7 +92,7 @@ export default function MusicGenerator() {
                        ? 'text-white bg-white/10' 
                        : 'text-white/60 hover:text-white hover:bg-white/5'}`}
           >
-            Custom Song
+            Build from Scratch
             {activeTab === 'custom' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary"></div>
             )}

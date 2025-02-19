@@ -35,7 +35,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError || !session) {
-      console.log('No valid session found, clearing state');
       await supabase.auth.signOut();
       set({ user: null, profile: null });
       return;
@@ -45,13 +44,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const RETRY_DELAY = 2000;
     let retryCount = 0;
     
-    console.log('Loading profile for user:', user.id);
-
     while (retryCount < MAX_RETRIES) {
       try {
         // Add a small delay before retries (but not on first attempt)
         if (retryCount > 0) {
-          console.log(`Retrying profile load (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retryCount));
         }
 
@@ -76,13 +72,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .eq('id', user.id)
         .single();
       
-      console.log('Profile data received:', profile);
-      
       if (error) {
-        console.error('Error loading profile:', error);
         // If the profile doesn't exist, force logout
         if (error.code === 'PGRST116' || error.message.includes('contains 0 rows')) {
-          console.log('Profile not found, signing out');
           await supabase.auth.signOut();
           set({ 
             user: null, 
@@ -104,23 +96,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           preferredLanguage: profile.preferred_language || 'English'
         };
       
-        console.log('Successfully loaded profile:', {
-          id: userProfile.id,
-          email: userProfile.email,
-          babyName: userProfile.babyName
-        });
-
         set({ profile: userProfile });
         return;
       } else {
         throw new Error('No profile data received');
       }
       } catch (err) {
-        console.error(`Profile load attempt ${retryCount + 1} failed:`, err);
         retryCount++;
 
         if (retryCount === MAX_RETRIES) {
-          console.error('All profile load attempts exhausted');
           set({ 
             isLoading: false 
           });
@@ -198,7 +182,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
       
       if (error) {
-        console.error('Sign in error:', error);
         throw error;
       }
       
@@ -217,7 +200,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   signUp: async (email: string, password: string, babyName: string) => {
-    console.log('Starting sign up process:', { email, babyName });
     set({ initialized: false });
     
     if (!email.trim() || !password.trim() || !babyName.trim()) {
@@ -236,7 +218,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
 
     if (error) {
-      console.error('Sign up error:', error);
       throw error;
     }
     
@@ -247,7 +228,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Set user state immediately
     set({ user: data.user });
 
-    // Reduced wait time for profile creation
     await new Promise(resolve => setTimeout(resolve, 500));
     
     // Update profile with baby name
@@ -262,7 +242,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     if (updateError) throw updateError;
 
-    // Set profile state immediately
     set({ 
       initialized: true,
       profile: {
@@ -277,7 +256,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
 
     // Generate initial preset songs for new user
-    console.log('Generating initial preset songs for new user');
     await PresetService.regenerateAllPresets({
       userId: data.user.id,
       babyName: babyName.trim(),
@@ -285,13 +263,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
   signOut: async () => {
-    console.log('Starting sign out process');
     set({ initialized: false });
     try {
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error('Sign out error:', error);
         throw error;
       }
   
@@ -312,9 +288,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   
       useErrorStore.getState().clearError();
   
-      console.log('Sign out complete');
     } catch (error) {
-      console.error('Failed to sign out:', error);
       // Force clear state even if sign out fails
       set({ 
         user: null, 
@@ -331,7 +305,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ initialized: false });
       
       if (sessionError) {
-        console.error('Session error:', sessionError);
         await supabase.auth.signOut();
         set({ user: null, profile: null, initialized: true });
         return;
@@ -352,7 +325,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       // Set up auth state change listener
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('Auth state changed:', { event, hasSession: !!session });
         
         if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
           set({ user: null, profile: null });
@@ -371,7 +343,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           try {
             await get().loadProfile();
           } catch (error) {
-            console.error('Error loading profile on auth change:', error);
             // If profile load fails, sign out and reset state
             await supabase.auth.signOut();
             set({ user: null, profile: null });
@@ -382,7 +353,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return () => subscription.unsubscribe();
 
     } catch (error) {
-      console.error('Failed to load user after retries:', error);
       await supabase.auth.signOut();
       set({ 
         user: null, 

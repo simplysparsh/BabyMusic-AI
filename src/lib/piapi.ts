@@ -174,21 +174,8 @@ export const createMusicGenerationTask = async (
   }
 
   const data = await response.json();
-  console.log('Task created successfully:', {
-    taskId: data.data?.task_id,
-    requestBody: {
-      ...requestBody,
-      webhook_config: {
-        ...requestBody.config.webhook_config,
-        secret: '[REDACTED]'
-      }
-    },
-    responseData: data,
-    timestamp: new Date().toISOString()
-  });
   
   if (!data.data?.task_id) {
-    console.error('No task ID in response:', data);
     throw new Error('Failed to start music generation. Please try again.');
   }
   return data.data.task_id as string;

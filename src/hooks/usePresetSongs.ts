@@ -68,13 +68,10 @@ export function usePresetSongs() {
   const handlePresetClick = useCallback(async (type: PresetType) => {
     if (!user?.id || !profile?.babyName) return;
 
-    console.log('Handling preset click:', { type });
-
     const songName = songNames[type];
     const config = PRESET_CONFIGS[type];
 
     if (!songName) {
-      console.log('No song name available for type:', type);
       return;
     }
 
@@ -83,32 +80,19 @@ export function usePresetSongs() {
                         (existingSong && !existingSong.audio_url && 
                          ['staged', 'pending', 'processing'].includes(existingSong.status));
 
-    console.log('Preset song state:', {
-      type,
-      songName,
-      isGenerating,
-      hasExistingSong: !!existingSong,
-      hasAudio: !!existingSong?.audio_url,
-      presetTypes: Array.from(presetSongTypes),
-      audioUrl: existingSong?.audio_url
-    });
-
     // If song exists and has audio, just play it
     if (existingSong?.audio_url) {
-      console.log('Playing existing song:', existingSong.id);
       handlePlay(existingSong.audio_url);
       return;
     }
 
     // If song is generating, don't start another generation
     if (isGenerating) {
-      console.log('Song is already generating, skipping');
       return;
     }
 
     // Only generate if we don't have a valid song
     if (!existingSong || !existingSong.audio_url) {
-      console.log('Generating new song:', { type, songName });
       try {
         await createSong({
           name: songName,
@@ -116,7 +100,6 @@ export function usePresetSongs() {
           lyrics: config.lyrics(profile.babyName)
         });
       } catch (error) {
-        console.error('Failed to handle preset click:', error);
         throw error;
       }
     }

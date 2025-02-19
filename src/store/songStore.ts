@@ -51,10 +51,7 @@ export const useSongStore = create<SongState>((set, get) => ({
     if (!user) return;
     let presetSongsProcessing = new Set<string>();
 
-    // Clean up any existing subscriptions
     supabase.getChannels().forEach(channel => channel.unsubscribe());
-
-    console.log('Setting up real-time subscriptions for user:', user.id);
     
     // Subscribe to both songs and variations changes
     const songsSubscription = supabase
@@ -70,21 +67,8 @@ export const useSongStore = create<SongState>((set, get) => ({
         async (payload) => {
           const { new: newSong, old: oldSong, eventType } = payload;          
           if (!oldSong?.id || !newSong?.id) {
-            console.log('Invalid song data received:', { oldSong, newSong });
             return;
           }
-
-          console.log('Songs change received:', { 
-            eventType, 
-            songId: newSong?.id,
-            name: newSong?.name,
-            oldAudioUrl: oldSong?.audio_url,
-            newAudioUrl: newSong?.audio_url,
-            error: newSong?.error,
-            taskId: newSong?.task_id,
-            isGenerating: get().generatingSongs.has(newSong?.id),
-            isProcessing: get().processingTaskIds.has(newSong?.task_id)
-          });
           
           if (eventType === 'UPDATE' || eventType === 'INSERT') {
             const presetType = newSong.name.toLowerCase().includes('playtime') ? 'playing'
@@ -103,11 +87,6 @@ export const useSongStore = create<SongState>((set, get) => ({
 
             // Handle error state
             if (newSong.error) {
-              console.log('Song error received:', {
-                songId: newSong.id,
-                error: newSong.error,
-                presetType
-              });
               
               // Clear preset type if applicable
               if (presetType) {
@@ -122,13 +101,6 @@ export const useSongStore = create<SongState>((set, get) => ({
             
             // Handle successful completion
             if (newSong.audio_url) {
-              console.log('Song completed:', {
-                songId: newSong.id,
-                presetType,
-                name: newSong.name,
-                hadError: !!oldSong.error,
-                isPresetType: !!presetType
-              });
               
               // Clear preset type if applicable
               if (presetType) {
@@ -166,7 +138,6 @@ export const useSongStore = create<SongState>((set, get) => ({
               .single();
             
             if (!updatedSong) {
-              console.error('Failed to fetch updated song:', oldSong.id);
               return;
             }
 
@@ -176,13 +147,6 @@ export const useSongStore = create<SongState>((set, get) => ({
               get().clearGeneratingState(updatedSong.id);
             }
 
-            console.log('Updating song with variations:', {
-              songId: updatedSong.id,
-              audioUrl: updatedSong.audio_url,
-              variationCount: updatedSong.variations?.length,
-              error: updatedSong.error,
-              isComplete: updatedSong.audio_url || updatedSong.error
-            });
             
             set((state) => ({
               songs: state.songs.map((song) =>
@@ -207,15 +171,8 @@ export const useSongStore = create<SongState>((set, get) => ({
         async (payload) => {
           const variation = payload.new;
           if (!variation?.song_id) {
-            console.error('Invalid variation data received:', variation);
             return;
           }
-
-          console.log('New variation received:', {
-            variationId: variation.id,
-            songId: variation.song_id,
-            audioUrl: variation.audio_url
-          });
           
           // Reload the entire song to get updated variations
           const { data: updatedSong } = await supabase
@@ -225,18 +182,12 @@ export const useSongStore = create<SongState>((set, get) => ({
             .single();
             
           if (!updatedSong) {
-            console.error('Failed to fetch updated song for variation:', variation.song_id);
             return;
           }
 
-            console.log('Updating song with new variation:', updatedSong);
             set((state) => ({
               songs: state.songs.map((song) => {
                 if (song.id === variation.song_id) {
-                  console.log('Found matching song, updating with variations:', {
-                    songId: song.id,
-                    variationCount: updatedSong.variations?.length
-                  });
                   return updatedSong;
                 }
                 return song;
@@ -262,15 +213,12 @@ export const useSongStore = create<SongState>((set, get) => ({
     try {
       const user = useAuthStore.getState().user;
       if (!user?.id) {
-        console.log('No valid user ID found, skipping song load');
         set({ 
           songs: [],
           presetSongTypes: new Set()
         });
         return;
       }
-
-      console.log('Loading songs for user:', user.id);
 
       let retryCount = 0;
       const MAX_RETRIES = 3;
@@ -293,10 +241,6 @@ export const useSongStore = create<SongState>((set, get) => ({
             .order('created_at', { ascending: false });
 
           if (error) throw error;
-          
-          console.log('Songs loaded successfully:', {
-            count: songs?.length || 0
-          });
 
           // Update songs and clear preset types for completed songs
           const completedPresetTypes = new Set<string>();
@@ -318,7 +262,6 @@ export const useSongStore = create<SongState>((set, get) => ({
           }));
           break;
         } catch (error) {
-          console.error(`Attempt ${retryCount + 1} failed:`, error);
           retryCount++;
 
           if (retryCount === MAX_RETRIES) {
@@ -332,7 +275,6 @@ export const useSongStore = create<SongState>((set, get) => ({
       // Set up real-time subscription after loading songs
       get().setupSubscription();
     } catch (error) {
-      console.error('Failed to load songs:', error);
       set({ 
         error: 'Unable to load songs. Please refresh the page or try signing in again.',
         songs: [],
@@ -352,17 +294,6 @@ export const useSongStore = create<SongState>((set, get) => ({
       const errorStore = useErrorStore.getState();
       const currentState = get();
 
-      console.log('SongStore: Creating song:', { 
-        name, 
-        mood, 
-        instrument, 
-        hasLyrics: !!lyrics,
-        userId: user?.id,
-        babyName: profile?.babyName,
-        generatingSongs: Array.from(currentState.generatingSongs),
-        presetSongTypes: Array.from(currentState.presetSongTypes)
-      });
-
       if (!user || !profile) {
         throw new Error('User must be logged in to create songs');
       }
@@ -378,22 +309,13 @@ export const useSongStore = create<SongState>((set, get) => ({
         : name.toLowerCase().includes('potty') ? 'pooping'
         : null;
 
-      console.log('SongStore: Song creation details:', { 
-        presetType,
-        existingPresets: Array.from(get().presetSongTypes),
-        generatingSongs: Array.from(get().generatingSongs),
-        processingTasks: Array.from(get().processingTaskIds)
-      });
-
       // If it's a preset and we're already generating it, don't create a new one
       if (presetType && get().presetSongTypes.has(presetType)) {
-        console.log(`SongStore: Preset song ${presetType} is already being generated, skipping`);
         throw new Error(`${presetType} song is already being generated`);
       }
       
       // If it's a preset song, delete any existing ones of the same type
       if (presetType) {
-        console.log('Checking for existing preset songs of type:', presetType);
         const existingSongs = get().songs.filter(s => {
           const songType = s.name.toLowerCase().includes('playtime') ? 'playing'
             : s.name.toLowerCase().includes('mealtime') ? 'eating'
@@ -404,7 +326,6 @@ export const useSongStore = create<SongState>((set, get) => ({
         });
 
         if (existingSongs.length > 0) {
-          console.log('Deleting existing preset songs:', existingSongs.map(s => s.id));
           try {
             const { error: deleteError } = await supabase
               .from('songs')
@@ -418,7 +339,6 @@ export const useSongStore = create<SongState>((set, get) => ({
               songs: state.songs.filter(s => !existingSongs.find(es => es.id === s.id))
             }));
           } catch (error) {
-            console.error('Failed to delete existing preset songs:', error);
             throw error;
           }
         }
@@ -426,14 +346,12 @@ export const useSongStore = create<SongState>((set, get) => ({
 
       // Track preset type if applicable
       if (presetType) {
-        console.log('Adding preset type to tracking:', presetType);
         set(state => ({
           presetSongTypes: new Set([...state.presetSongTypes, presetType])
         }));
       }
 
       // Create the initial song record immediately
-      console.log('Creating song record in database');
       const { data, error: insertError } = await supabase
         .from('songs')
         .insert([{
@@ -450,7 +368,6 @@ export const useSongStore = create<SongState>((set, get) => ({
 
       if (insertError) throw insertError;
       newSong = data;
-      console.log('Song record created:', { id: newSong.id, name: newSong.name });
 
       // Update UI state immediately
       set(state => ({
@@ -461,16 +378,11 @@ export const useSongStore = create<SongState>((set, get) => ({
       set(state => {
         const newGenerating = new Set(state.generatingSongs);
         newGenerating.add(newSong.id);
-        console.log('Updated generating state:', { 
-          songId: newSong.id,
-          generatingCount: newGenerating.size
-        });
         return { generatingSongs: newGenerating };
       });
 
       let taskId: string;
       
-      console.log('Starting music generation task');
       // Start the music generation task asynchronously
       taskId = await createMusicGenerationTask(
         mood, 
@@ -479,8 +391,6 @@ export const useSongStore = create<SongState>((set, get) => ({
         profile?.preferredLanguage || 'English'
       );
 
-      console.log('Music generation task created:', taskId);
-      
       // Update the song with the task ID
       const { error: updateError } = await supabase
         .from('songs')
@@ -495,14 +405,9 @@ export const useSongStore = create<SongState>((set, get) => ({
       set(state => ({
         processingTaskIds: new Set([...state.processingTaskIds, taskId])
       }));
-      console.log('Task added to processing:', { 
-        taskId,
-        processingCount: get().processingTaskIds.size
-      });
       
       return newSong as Song;
     } catch (error) {
-      console.error('Failed to create song:', error);
       
       // Clear preset type and generating state
       const presetType = name.toLowerCase().includes('playtime') ? 'playing'
@@ -512,7 +417,6 @@ export const useSongStore = create<SongState>((set, get) => ({
         : null;
 
       if (presetType) {
-        console.log('Clearing failed preset type:', presetType);
         set(state => ({
           presetSongTypes: new Set([...state.presetSongTypes].filter(t => t !== presetType))
         }));
@@ -520,7 +424,6 @@ export const useSongStore = create<SongState>((set, get) => ({
 
       // Update song with error state if it was created
       if (newSong?.id) {
-        console.log('Updating failed song with error state:', newSong.id);
         await supabase
           .from('songs')
           .update({ error: 'Failed to start music generation' })
@@ -556,7 +459,6 @@ export const useSongStore = create<SongState>((set, get) => ({
       set({ songs: [] });
     } catch (error) {
       const errorStore = useErrorStore.getState();
-      console.error('Failed to delete songs:', error);
       errorStore.setError(error instanceof Error ? error.message : 'Failed to delete songs');
       throw error;
     } finally {

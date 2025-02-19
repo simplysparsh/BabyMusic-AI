@@ -10,7 +10,8 @@ export default {
         background: {
           light: '#F8F9FF',    // Soft white
           dark: '#2A2D3E'      // Gentle dark
-        }
+        },
+        methodology: '#FF5733'//'#7A7A8C'  // Lighter gray with slight blue tint
       },
       animation: {
         float: 'float 6s ease-in-out infinite',

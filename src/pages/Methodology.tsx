@@ -2,15 +2,10 @@ import React from 'react';
 import { Brain, ArrowLeft, ArrowRight, Zap, Music2, Heart, Star, Sparkles, BookOpen } from 'lucide-react';
 import Footer from '../components/Footer';
 import AuthModal from '../components/auth/AuthModal';
+import { useAuthModal } from '../hooks/useAuthModal';
 
 export default function Methodology() {
-  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
-  const [authMode, setAuthMode] = React.useState<'signin' | 'signup'>('signup');
-
-  const handleOpenAuth = (mode: 'signin' | 'signup') => {
-    setAuthMode(mode);
-    setIsAuthModalOpen(true);
-  };
+  const { isAuthModalOpen, authMode, handleOpenAuth, handleCloseAuth } = useAuthModal();
 
   return (
     <div className="min-h-screen bg-gradient-radial from-background-dark via-background-dark to-black pt-20 pb-32">
@@ -275,7 +270,7 @@ export default function Methodology() {
         <AuthModal
           isOpen={isAuthModalOpen}
           defaultMode={authMode}
-          onClose={() => setIsAuthModalOpen(false)}
+          onClose={handleCloseAuth}
         />
       </div>
     </div>

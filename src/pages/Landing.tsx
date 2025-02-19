@@ -9,16 +9,11 @@ import CTASection from '../components/landing/CTASection';
 import AuthModal from '../components/auth/AuthModal';
 import Footer from '../components/Footer';
 import { useAuthStore } from '../store/authStore';
+import { useAuthModal } from '../hooks/useAuthModal';
 
 export default function Landing() {
   const { user } = useAuthStore();
-  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
-  const [authMode, setAuthMode] = React.useState<'signin' | 'signup'>('signup');
-
-  const handleOpenAuth = (mode: 'signin' | 'signup') => {
-    setAuthMode(mode);
-    setIsAuthModalOpen(true);
-  };
+  const { isAuthModalOpen, authMode, handleOpenAuth, handleCloseAuth } = useAuthModal();
   
   return (
     <div className="min-h-screen bg-gradient-radial from-background-dark via-background-dark to-black">
@@ -37,7 +32,7 @@ export default function Landing() {
       <AuthModal
         isOpen={isAuthModalOpen}
         defaultMode={authMode}
-        onClose={() => setIsAuthModalOpen(false)}
+        onClose={handleCloseAuth}
       />
     </div>
   );

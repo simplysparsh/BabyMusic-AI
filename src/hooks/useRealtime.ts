@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { supabase } from '../lib/supabase';
 import { useSongStore } from '../store/songStore';
 import { useAuthStore } from '../store/authStore';
 
@@ -14,6 +13,8 @@ export function useRealtime() {
       unsubscribe = setupSubscription();
     }
 
-    return () => unsubscribe?.();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [user?.id, setupSubscription]);
 }

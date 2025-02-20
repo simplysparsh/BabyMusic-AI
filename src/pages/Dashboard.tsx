@@ -55,8 +55,12 @@ export default function Dashboard() {
         <PresetSongs />
         <MusicGenerator />
         <div className="mt-16 max-w-2xl mx-auto relative z-10">
-          <h2 className="text-3xl font-bold text-white mb-8 text-center">
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-primary via-white to-secondary 
+                      bg-clip-text text-transparent mb-8 text-center">
             Your Melodies
+            <span className="block text-base text-white/60 font-normal mt-2">
+              Your collection of personalized songs
+            </span>
           </h2>
           <SongList />
         </div>

@@ -120,35 +120,37 @@ export default function SongList() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <div className="w-8"></div>
+      <div className="flex justify-end mb-6">
         {songs.length > 0 && (
           <div className="relative">
             {!showDeleteConfirm ? (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-red-500/10
-                         text-red-400 hover:bg-red-500/20 transition-all duration-300"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10
+                         text-red-400 hover:bg-red-500/20 transition-all duration-300
+                         font-medium"
                 disabled={isDeleting}
               >
                 <Trash2 className="w-4 h-4" />
                 <span>Delete All</span>
               </button>
             ) : (
-              <div className="flex items-center space-x-3 card p-4 border-red-500/20">
+              <div className="flex items-center gap-3 card p-4 border-red-500/20 bg-black/50">
                 <span className="text-white/80">Are you sure?</span>
                 <button
                   onClick={handleDeleteAll}
-                  className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600
-                           transition-all duration-300 shadow-lg shadow-red-500/25"
+                  className="px-4 py-2 rounded-lg bg-red-500 text-white font-medium
+                           hover:bg-red-600 transition-all duration-300 
+                           shadow-lg shadow-red-500/25"
                   disabled={isDeleting}
                 >
                   {isDeleting ? 'Deleting...' : 'Yes, delete all'}
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-2 rounded-lg bg-white/10 text-white/80
-                           hover:bg-white/20 transition-all duration-300"
+                  className="px-4 py-2 rounded-lg bg-white/10 text-white/80 font-medium
+                           hover:bg-white/20 transition-all duration-300
+                           border border-white/10"
                   disabled={isDeleting}
                 >
                   Cancel
@@ -162,12 +164,13 @@ export default function SongList() {
         {regularSongs.map((song) => (
         <div
           key={song.id}
-          className="card p-6 group hover:bg-white/[0.09] transition-all duration-500 mb-4"
+          className="card p-6 group hover:bg-white/[0.09] transition-all duration-500 mb-4
+                   bg-black/40 backdrop-blur-sm border border-white/10 hover:border-white/20"
         >
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-white font-medium text-lg">{song.name}</h3>
-              <p className="text-sm text-baby-cream/60">
+              <h3 className="text-white font-medium text-lg mb-1">{song.name}</h3>
+              <p className="text-sm text-white/60">
                 {`${song.mood} • ${song.instrument}`}
               </p>
             </div>

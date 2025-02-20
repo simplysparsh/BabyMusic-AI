@@ -92,11 +92,14 @@ export const createMusicGenerationTask = async (
   if (presetType) {
     const config = PRESET_CONFIGS[presetType];
     baseDescription = config.description;
-    title = name;
+    title = name || '';
     console.log('Preset song configuration:', { title, presetType, mood: config.mood });
   } else if (typeof theme === 'string' && theme !== 'custom') {
     baseDescription = getThemePrompt(theme);
-    title = `${theme} v${Math.floor(Math.random() * 900) + 100}`; // Generate version number
+    // Generate version number using current date (MM-DD-YY)
+    const now = new Date();
+    const version = `${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}-${now.getFullYear().toString().slice(-2)}`;
+    title = `${theme} v${version}`;
     console.log('Themed song configuration:', { title, theme, mood });
   } else {
     if (!mood) throw new Error('Mood is required for custom songs');
@@ -131,10 +134,11 @@ export const createMusicGenerationTask = async (
     tags,
     isInstrumental: !lyrics
   });
-  
+
+  // ##### Calls API to generate music #####
   const requestBody = {
     model: 'music-s',
-    task_type: 'generate_music',
+    task_type: 'generate_music_custom', //Uses API mode to give lyrics, title, description.
     service_mode: 'public',
     config: {
       webhook_config: {
@@ -144,15 +148,15 @@ export const createMusicGenerationTask = async (
       }
     },
     input: {
-      title,
-      gpt_description_prompt: description,
-      tags,
+      title: title,
+      prompt: lyrics, //3000 character limit
+      tags: description, //200 character limit
       make_instrumental: !lyrics,
       negative_tags: 'rock, metal, aggressive, harsh',
     }
   };
 
-  console.log('Sending API request:', { description, title });
+  console.log('Sending API request:', { "prompt": lyrics, "title": title, "tags": description });
 
   const response = await fetch(`${API_URL}/task`, {
     method: 'POST',

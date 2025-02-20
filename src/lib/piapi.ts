@@ -52,6 +52,14 @@ const getMoodPrompt = (mood: MusicMood) => {
   return prompts[mood];
 };
 
+const getPresetTitle = (name: string) => {
+  if (name.toLowerCase().includes('playtime')) return 'Playtime Song';
+  if (name.toLowerCase().includes('mealtime')) return 'Mealtime Song';
+  if (name.toLowerCase().includes('bedtime')) return 'Bedtime Song';
+  if (name.toLowerCase().includes('potty')) return 'Potty Song';
+  return name;
+};
+
 const getThemePrompt = (theme: ThemeType) => {
   const prompts = {
     pitchDevelopment: 'Melodic patterns for pitch recognition training',
@@ -73,12 +81,22 @@ const getLyricsPrompt = (lyrics: string, language: Language) => {
 export const createMusicGenerationTask = async (
   theme?: ThemeType,
   mood?: MusicMood, 
-  lyrics?: string
+  lyrics?: string,
+  name?: string
 ) => {
   let baseDescription;
   let title;
   
-  if (theme && theme !== 'custom') {
+  // Handle preset songs first
+  if (name && (
+    name.toLowerCase().includes('playtime') ||
+    name.toLowerCase().includes('mealtime') ||
+    name.toLowerCase().includes('bedtime') ||
+    name.toLowerCase().includes('potty')
+  )) {
+    title = getPresetTitle(name);
+    baseDescription = getMoodPrompt(mood || 'playful');
+  } else if (theme && theme !== 'custom') {
     baseDescription = getThemePrompt(theme);
     title = `${theme} v${Math.floor(Math.random() * 900) + 100}`; // Generate version number
   } else {

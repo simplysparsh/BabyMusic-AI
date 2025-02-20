@@ -44,7 +44,8 @@ export class SongService {
     const taskId = await createMusicGenerationTask(
       theme,
       mood,
-      lyrics
+      lyrics,
+      name
     );
 
     // Update song with task ID

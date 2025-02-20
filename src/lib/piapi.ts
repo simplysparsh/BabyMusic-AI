@@ -80,7 +80,7 @@ export const createMusicGenerationTask = async (
   console.log('Creating music generation task:', { theme, mood, name });
 
   let baseDescription: string;
-  let title: string;
+  let title = '';  // Initialize with empty string to ensure it's always a string
   
   // Check if this is a preset song
   const presetType = name?.toLowerCase().includes('playtime') ? 'playing'

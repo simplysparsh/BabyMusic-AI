@@ -8,10 +8,9 @@ export class SongService {
     userId: string;
     name: string;
     mood: MusicMood;
-    instrument?: Instrument;
     lyrics?: string
   }): Promise<Song> {
-    const { userId, name, mood, instrument, lyrics } = params;
+    const { userId, name, mood, lyrics } = params;
     
     if (!userId || !name || !mood) {
       throw new Error('User ID, name, and mood are required');
@@ -23,7 +22,6 @@ export class SongService {
       .insert([{
         name,
         mood,
-        instrument: instrument || null,
         lyrics,
         user_id: userId
       }])
@@ -35,7 +33,6 @@ export class SongService {
     // Start generation task
     const taskId = await createMusicGenerationTask(
       mood,
-      instrument,
       lyrics
     );
 

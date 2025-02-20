@@ -1,5 +1,4 @@
 export type MusicMood = 'calm' | 'playful' | 'learning' | 'energetic';
-export type Instrument = 'piano' | 'harp' | 'strings' | 'whiteNoise';
 export type VoiceType = 'softFemale' | 'calmMale';
 export type ThemeType = 
   | 'pitchDevelopment' 
@@ -31,7 +30,6 @@ export interface Song {
   id: string;
   name: string;
   mood: MusicMood;
-  instrument: Instrument;
   voice?: VoiceType;
   lyrics?: string;
   audioUrl?: string;

@@ -52,33 +52,20 @@ const getMoodPrompt = (mood: MusicMood) => {
   return prompts[mood];
 };
 
-const getInstrumentPrompt = (instrument: Instrument) => {
-  const prompts = {
-    piano: 'Bright piano with rhythmic patterns',
-    harp: 'Dynamic harp with playful melodies',
-    strings: 'Energetic string ensemble',
-    whiteNoise: 'Rhythmic white noise patterns',
-  };
-  return prompts[instrument];
-};
-
 const getLyricsPrompt = (lyrics: string, language: Language) => {
   return `children's song: ${lyrics}`;
 };
 
 export const createMusicGenerationTask = async (
   mood: MusicMood, 
-  instrument?: Instrument,
   lyrics?: string
 ) => {
-  console.log('Creating music generation task:', { mood, instrument });
 
   const moodPrompt = getMoodPrompt(mood);
-  const instrumentPrompt = instrument ? getInstrumentPrompt(instrument) : '';
   const lyricsPrompt = lyrics ? getLyricsPrompt(lyrics) : '';
 
   // Keep base description concise
-  const baseDescription = `${moodPrompt}${instrument ? `. ${instrumentPrompt}` : ''}`;
+  const baseDescription = moodPrompt;
   const maxLyricsLength = 200 - baseDescription.length - 2; // 2 for ". " separator
   
   // Truncate lyrics if needed

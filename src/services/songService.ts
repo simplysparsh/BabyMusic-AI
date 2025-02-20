@@ -1,19 +1,28 @@
 import { supabase } from '../lib/supabase';
 import { createMusicGenerationTask } from '../lib/piapi';
-import type { Song, MusicMood, Instrument, Language } from '../types';
+import type { Song, MusicMood, ThemeType, Language } from '../types';
 
 export class SongService {
   // Core song operations
   static async createSong(params: {
     userId: string;
     name: string;
-    mood: MusicMood;
+    theme?: ThemeType;
+    mood?: MusicMood;
     lyrics?: string
   }): Promise<Song> {
-    const { userId, name, mood, lyrics } = params;
+    const { userId, name, theme, mood, lyrics } = params;
     
-    if (!userId || !name || !mood) {
-      throw new Error('User ID, name, and mood are required');
+    if (!userId || !name) {
+      throw new Error('User ID and name are required');
+    }
+
+    if (!theme && !mood) {
+      throw new Error('Either theme or mood is required');
+    }
+
+    if (theme === 'custom' && !mood) {
+      throw new Error('Mood is required for custom songs');
     }
 
     // Create initial song record
@@ -21,6 +30,7 @@ export class SongService {
       .from('songs')
       .insert([{
         name,
+        theme,
         mood,
         lyrics,
         user_id: userId
@@ -32,6 +42,7 @@ export class SongService {
 
     // Start generation task
     const taskId = await createMusicGenerationTask(
+      theme,
       mood,
       lyrics
     );

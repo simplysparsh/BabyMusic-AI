@@ -29,7 +29,8 @@ export interface BabyProfile {
 export interface Song {
   id: string;
   name: string;
-  mood: MusicMood;
+  mood?: MusicMood;
+  theme?: ThemeType;
   voice?: VoiceType;
   lyrics?: string;
   audioUrl?: string;

@@ -1,4 +1,4 @@
-import { MusicMood, Instrument } from '../types';
+import { MusicMood, ThemeType } from '../types';
 import { supabase } from './supabase';
 
 const API_URL = 'https://api.piapi.ai/api/v1';
@@ -52,21 +52,44 @@ const getMoodPrompt = (mood: MusicMood) => {
   return prompts[mood];
 };
 
+const getThemePrompt = (theme: ThemeType) => {
+  const prompts = {
+    pitchDevelopment: 'Melodic patterns for pitch recognition training',
+    cognitiveSpeech: 'Clear rhythmic patterns for speech development',
+    sleepRegulation: 'Gentle lullaby with soothing patterns',
+    socialEngagement: 'Interactive melody for social bonding',
+    musicalDevelopment: 'Progressive musical patterns for skill building',
+    indianClassical: 'Simple Indian classical patterns',
+    westernClassical: 'Adapted classical melodies for babies',
+    custom: ''
+  };
+  return prompts[theme];
+};
+
 const getLyricsPrompt = (lyrics: string, language: Language) => {
   return `children's song: ${lyrics}`;
 };
 
 export const createMusicGenerationTask = async (
-  mood: MusicMood, 
+  theme?: ThemeType,
+  mood?: MusicMood, 
   lyrics?: string
 ) => {
+  let baseDescription;
+  let title;
+  
+  if (theme && theme !== 'custom') {
+    baseDescription = getThemePrompt(theme);
+    title = `${theme} v${Math.floor(Math.random() * 900) + 100}`; // Generate version number
+  } else {
+    if (!mood) throw new Error('Mood is required for custom songs');
+    baseDescription = getMoodPrompt(mood);
+    title = `${mood} ${lyrics ? 'vocal' : 'instrumental'} melody`;
+  }
 
-  const moodPrompt = getMoodPrompt(mood);
   const lyricsPrompt = lyrics ? getLyricsPrompt(lyrics) : '';
 
-  // Keep base description concise
-  const baseDescription = moodPrompt;
-  const maxLyricsLength = 200 - baseDescription.length - 2; // 2 for ". " separator
+  const maxLyricsLength = 200 - baseDescription.length - 2;
   
   // Truncate lyrics if needed
   const truncatedLyrics = lyrics 
@@ -77,26 +100,7 @@ export const createMusicGenerationTask = async (
   
   const description = `${baseDescription}${truncatedLyrics}`;
 
-  // Set appropriate title based on the description
-  const isPlaytime = description.toLowerCase().includes('playtime');
-  const isMealtime = description.toLowerCase().includes('mealtime');
-  const isBedtime = description.toLowerCase().includes('bedtime');
-  const isPotty = description.toLowerCase().includes('potty');
-
-  let title;
-  if (isPlaytime) {
-    title = 'Playtime Song';
-  } else if (isMealtime) {
-    title = 'Mealtime Song';
-  } else if (isBedtime) {
-    title = 'Bedtime Song';
-  } else if (isPotty) {
-    title = 'Flush Symphony';
-  } else {
-    title = instrument ? `${mood} ${instrument} melody` : `${mood} melody`;
-  }
-
-  const tags = `${mood}, children's music`;
+  const tags = theme !== 'custom' ? `${theme}, children's music` : `${mood}, children's music`;
   
   const requestBody = {
     model: 'music-s',

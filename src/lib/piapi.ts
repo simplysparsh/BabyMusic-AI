@@ -1,5 +1,6 @@
 import { MusicMood, ThemeType } from '../types';
 import { supabase } from './supabase';
+import { PRESET_CONFIGS } from '../constants/presets';
 
 const API_URL = 'https://api.piapi.ai/api/v1';
 const API_KEY = import.meta.env.VITE_PIAPI_KEY;
@@ -52,14 +53,6 @@ const getMoodPrompt = (mood: MusicMood) => {
   return prompts[mood];
 };
 
-const getPresetTitle = (name: string) => {
-  if (name.toLowerCase().includes('playtime')) return 'Playtime Song';
-  if (name.toLowerCase().includes('mealtime')) return 'Mealtime Song';
-  if (name.toLowerCase().includes('bedtime')) return 'Bedtime Song';
-  if (name.toLowerCase().includes('potty')) return 'Potty Song';
-  return name;
-};
-
 const getThemePrompt = (theme: ThemeType) => {
   const prompts = {
     pitchDevelopment: 'Melodic patterns for pitch recognition training',
@@ -74,7 +67,7 @@ const getThemePrompt = (theme: ThemeType) => {
   return prompts[theme];
 };
 
-const getLyricsPrompt = (lyrics: string, language: Language) => {
+const getLyricsPrompt = (lyrics: string) => {
   return `children's song: ${lyrics}`;
 };
 
@@ -84,41 +77,60 @@ export const createMusicGenerationTask = async (
   lyrics?: string,
   name?: string
 ) => {
-  let baseDescription;
-  let title;
+  console.log('Creating music generation task:', { theme, mood, name });
+
+  let baseDescription: string;
+  let title: string;
   
-  // Handle preset songs first
-  if (name && (
-    name.toLowerCase().includes('playtime') ||
-    name.toLowerCase().includes('mealtime') ||
-    name.toLowerCase().includes('bedtime') ||
-    name.toLowerCase().includes('potty')
-  )) {
-    title = getPresetTitle(name);
-    baseDescription = getMoodPrompt(mood || 'playful');
-  } else if (theme && theme !== 'custom') {
+  // Check if this is a preset song
+  const presetType = name?.toLowerCase().includes('playtime') ? 'playing'
+    : name?.toLowerCase().includes('mealtime') ? 'eating'
+    : name?.toLowerCase().includes('bedtime') ? 'sleeping'
+    : name?.toLowerCase().includes('potty') ? 'pooping'
+    : undefined;
+
+  if (presetType) {
+    const config = PRESET_CONFIGS[presetType];
+    baseDescription = config.description;
+    title = name;
+    console.log('Preset song configuration:', { title, presetType, mood: config.mood });
+  } else if (typeof theme === 'string' && theme !== 'custom') {
     baseDescription = getThemePrompt(theme);
     title = `${theme} v${Math.floor(Math.random() * 900) + 100}`; // Generate version number
+    console.log('Themed song configuration:', { title, theme, mood });
   } else {
     if (!mood) throw new Error('Mood is required for custom songs');
     baseDescription = getMoodPrompt(mood);
-    title = `${mood} ${lyrics ? 'vocal' : 'instrumental'} melody`;
+    title = name || `${mood} ${lyrics ? 'vocal' : 'instrumental'} melody`;
+    console.log('Custom song configuration:', { title, mood, baseDescription });
   }
 
-  const lyricsPrompt = lyrics ? getLyricsPrompt(lyrics) : '';
+  if (!baseDescription) {
+    throw new Error('Failed to generate song description');
+  }
+
+  const lyricsPrompt = typeof lyrics === 'string' ? getLyricsPrompt(lyrics) : '';
 
   const maxLyricsLength = 200 - baseDescription.length - 2;
-  
-  // Truncate lyrics if needed
-  const truncatedLyrics = lyrics 
-    ? `. ${lyricsPrompt.length > maxLyricsLength 
-        ? lyricsPrompt.slice(0, maxLyricsLength - 3) + '...' 
-        : lyricsPrompt}`
-    : '';
+
+  // Handle lyrics truncation safely
+  let truncatedLyrics = '';
+  if (lyricsPrompt) {
+    truncatedLyrics = `. ${lyricsPrompt.length > maxLyricsLength 
+      ? lyricsPrompt.slice(0, maxLyricsLength - 3) + '...' 
+      : lyricsPrompt}`;
+  }
   
   const description = `${baseDescription}${truncatedLyrics}`;
 
   const tags = theme !== 'custom' ? `${theme}, children's music` : `${mood}, children's music`;
+
+  console.log('Final request configuration:', { 
+    title,
+    description: description.slice(0, 50) + '...',
+    tags,
+    isInstrumental: !lyrics
+  });
   
   const requestBody = {
     model: 'music-s',

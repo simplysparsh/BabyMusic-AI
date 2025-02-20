@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { createMusicGenerationTask } from '../lib/piapi';
+import { PRESET_CONFIGS } from '../constants/presets';
 import type { Song, MusicMood, ThemeType, Language } from '../types';
 
 export class SongService {
@@ -17,11 +18,29 @@ export class SongService {
       throw new Error('User ID and name are required');
     }
 
-    if (!theme && !mood) {
+    // Check if this is a preset song
+    const isPreset = name.toLowerCase().includes('playtime') ||
+                     name.toLowerCase().includes('mealtime') ||
+                     name.toLowerCase().includes('bedtime') ||
+                     name.toLowerCase().includes('potty');
+
+    // Get preset config if applicable
+    const presetType = isPreset ? (
+      name.toLowerCase().includes('playtime') ? 'playing' :
+      name.toLowerCase().includes('mealtime') ? 'eating' :
+      name.toLowerCase().includes('bedtime') ? 'sleeping' :
+      'pooping'
+    ) as PresetType : undefined;
+    
+    const presetConfig = presetType ? PRESET_CONFIGS[presetType] : undefined;
+
+    // For non-preset songs, require either theme or mood
+    if (!isPreset && !theme && !mood) {
       throw new Error('Either theme or mood is required');
     }
 
-    if (theme === 'custom' && !mood) {
+    // For custom theme songs, require mood
+    if (!isPreset && theme === 'custom' && !mood) {
       throw new Error('Mood is required for custom songs');
     }
 
@@ -31,8 +50,10 @@ export class SongService {
       .insert([{
         name,
         theme,
-        mood,
-        lyrics,
+        mood: isPreset ? presetConfig?.mood : mood,
+        lyrics: isPreset ? presetConfig?.lyrics(name.split("'")[0]) : lyrics,
+        is_preset: isPreset,
+        preset_type: presetType || null,
         user_id: userId
       }])
       .select()
@@ -43,8 +64,8 @@ export class SongService {
     // Start generation task
     const taskId = await createMusicGenerationTask(
       theme,
-      mood,
-      lyrics,
+      isPreset ? presetConfig?.mood : mood,
+      isPreset ? presetConfig?.lyrics(name.split("'")[0]) : lyrics,
       name
     );
 

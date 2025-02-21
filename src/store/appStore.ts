@@ -1,9 +1,14 @@
-import { create } from 'zustand';
+import { create, StoreApi, UseBoundStore } from 'zustand';
 import { supabase } from '../lib/supabase';
-import type { Song, MusicMood, Instrument, UserProfile, User, PresetType, Language } from '../types';
+import type { Song, MusicMood, ThemeType, UserProfile, PresetType } from '../types';
+import type { User } from '@supabase/supabase-js';
 import { SongService } from '../services/songService';
-import { PresetService } from '../services/presetService';
 import { ProfileService } from '../services/profileService';
+
+// Types
+type Language = 'en' | 'hi' | 'es';
+type StateUpdater = (state: AppState) => Partial<AppState>;
+type AppStore = UseBoundStore<StoreApi<AppState>>;
 
 interface AppState {
   // Core state
@@ -18,7 +23,7 @@ interface AppState {
   presetSongTypes: Set<PresetType>;
   
   // Actions
-  setState: (updater: (state: AppState) => Partial<AppState>) => void;
+  setState: (updater: StateUpdater) => void;
   clearError: () => void;
   
   // Auth
@@ -31,7 +36,7 @@ interface AppState {
   createSong: (params: {
     name: string;
     mood: MusicMood;
-    instrument?: Instrument;
+    theme?: ThemeType;
     lyrics?: string;
   }) => Promise<void>;
   deleteAllSongs: () => Promise<void>;
@@ -43,28 +48,31 @@ interface AppState {
   }) => Promise<void>;
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+export const useAppStore = create<AppState>((
+  set: (partial: Partial<AppState> | ((state: AppState) => Partial<AppState>)) => void,
+  get: () => AppState
+) => ({
   // Initial state
   user: null,
   profile: null,
   songs: [],
   isLoading: false,
   error: null,
-  generatingSongs: new Set(),
-  presetSongTypes: new Set(),
+  generatingSongs: new Set<string>(),
+  presetSongTypes: new Set<PresetType>(),
 
   // State helpers
-  setState: (updater) => set(updater),
+  setState: (updater: StateUpdater) => set(updater),
   clearError: () => set({ error: null }),
 
   // Auth actions
-  signIn: async (email, password) => {
+  signIn: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       
-      const profile = await ProfileService.loadProfile(data.user.id);
+      const profile = await ProfileService.getProfile(data.user.id);
       const songs = await SongService.loadUserSongs(data.user.id);
         
       set({ 
@@ -80,7 +88,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  signUp: async (email, password, babyName) => {
+  signUp: async (email: string, password: string, babyName: string) => {
     set({ isLoading: true, error: null });
     try {
       const { data, error } = await supabase.auth.signUp({ 
@@ -98,11 +106,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         babyName
       });
 
-      // Generate initial preset songs
-      await PresetService.regenerateAllPresets({
-        userId: data.user!.id,
-        babyName
-      });
+      // Generate initial preset songs using SongService
+      await SongService.generateInitialPresets(data.user!.id, babyName);
 
       set({ 
         user: data.user,
@@ -152,7 +157,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   // Song actions
-  createSong: async ({ name, mood, instrument, lyrics }) => {
+  createSong: async ({ name, mood, theme, lyrics }) => {
     const { user, profile } = get();
     if (!user || !profile) throw new Error('Must be signed in');
 
@@ -176,7 +181,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         userId: user.id,
         name,
         mood,
-        instrument,
+        theme,
         lyrics,
         language: profile.preferredLanguage
       });

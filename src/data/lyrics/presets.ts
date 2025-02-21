@@ -9,59 +9,59 @@ interface PresetConfig {
 
 export const PRESET_CONFIGS: Record<PresetType, PresetConfig> = {
   playing: {
-    title: (name) => `${name}'s playtime song`,
+    title: (name: string) => `${name}'s Playtime Song`,
     mood: 'energetic',
-    lyrics: (name) => 
-      `${name} is jumping, ${name} is free,\n` +
-      `Dancing and spinning for all to see!\n` +
-      `Hands up high, touch the sky,\n` +
-      `${name}'s smile makes the whole world bright!\n\n` +
-      `Clap your hands and stomp your feet,\n` +
-      `${name}'s playtime is oh so sweet!\n` +
-      `Twirl around, touch the ground,\n` +
-      `Joy and laughter all around!`,
-    description: 'High-energy dance tune with playful rhythms'
+    lyrics: (name: string) => 
+      `Jump and bounce, let's play around,\n` +
+      `${name}'s having fun, hear the happy sound!\n` +
+      `Clap your hands and spin with glee,\n` +
+      `Playing games, just you and me!\n\n` +
+      `Toys and blocks and so much more,\n` +
+      `${name}'s learning what fun is for!\n` +
+      `Giggles, smiles, and lots of play,\n` +
+      `Making memories every day!`,
+    description: 'Energetic melody for playtime activities'
   },
   eating: {
-    title: (name) => `${name}'s mealtime song`,
+    title: (name: string) => `${name}'s Mealtime Song`,
     mood: 'playful',
-    lyrics: (name) =>
+    lyrics: (name: string) =>
       `Yummy yummy in ${name}'s tummy,\n` +
       `Eating food that's oh so yummy!\n` +
-      `Open wide, food inside,\n` +
-      `Growing strong with every bite!\n\n` +
-      `Carrots, peas, and healthy treats,\n` +
-      `Make ${name}'s mealtime extra sweet!\n` +
-      `One more spoon, very soon,\n` +
-      `${name} will grow big like the moon!`,
-    description: 'Upbeat melody with gentle encouragement'
+      `One more bite, it tastes so nice,\n` +
+      `Healthy food will make you rise!\n\n` +
+      `Open wide, here comes the spoon,\n` +
+      `${name} will grow up big real soon!\n` +
+      `Munching, crunching, what a treat,\n` +
+      `Mealtime makes our day complete!`,
+    description: 'Encouraging melody for mealtime'
   },
   sleeping: {
-    title: (name) => `${name}'s bedtime song`,
+    title: (name: string) => `${name}'s Bedtime Lullaby`,
     mood: 'calm',
-    lyrics: (name) =>
-      `Sweet dreams little ${name}, close your eyes,\n` +
+    lyrics: (name: string) =>
+      `Sweet dreams, little ${name}, close your eyes,\n` +
       `Stars are twinkling in the night skies.\n` +
-      `Moonbeams dance upon your bed,\n` +
-      `Angels watching overhead.\n\n` +
-      `Gentle breezes, soft and light,\n` +
-      `Keep you cozy through the night.\n` +
-      `${name}'s dreams are filled with love so deep,\n` +
-      `Time for peaceful, gentle sleep.`,
-    description: 'Soft, soothing lullaby with peaceful patterns'
+      `Soft and cozy in your bed,\n` +
+      `Rest your precious sleepy head.\n\n` +
+      `Moonbeams dancing, soft and bright,\n` +
+      `Watching over you tonight.\n` +
+      `Drift away to dreamland sweet,\n` +
+      `Until morning we shall meet.`,
+    description: 'Soothing lullaby for bedtime'
   },
   pooping: {
-    title: (name) => `${name}'s flushtime`,
+    title: (name: string) => `${name}'s Flush Time Song`,
     mood: 'playful',
-    lyrics: (name) =>
-      `Push push little ${name}, time to go,\n` +
-      `Let it all come out, nice and slow!\n` +
-      `Sitting on your special seat,\n` +
-      `Making potty time so neat!\n\n` +
-      `Every day we learn and grow,\n` +
-      `${name}'s getting bigger, don't you know!\n` +
-      `When we're done, we'll clap and say,\n` +
-      `"${name} did so great today!"`,
-    description: 'Fun, encouraging melody with rhythmic patterns'
+    lyrics: (name: string) =>
+      `It's potty time for ${name} today,\n` +
+      `Learning new things along the way!\n` +
+      `Sitting proud upon the throne,\n` +
+      `You can do this on your own!\n\n` +
+      `Push push, little ${name}, you're doing great,\n` +
+      `This is something to celebrate!\n` +
+      `When you're done, we'll wash our hands,\n` +
+      `You're the star of potty land!`,
+    description: 'Playful melody for potty training'
   }
 };

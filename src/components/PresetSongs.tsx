@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { type FC, useState, useRef, useEffect, MouseEvent, KeyboardEvent } from 'react';
 import { Baby, UtensilsCrossed, Moon, Waves, Play, Pause, Wand2, Music, ChevronRight, ChevronLeft, RefreshCw } from 'lucide-react';
 import { usePresetSongs } from '../hooks/usePresetSongs';
-import type { PresetType } from '../types';
+import type { PresetType, Song } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { useSongStore } from '../store/songStore';
 import { useAudioStore } from '../store/audioStore';
-import { useState, useRef, useEffect } from 'react';
+import { getPresetType } from '../utils/presetUtils';
 
 const PRESETS: {
   type: PresetType;
@@ -34,33 +34,25 @@ const PRESETS: {
   {
     type: 'pooping',
     icon: Waves,
-    title: 'Potty Time',
+    title: 'Flush Time',
     description: 'Playful tunes to make bathroom time fun',
   },
 ];
 
-export default function PresetSongs() {
+const PresetSongs: FC = () => {
   const { user, profile } = useAuthStore();
   const { isPlaying, currentSong, songNames, presetSongTypes, generatingSongs, handlePresetClick } = usePresetSongs();
   const { songs } = useSongStore();
-  const [timeLeft, setTimeLeft] = useState(240); // 4 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState<number>(240); // 4 minutes in seconds
   const { playAudio, stopAllAudio } = useAudioStore();
   const [currentVariation, setCurrentVariation] = useState<Record<string, number>>({});
   
-  const getPresetType = (name: string): PresetType | null => {
-    if (name.toLowerCase().includes('playtime')) return 'playing';
-    if (name.toLowerCase().includes('mealtime')) return 'eating';
-    if (name.toLowerCase().includes('bedtime')) return 'sleeping';
-    if (name.toLowerCase().includes('potty')) return 'pooping';
-    return null;
-  };
-
   // Handle countdown timer
   useEffect(() => {
     let timer: number;
     if (presetSongTypes.size > 0 || generatingSongs.size > 0) {
       timer = window.setInterval(() => {
-        setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+        setTimeLeft((prev: number) => (prev > 0 ? prev - 1 : 0));
       }, 1000);
     } else {
       setTimeLeft(240);
@@ -89,9 +81,9 @@ export default function PresetSongs() {
     playAudio(audioUrl);
   };
 
-  const handleVariationChange = (e: React.MouseEvent, type: PresetType, direction: 'next' | 'prev') => {
+  const handleVariationChange = (e: MouseEvent<HTMLDivElement>, type: PresetType, direction: 'next' | 'prev') => {
     e.stopPropagation();
-    const song = songs.find(s => s.name === songNames[type]);
+    const song = songs.find((s: Song) => s.name === songNames[type]);
     if (!song?.variations?.length) return;
 
     const currentIndex = currentVariation[type] || 0;
@@ -100,7 +92,7 @@ export default function PresetSongs() {
       ? (currentIndex + 1) % totalVariations
       : (currentIndex - 1 + totalVariations) % totalVariations;
     
-    setCurrentVariation(prev => ({ ...prev, [type]: newIndex }));
+    setCurrentVariation((prev: Record<string, number>) => ({ ...prev, [type]: newIndex }));
     handlePlay(song.variations[newIndex].audio_url, type);
   };
 
@@ -119,9 +111,9 @@ export default function PresetSongs() {
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 relative">
         {PRESETS.map(({ type, icon: Icon, title, description }) => {
-          const song = songs.find(s => s.name === songNames[type]);
+          const song = songs.find((s: Song) => s.name === songNames[type]);
           const isGenerating = presetSongTypes.has(type) || 
-                             (song && !song.audio_url && ['staged', 'pending', 'processing'].includes(song.status));
+                             (song && !song.audioUrl && ['staged', 'pending', 'processing'].includes(song.status || ''));
           
           return (
             <div
@@ -129,23 +121,23 @@ export default function PresetSongs() {
               onClick={() => handlePresetClick(type)}
               role="button"
               aria-disabled={isGenerating}
-              className="relative overflow-hidden rounded-2xl p-5 sm:p-7 text-left min-h-[100px] cursor-pointer
-                     aria-disabled:opacity-50 aria-disabled:cursor-not-allowed
-                     aria-disabled:hover:scale-100 aria-disabled:hover:shadow-none
-                     aria-disabled:hover:from-current aria-disabled:hover:to-current
-                     aria-disabled:hover:bg-white/5
-                    transition-all duration-500 group flex items-start gap-4 backdrop-blur-sm bg-black/60
-                     bg-gradient-to-br hover:scale-[1.02]
-                     ${type === 'playing' ? 'from-[#FF5252]/20 to-[#FF8080]/5 hover:from-[#FF3333]/40 hover:to-[#FF6666]/30' :
-                       type === 'eating' ? 'from-[#00E676]/20 to-[#69F0AE]/5 hover:from-[#00C853]/40 hover:to-[#00E676]/30' :
-                       type === 'sleeping' ? 'from-[#40C4FF]/20 to-[#80D8FF]/5 hover:from-[#00B0FF]/40 hover:to-[#40C4FF]/30' :
-                       'from-[#E040FB]/20 to-[#EA80FC]/5 hover:from-[#D500F9]/40 hover:to-[#E040FB]/30'}
-                     hover:shadow-xl hover:shadow-${
-                       type === 'playing' ? '[#FF5252]' :
-                       type === 'eating' ? '[#00E676]' :
-                       type === 'sleeping' ? '[#40C4FF]' :
-                       '[#E040FB]'
-                     }/20"
+              className={`relative overflow-hidden rounded-2xl p-5 sm:p-7 text-left min-h-[100px] cursor-pointer
+                       aria-disabled:opacity-50 aria-disabled:cursor-not-allowed
+                       aria-disabled:hover:scale-100 aria-disabled:hover:shadow-none
+                       aria-disabled:hover:from-current aria-disabled:hover:to-current
+                       aria-disabled:hover:bg-white/5
+                       transition-all duration-500 group flex items-start gap-4 backdrop-blur-sm bg-black/60
+                       bg-gradient-to-br hover:scale-[1.02]
+                       ${type === 'playing' ? 'from-[#FF5252]/20 to-[#FF8080]/5 hover:from-[#FF3333]/40 hover:to-[#FF6666]/30' :
+                         type === 'eating' ? 'from-[#00E676]/20 to-[#69F0AE]/5 hover:from-[#00C853]/40 hover:to-[#00E676]/30' :
+                         type === 'sleeping' ? 'from-[#40C4FF]/20 to-[#80D8FF]/5 hover:from-[#00B0FF]/40 hover:to-[#40C4FF]/30' :
+                         'from-[#E040FB]/20 to-[#EA80FC]/5 hover:from-[#D500F9]/40 hover:to-[#E040FB]/30'}
+                       hover:shadow-xl hover:shadow-${
+                         type === 'playing' ? '[#FF5252]' :
+                         type === 'eating' ? '[#00E676]' :
+                         type === 'sleeping' ? '[#40C4FF]' :
+                         '[#E040FB]'
+                       }/20`}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/[0.07] to-transparent opacity-0
                           group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -186,7 +178,7 @@ export default function PresetSongs() {
                       );
                     }
                     
-                    if (song?.error && !song.audio_url) {
+                    if (song?.error && !song.audioUrl) {
                       return (
                         <span className="inline-flex items-center text-xs bg-red-500/20 text-white
                                      px-3 py-1.5 rounded-full ml-2 border border-red-500/20
@@ -197,7 +189,7 @@ export default function PresetSongs() {
                       );
                     }
                     
-                    if (song?.audio_url) {
+                    if (song?.audioUrl) {
                       return (
                         <span className="inline-flex items-center text-xs bg-green-500/20 text-white
                                      px-3 py-1.5 rounded-full ml-2 border border-green-500/20
@@ -224,27 +216,27 @@ export default function PresetSongs() {
                   ) : description}
                 </p>
                 {!presetSongTypes.has(type) &&
-                 !songs.some(s => s.name === songNames[type] && generatingSongs.has(s.id)) &&
+                 !songs.some((s: Song) => s.name === songNames[type] && generatingSongs.has(s.id)) &&
                  songNames[type] &&
-                 songs.find(s => s.name === songNames[type])?.variations?.length > 0 && (
+                 (songs.find((s: Song) => s.name === songNames[type])?.variations?.length ?? 0) > 0 && (
                   <div className="flex items-center gap-1 mt-3 text-white/60">
                     <div
                       role="button"
                       tabIndex={0}
-                      onClick={(e) => handleVariationChange(e, type, 'prev')}
-                      onKeyDown={(e) => e.key === 'Enter' && handleVariationChange(e, type, 'prev')}
+                      onClick={(e: MouseEvent<HTMLDivElement>) => handleVariationChange(e, type, 'prev')}
+                      onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => e.key === 'Enter' && handleVariationChange(e as unknown as MouseEvent<HTMLDivElement>, type, 'prev')}
                       className="p-1 rounded-full hover:bg-white/10 transition-colors"
                     >
                       <ChevronLeft className="w-3 h-3" />
                     </div>
                     <span className="text-xs">
-                      {(currentVariation[type] || 0) + 1}/{songs.find(s => s.name === songNames[type])?.variations?.length}
+                      {(currentVariation[type] || 0) + 1}/{songs.find((s: Song) => s.name === songNames[type])?.variations?.length ?? 0}
                     </span>
                     <div
                       role="button"
                       tabIndex={0}
-                      onClick={(e) => handleVariationChange(e, type, 'next')}
-                      onKeyDown={(e) => e.key === 'Enter' && handleVariationChange(e, type, 'next')}
+                      onClick={(e: MouseEvent<HTMLDivElement>) => handleVariationChange(e, type, 'next')}
+                      onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => e.key === 'Enter' && handleVariationChange(e as unknown as MouseEvent<HTMLDivElement>, type, 'next')}
                       className="p-1 rounded-full hover:bg-white/10 transition-colors"
                     >
                       <ChevronRight className="w-3 h-3" />
@@ -262,4 +254,6 @@ export default function PresetSongs() {
       </div>
     </div>
   );
-}
+};
+
+export default PresetSongs;

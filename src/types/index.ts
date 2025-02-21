@@ -41,6 +41,8 @@ export interface Song {
   status?: TaskStatus;
   retryable?: boolean;
   variations?: SongVariation[];
+  error?: string;
+  task_id?: string;
 }
 
 export interface SongVariation {

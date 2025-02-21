@@ -1,26 +1,33 @@
-import { create } from 'zustand';
+import { create, StoreApi, UseBoundStore } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from './authStore';
 import { useErrorStore } from './errorStore';
 import { createMusicGenerationTask } from '../lib/piapi';
-import type { Song, MusicMood, Instrument, Tempo } from '../types';
+import type { Song, MusicMood, ThemeType, Tempo, PresetType } from '../types';
+import { getPresetType } from '../utils/presetUtils';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+
+// Types
+type StateUpdater = (state: SongState) => Partial<SongState>;
+type SongStore = UseBoundStore<StoreApi<SongState>>;
 
 interface SongState {
   songs: Song[];
   isLoading: boolean;
   generatingSongs: Set<string>;
-  presetSongTypes: Set<string>;
+  presetSongTypes: Set<PresetType>;
   processingTaskIds: Set<string>;
   stagedTaskIds: Set<string>;
   isDeleting: boolean;
-  setState: (updater: (state: SongState) => Partial<SongState>) => void;
+  error: string | null;
+  setState: (updater: StateUpdater) => void;
   clearGeneratingState: (songId: string) => void;
   loadSongs: () => Promise<void>;
   setupSubscription: () => void;
   createSong: (params: {
     name: string;
     mood: MusicMood;
-    instrument?: Instrument;
+    theme?: ThemeType;
     tempo?: Tempo;
     lyrics?: string;
     hasUserIdeas?: boolean;
@@ -28,25 +35,20 @@ interface SongState {
   deleteAllSongs: () => Promise<void>;
 }
 
-function getPresetType(name: string): string | null {
-  return name.toLowerCase().includes('playtime') ? 'playing'
-    : name.toLowerCase().includes('mealtime') ? 'eating'
-    : name.toLowerCase().includes('bedtime') ? 'sleeping'
-    : name.toLowerCase().includes('potty') ? 'pooping'
-    : null;
-}
-
-export const useSongStore = create<SongState>((set, get) => ({
+export const useSongStore = create<SongState>((
+  set: (partial: Partial<SongState> | ((state: SongState) => Partial<SongState>)) => void,
+  get: () => SongState
+) => ({
   songs: [],
   isLoading: false,
   generatingSongs: new Set<string>(),
-  presetSongTypes: new Set<string>(),
+  presetSongTypes: new Set<PresetType>(),
   processingTaskIds: new Set<string>(),
   stagedTaskIds: new Set<string>(),
   error: null,
   isDeleting: false,
 
-  setState: (updater) => set(updater),
+  setState: (updater: StateUpdater) => set(updater),
 
   clearGeneratingState: (songId: string) => {
     set(state => {
@@ -74,7 +76,7 @@ export const useSongStore = create<SongState>((set, get) => ({
           table: 'songs',
           filter: `user_id=eq.${user.id}`,
         },
-        async (payload) => {
+        async (payload: RealtimePostgresChangesPayload<Song>) => {
           const { new: newSong, old: oldSong, eventType } = payload;          
           if (!oldSong?.id || !newSong?.id) {
             return;
@@ -174,7 +176,7 @@ export const useSongStore = create<SongState>((set, get) => ({
           schema: 'public', 
           table: 'song_variations'
         },
-        async (payload) => {
+        async (payload: RealtimePostgresChangesPayload<any>) => {
           const variation = payload.new;
           if (!variation?.song_id) {
             return;
@@ -250,7 +252,7 @@ export const useSongStore = create<SongState>((set, get) => ({
 
           // Update songs and clear preset types for completed songs
           const completedPresetTypes = new Set<string>();
-          songs?.forEach(song => {
+          songs?.forEach((song: Song) => {
             const presetType = getPresetType(song.name);
             if (song.audio_url && presetType) {
               completedPresetTypes.add(presetType);
@@ -293,11 +295,18 @@ export const useSongStore = create<SongState>((set, get) => ({
     name, 
     mood, 
     theme, 
-    voice,
     lyrics,
     tempo,
     isInstrumental,
     hasUserIdeas 
+  }: {
+    name: string;
+    mood: MusicMood;
+    theme?: ThemeType;
+    lyrics?: string;
+    tempo?: Tempo;
+    isInstrumental?: boolean;
+    hasUserIdeas?: boolean;
   }) => {
     console.log('songStore.createSong called with:', {
       name,
@@ -305,18 +314,15 @@ export const useSongStore = create<SongState>((set, get) => ({
       theme,
       lyrics,
       tempo,
-      voice,
       isInstrumental,
       hasUserIdeas
     });
 
-    let newSong;
+    let newSong: Song | undefined;
     try {
-      // Create initial song with staged status
       const user = useAuthStore.getState().user;
       const profile = useAuthStore.getState().profile;
       const errorStore = useErrorStore.getState();
-      const currentState = get();
 
       if (!user || !profile) {
         throw new Error('User must be logged in to create songs');
@@ -375,9 +381,8 @@ export const useSongStore = create<SongState>((set, get) => ({
           name,
           mood,
           theme,
-          voice_type: voice,
-          tempo,
           lyrics,
+          tempo,
           is_instrumental: isInstrumental,
           has_user_ideas: hasUserIdeas,
           user_lyric_input: lyrics,
@@ -415,7 +420,9 @@ export const useSongStore = create<SongState>((set, get) => ({
         tempo,
         isInstrumental,
         hasUserIdeas,
-        voice
+        voice: newSong.voice_type,
+        is_preset: isPreset,
+        preset_type: presetType || undefined
       };
 
       console.log('Calling createMusicGenerationTask with:', {

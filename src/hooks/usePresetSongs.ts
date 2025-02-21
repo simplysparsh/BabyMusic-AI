@@ -3,67 +3,33 @@ import { useAuthStore } from '../store/authStore';
 import { useSongStore } from '../store/songStore';
 import { useAudioStore } from '../store/audioStore';
 import type { PresetType, Song } from '../types';
-
-const PRESET_CONFIGS = {
-  playing: {
-    name: (babyName: string) => `${babyName}'s playtime song`,
-    mood: 'energetic' as const,
-    lyrics: (babyName: string) => `Bounce and play, ${babyName}'s having fun today!`
-  },
-  eating: {
-    name: (babyName: string) => `${babyName}'s mealtime song`,
-    mood: 'playful' as const,
-    lyrics: (babyName: string) => `Yummy yummy in ${babyName}'s tummy!`
-  },
-  sleeping: {
-    name: (babyName: string) => `${babyName}'s bedtime song`,
-    mood: 'calm' as const,
-    lyrics: (babyName: string) => `Sweet dreams little ${babyName}!`
-  },
-  pooping: {
-    name: (babyName: string) => `${babyName}'s potty song`,
-    mood: 'playful' as const,
-    lyrics: (babyName: string) => `Push push little ${babyName}!`
-  }
-};
+import { PRESET_CONFIGS } from '../data/lyrics';
 
 export function usePresetSongs() {
   const { user, profile } = useAuthStore();
-  const { songs, presetSongTypes, generatingSongs, createSong } = useSongStore();
-  const { playAudio, currentUrl, isPlaying } = useAudioStore();
-  const [presetSongs, setPresetSongs] = useState<Record<PresetType, Song | null>>({
-    playing: null,
-    eating: null,
-    sleeping: null,
-    pooping: null
+  const { songs, createSong, presetSongTypes, generatingSongs } = useSongStore();
+  const { isPlaying, currentUrl, handlePlay } = useAudioStore();
+
+  // Get preset songs from the list
+  const presetSongs = songs.filter(song => {
+    const name = song.name.toLowerCase();
+    return (
+      name.includes('playtime') ||
+      name.includes('mealtime') ||
+      name.includes('bedtime') ||
+      name.includes('potty')
+    );
   });
-  const [songNames, setSongNames] = useState<Record<PresetType, string>>({});
 
-  useEffect(() => {
-    if (!user || !profile?.babyName) return;
-
-    setSongNames({
-      playing: PRESET_CONFIGS.playing.name(profile.babyName),
-      eating: PRESET_CONFIGS.eating.name(profile.babyName),
-      sleeping: PRESET_CONFIGS.sleeping.name(profile.babyName),
-      pooping: PRESET_CONFIGS.pooping.name(profile.babyName)
-    });
-  }, [user, profile?.babyName]);
-
-  // Update preset songs when songs change
-  useEffect(() => {
-    if (!songNames) return;
-
-    const newPresetSongs = {} as Record<PresetType, Song | null>;
-    Object.entries(songNames).forEach(([type, name]) => {
-      newPresetSongs[type as PresetType] = songs.find(s => s.name === name) || null;
-    });
-    setPresetSongs(newPresetSongs);
-  }, [songs, songNames]);
-
-  const handlePlay = useCallback((audioUrl: string) => {
-    playAudio(audioUrl);
-  }, [playAudio]);
+  // Generate song names based on baby name
+  const songNames = profile?.babyName
+    ? Object.fromEntries(
+        Object.entries(PRESET_CONFIGS).map(([type, config]) => [
+          type,
+          config.title(profile.babyName)
+        ])
+      )
+    : {};
 
   const handlePresetClick = useCallback(async (type: PresetType) => {
     if (!user?.id || !profile?.babyName) return;

@@ -4,9 +4,11 @@ import type {
   Tempo,
   VoiceType,
   AgeGroup,
+  PresetType
 } from '../types';
 import { ClaudeAPI } from '../lib/claude';
-import { PRESET_CONFIGS, THEME_LYRICS } from '../data/lyrics';
+import { PRESET_CONFIGS, THEME_CONFIGS } from '../data/lyrics';
+import { supabase } from '../lib/supabase';
 
 interface LyricGenerationParams {
   babyName: string;
@@ -21,69 +23,26 @@ interface LyricGenerationParams {
   presetType?: PresetType;
 }
 
-// Preset-specific prompts
-const PRESET_PROMPTS: Record<PresetType, (name: string) => string> = {
-  playing: (name) =>
-    `Create playful, energetic lyrics for ${name}'s playtime song. Include actions like jumping, dancing, and spinning.`,
-
-  eating: (name) =>
-    `Write encouraging lyrics for ${name}'s mealtime song. Make eating fun and exciting while staying gentle.`,
-
-  sleeping: (name) =>
-    `Compose soothing lullaby lyrics for ${name}'s bedtime. Use calming imagery and peaceful themes.`,
-
-  pooping: (name) =>
-    `Create encouraging, light-hearted lyrics for ${name}'s potty time. Keep it fun but purposeful.`,
-};
-
-// Theme-based prompts
-const THEME_PROMPTS: Record<ThemeType, (name: string) => string> = {
-  pitchDevelopment: (name) =>
-    `Create lyrics for a song that helps ${name} develop pitch recognition. Include melodic patterns and clear tonal changes.`,
-
-  cognitiveSpeech: (name) =>
-    `Write lyrics for a song that enhances ${name}'s speech development. Use simple words and repetitive patterns.`,
-
-  sleepRegulation: (name) =>
-    `Compose gentle lullaby lyrics to help ${name} fall asleep. Use soothing words and calming imagery.`,
-
-  socialEngagement: (name) =>
-    `Create interactive song lyrics that encourage ${name}'s social development. Include actions and responses.`,
-
-  musicalDevelopment: (name) =>
-    `Write lyrics that introduce ${name} to musical concepts. Include rhythm patterns and musical terms.`,
-
-  indianClassical: (name) =>
-    `Create lyrics inspired by Indian classical music for ${name}. Keep the language simple and child-friendly`,
-
-  westernClassical: (name) =>
-    `Create lyrics inspired by Western classical melodies for ${name}. Focus on harmony and musical flow.`,
-
-  custom: (name) =>
-    `Write engaging children's song lyrics for ${name}. Make it age-appropriate and fun.`,
-};
-
-// Age-specific modifiers
+// Age-specific modifiers for prompts
 const AGE_MODIFIERS: Record<AgeGroup, string> = {
-  '0-6':
-    'Keep the lyrics very simple with basic sounds and repetitive patterns.',
-  '7-12': 'Use simple words and include interactive elements.',
-  '13-24': 'Include more complex words and educational elements.',
+  '0-6': 'Keep it very simple and repetitive.',
+  '7-12': 'Use simple words and clear patterns.',
+  '13-24': 'Include more complex words and concepts.'
 };
 
-// Mood-based style guides
+// Mood-specific style guidance
 const MOOD_STYLES: Record<MusicMood, string> = {
-  calm: 'Use gentle, soothing words and a peaceful rhythm.',
-  playful: 'Make it fun and bouncy with playful words.',
-  learning: 'Include educational elements and clear pronunciation.',
-  energetic: 'Use upbeat words and dynamic phrases.',
+  calm: 'Use soothing and peaceful language.',
+  playful: 'Make it fun and bouncy.',
+  learning: 'Focus on educational elements.',
+  energetic: 'Include active and dynamic words.'
 };
 
-// Tempo modifiers
+// Tempo-specific guidance
 const TEMPO_MODIFIERS: Record<Tempo, string> = {
-  slow: 'Create a gentle, flowing rhythm.',
-  medium: 'Maintain a steady, comfortable pace.',
-  fast: 'Use bouncy, quick-moving phrases.',
+  slow: 'Keep a gentle, slow rhythm.',
+  medium: 'Maintain a moderate, steady pace.',
+  fast: 'Create an upbeat, quick rhythm.'
 };
 
 export class LyricGenerationService {
@@ -114,15 +73,13 @@ export class LyricGenerationService {
     // Base prompt based on context
     let basePrompt = '';
 
-    if (isPreset && presetType) {
-      basePrompt = PRESET_PROMPTS[presetType](babyName);
-    } else if (theme && !hasUserIdeas) {
-      basePrompt = THEME_PROMPTS[theme](babyName);
+    if (isPreset && presetType && PRESET_CONFIGS[presetType]) {
+      basePrompt = PRESET_CONFIGS[presetType].description;
+    } else if (theme && !hasUserIdeas && THEME_CONFIGS[theme]) {
+      basePrompt = THEME_CONFIGS[theme].prompt;
     } else if (!theme || hasUserIdeas) {
       if (!mood) {
-        throw new Error(
-          'Mood is required for custom songs-lyricsgenerationservice'
-        );
+        throw new Error('Mood is required for custom songs');
       }
       basePrompt = `Write engaging children's song lyrics for ${babyName}. Make it age-appropriate and fun.`;
     }
@@ -142,42 +99,10 @@ export class LyricGenerationService {
       basePrompt += ' ' + TEMPO_MODIFIERS[tempo];
     }
 
-    // Handle user ideas differently based on context
-    if (hasUserIdeas && userInput) {
-      if (isCustom) {
-        // For custom songs, use user input as additional context
-        basePrompt =
-          `Create lyrics for a children's song with this additional context: ${userInput}\n\n` +
-          `Requirements:\n` +
-          `- Must prominently feature the name "${babyName}"\n` +
-          `- Keep the original theme/idea from user input\n` +
-          `- Adapt to ${mood} mood and ${tempo || 'moderate'} tempo`;
-      } else {
-        // For themed songs, use user input as additional context
-        basePrompt +=
-          '\n\nSpecial Instructions:\n' +
-          `- Use this additional context from the parent: ${userInput}\n` +
-          '- Blend the context with the theme naturally\n' +
-          `- Ensure ${babyName}'s name is featured prominently`;
-      }
-    } else if (isCustom) {
-      // For custom songs without specific ideas, ensure baby name is central
-      basePrompt =
-        `Create a ${mood} song centered around ${babyName}.\n\n` +
-        `Requirements:\n` +
-        `- Make ${babyName} the main character of the song\n` +
-        `- Create an engaging story or activity\n` +
-        `- Match the ${mood} mood and ${tempo || 'moderate'} tempo`;
+    // Add user's custom input if provided
+    if (userInput) {
+      basePrompt += `\n\nIncorporate these ideas: ${userInput}`;
     }
-
-    // Add general guidelines
-    basePrompt +=
-      '\n\nGuidelines:\n' +
-      '- Keep lyrics child-friendly and positive\n' +
-      '- Use clear, simple language\n' +
-      '- Include repetition for memorability\n' +
-      '- Maximum length: 4-8 lines\n' +
-      '- Make it musical and flowing';
 
     try {
       console.log('Calling Claude API for lyrics generation');
@@ -193,10 +118,10 @@ export class LyricGenerationService {
       console.error('Failed to generate lyrics with Claude:', error);
       // Use backup lyrics from our data files
       let fallbackLyrics: string;
-      if (isPreset && presetType) {
+      if (isPreset && presetType && PRESET_CONFIGS[presetType]) {
         fallbackLyrics = PRESET_CONFIGS[presetType].lyrics(babyName);
-      } else if (theme) {
-        fallbackLyrics = THEME_LYRICS[theme](babyName);
+      } else if (theme && THEME_CONFIGS[theme]) {
+        fallbackLyrics = THEME_CONFIGS[theme].lyrics(babyName);
       } else {
         // For custom songs, create a mood-based template
         fallbackLyrics = `Let's make ${mood} music together,\n` +
@@ -212,5 +137,23 @@ export class LyricGenerationService {
       
       return fallbackLyrics;
     }
+  }
+}
+
+async function logLyricGenerationError(error: string, params: LyricGenerationParams) {
+  try {
+    await supabase.from('lyric_generation_errors').insert([
+      {
+        error_message: error,
+        theme: params.theme,
+        mood: params.mood,
+        is_preset: params.isPreset,
+        preset_type: params.presetType,
+        has_user_ideas: params.hasUserIdeas,
+        has_user_input: !!params.userInput
+      }
+    ]);
+  } catch (err) {
+    console.error('Failed to log lyric generation error:', err);
   }
 }

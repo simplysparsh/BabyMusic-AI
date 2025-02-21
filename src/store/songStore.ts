@@ -290,9 +290,11 @@ export const useSongStore = create<SongState>((set, get) => ({
   createSong: async ({ 
     name, 
     mood, 
+    theme,
     instrument, 
     lyrics,
     tempo,
+    isInstrumental,
     hasUserIdeas 
   }) => {
     let newSong;
@@ -366,8 +368,12 @@ export const useSongStore = create<SongState>((set, get) => ({
         .insert([{
           name,
           mood,
+          theme,
           instrument,
           lyrics,
+          is_instrumental: isInstrumental,
+          has_user_ideas: hasUserIdeas,
+          user_lyric_input: lyrics,
           user_id: user.id,
           audio_url: null,
           status: 'staged'

@@ -8,13 +8,19 @@ export class SongService {
   static async createSong(params: {
     userId: string;
     name: string;
-    tempo?: Tempo;
     theme?: ThemeType;
-    mood?: MusicMood;
-    lyrics?: string;
-    hasUserIdeas?: boolean;
+    songParams: {
+      tempo?: Tempo;
+      voiceType?: VoiceType;
+      theme?: ThemeType;
+      mood?: MusicMood;
+      lyrics?: string;
+      isInstrumental?: boolean;
+      hasUserIdeas?: boolean;
+    }
   }): Promise<Song> {
-    const { userId, name, theme, mood, lyrics, tempo, hasUserIdeas } = params;
+    const { userId, name, songParams } = params;
+    const { theme, mood, lyrics, tempo, hasUserIdeas, isInstrumental } = songParams;
     
     if (!userId || !name) {
       throw new Error('User ID and name are required');
@@ -53,6 +59,8 @@ export class SongService {
         name,
         theme,
         mood: isPreset ? presetConfig?.mood : mood,
+        voice_type: isInstrumental ? null : voiceType,
+        tempo,
         lyrics: isPreset ? presetConfig?.lyrics(name.split("'")[0]) : lyrics,
         is_preset: isPreset,
         preset_type: presetType || null,
@@ -68,10 +76,10 @@ export class SongService {
       theme,
       isPreset ? presetConfig?.mood : mood,
       isPreset ? presetConfig?.lyrics(name.split("'")[0]) : lyrics,
-      name,
+      name.split("'")[0],
       undefined, // ageGroup will be fetched from profile
       tempo,
-      false, // isInstrumental
+      isInstrumental,
       hasUserIdeas
     );
 

@@ -23,6 +23,10 @@ export default function MusicGenerator() {
   const [timeLeft, setTimeLeft] = useState(GENERATION_TIME);
   const [error, setError] = useState<string | null>(null);
   const [hasIdeas, setHasIdeas] = useState(false);
+  const [voiceSettings, setVoiceSettings] = useState({
+    isInstrumental: false,
+    voice: 'softFemale' as VoiceType
+  });
   
   const { createSong, generatingSongs } = useSongStore();
   const { user } = useAuthStore();
@@ -31,15 +35,29 @@ export default function MusicGenerator() {
   useEffect(() => {
     let timer: number;
     if (isGenerating) {
+      // Reset timer when starting generation
+      setTimeLeft(GENERATION_TIME);
       timer = window.setInterval(() => {
         setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
       }, 1000);
-    } else {
-      setTimeLeft(GENERATION_TIME);
     }
-    return () => clearInterval(timer);
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
   }, [isGenerating]);
 
+  // Reset states when changing tabs
+  useEffect(() => {
+    setCustomText('');
+    setHasIdeas(false);
+    setError(null);
+    setVoiceSettings({
+      isInstrumental: false,
+      voice: 'softFemale' as VoiceType
+    });
+  }, [activeTab]);
   const handleGenerate = async () => {
     if (!user?.id) {
       setError('Please sign in to generate music');
@@ -61,8 +79,10 @@ export default function MusicGenerator() {
       await createSong({
         name: songName,
         mood,
+        theme: activeTab === 'themes' ? theme : undefined,
         tempo,
-        voice: isInstrumental ? undefined : voice,
+        voice: voiceSettings.isInstrumental ? undefined : voiceSettings.voice,
+        isInstrumental: voiceSettings.isInstrumental,
         lyrics: customText.trim() || undefined,
         hasUserIdeas: hasIdeas
       });
@@ -135,10 +155,11 @@ export default function MusicGenerator() {
           {/* Only show voice options if user has ideas or in custom mode */}
           {(hasIdeas || activeTab === 'custom') && (
             <VoiceSelector
-              isInstrumental={isInstrumental}
-              selectedVoice={voice}
-              onVoiceSelect={setVoice}
-              onInstrumentalToggle={setIsInstrumental}
+              isInstrumental={voiceSettings.isInstrumental}
+              selectedVoice={voiceSettings.voice}
+              onVoiceSelect={(voice) => setVoiceSettings(prev => ({ ...prev, voice }))}
+              onInstrumentalToggle={(isInstrumental) => 
+                setVoiceSettings(prev => ({ ...prev, isInstrumental }))}
             />
           )}
         </div>

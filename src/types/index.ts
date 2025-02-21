@@ -15,6 +15,23 @@ export type AgeGroup = '0-6' | '7-12' | '13-24';
 export type PresetType = 'playing' | 'eating' | 'sleeping' | 'pooping';
 export type TaskStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'staged';
 
+export interface SongGenerationParams {
+  name: string;
+  mood?: MusicMood;
+  theme?: ThemeType;
+  tempo?: Tempo;
+  lyrics?: string;
+  isInstrumental?: boolean;
+  hasUserIdeas?: boolean;
+  voiceType?: VoiceType;
+}
+
+export interface LyricGenerationError {
+  message: string;
+  params: LyricGenerationParams;
+  timestamp: Date;
+}
+
 export interface BabyProfile {
   name: string;
   birthMonth: number;

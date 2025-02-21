@@ -81,6 +81,16 @@ const TEMPO_MODIFIERS: Record<Tempo, string> = {
 
 export class LyricGenerationService {
   static async generateLyrics(params: LyricGenerationParams): Promise<string> {
+    // Validate required parameters
+    if (!params.babyName) {
+      throw new Error('Baby name is required for lyric generation');
+    }
+
+    // Validate mood for custom songs
+    if (params.isCustom && !params.mood) {
+      throw new Error('Mood is required for custom songs');
+    }
+
     const {
       babyName,
       ageGroup,
@@ -156,6 +166,13 @@ export class LyricGenerationService {
     try {
       return await ClaudeAPI.generateLyrics(basePrompt);
     } catch (error) {
+      console.error('Lyric generation failed:', error);
+      
+      // Use fallback lyrics but preserve error for monitoring
+      if (error instanceof Error) {
+        await logLyricGenerationError(error.message, params);
+      }
+      
       console.error('Failed to generate lyrics with Claude:', error);
       // Use backup lyrics from our data files
       if (isPreset && presetType) {

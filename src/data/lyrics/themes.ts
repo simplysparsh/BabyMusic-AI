@@ -1,33 +1,5 @@
 import type { ThemeType } from '../../types';
 
-interface ThemeConfig {
-  mood: MusicMood;
-  description: string;
-}
-
-export const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
-  pitchDevelopment: {
-    mood: 'learning',
-    description: 'Melodic patterns for pitch recognition training'
-  },
-  cognitiveSpeech: {
-    mood: 'learning',
-    description: 'Clear rhythmic patterns for speech development'
-  },
-  sleepRegulation: {
-    mood: 'calm',
-    description: 'Gentle lullaby with soothing patterns'
-  },
-  socialEngagement: {
-    mood: 'playful',
-    description: 'Interactive melody for social bonding'
-  },
-  indianClassical: {
-    mood: 'calm',
-    description: 'Peaceful Indian classical melody with gentle ragas'
-  }
-};
-
 export const THEME_LYRICS: Record<ThemeType, (name: string) => string> = {
   pitchDevelopment: (name) =>
     `Up and down goes ${name}'s voice,\n` +
@@ -88,14 +60,4 @@ export const THEME_LYRICS: Record<ThemeType, (name: string) => string> = {
     `${name}'s learning what to explore!\n` +
     `Pure and bright, day and night,\n` +
     `Classical dreams take their flight!`,
-
-  custom: (name) =>
-    `${name}, ${name}, what do you see?\n` +
-    `A world full of wonder, just waiting to be!\n` +
-    `${name}, ${name}, what do you hear?\n` +
-    `Music and laughter, sweet and clear!\n\n` +
-    `Every day brings something new,\n` +
-    `${name}'s adventures coming true!\n` +
-    `Sing and play, light the way,\n` +
-    `Making memories every day!`,
 };

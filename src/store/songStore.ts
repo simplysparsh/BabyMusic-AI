@@ -291,7 +291,7 @@ export const useSongStore = create<SongState>((set, get) => ({
     name, 
     mood, 
     theme, 
-    instrument, 
+    voice,
     lyrics,
     tempo,
     isInstrumental,
@@ -303,6 +303,7 @@ export const useSongStore = create<SongState>((set, get) => ({
       theme,
       lyrics,
       tempo,
+      voice,
       isInstrumental,
       hasUserIdeas
     });
@@ -322,6 +323,12 @@ export const useSongStore = create<SongState>((set, get) => ({
       if (!profile.babyName) {
         throw new Error('Baby name is required to create songs');
       }
+
+      // Determine if this is a preset song
+      const isPreset = name.toLowerCase().includes('playtime') ||
+                      name.toLowerCase().includes('mealtime') ||
+                      name.toLowerCase().includes('bedtime') ||
+                      name.toLowerCase().includes('potty');
 
       // Check if this is a preset song type
       const presetType = name.toLowerCase().includes('playtime') ? 'playing'
@@ -379,7 +386,8 @@ export const useSongStore = create<SongState>((set, get) => ({
           name,
           mood,
           theme,
-          voice_type: voiceType,
+          voice_type: voice,
+          tempo,
           lyrics,
           is_instrumental: isInstrumental,
           has_user_ideas: hasUserIdeas,

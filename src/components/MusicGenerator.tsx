@@ -9,7 +9,7 @@ import CustomOptions from './music-generator/CustomOptions';
 import LyricsInput from './music-generator/LyricsInput';
 import GenerationProgress from './music-generator/GenerationProgress';
 
-type TabType = 'themes' | 'custom';
+type TabType = 'themes' | 'fromScratch';
 const GENERATION_TIME = 240; // 4 minutes in seconds
 
 export default function MusicGenerator() {
@@ -17,14 +17,14 @@ export default function MusicGenerator() {
   const [theme, setTheme] = useState<ThemeType>('pitchDevelopment');
   const [tempo, setTempo] = useState<Tempo>('medium');
   const [mood, setMood] = useState<MusicMood>('calm');
-  const [customText, setCustomText] = useState('');
-  const [timeLeft, setTimeLeft] = useState(GENERATION_TIME);
-  const [error, setError] = useState<string | null>(null);
-  const [hasIdeas, setHasIdeas] = useState(false);
   const [voiceSettings, setVoiceSettings] = useState({
     isInstrumental: false,
     voice: 'softFemale' as VoiceType
   });
+  const [customText, setCustomText] = useState('');
+  const [timeLeft, setTimeLeft] = useState(GENERATION_TIME);
+  const [error, setError] = useState<string | null>(null);
+  const [hasIdeas, setHasIdeas] = useState(false);
   
   const { createSong, generatingSongs } = useSongStore();
   const { user } = useAuthStore();
@@ -62,7 +62,8 @@ export default function MusicGenerator() {
       return;
     }
 
-    if (activeTab === 'custom' && !customText.trim()) {
+    // Require lyrics for custom songs and when user has ideas
+    if ((activeTab === 'fromScratch' || hasIdeas) && !customText.trim()) {
       setError('Please enter your custom text');
       return;
     }
@@ -70,28 +71,28 @@ export default function MusicGenerator() {
     setError(null);
 
     try {
+      const songName = activeTab === 'fromScratch'
+        ? `Custom: ${customText.slice(0, 30)}${customText.length > 30 ? '...' : ''}`
+        : `${theme} Theme`;
+
       console.log('Starting song generation:', {
         activeTab,
         theme: activeTab === 'themes' ? theme : undefined,
-        mood,
+        mood: activeTab === 'custom' || hasIdeas ? mood : undefined,
         hasIdeas,
         isInstrumental: voiceSettings.isInstrumental,
         voice: voiceSettings.isInstrumental ? undefined : voiceSettings.voice,
         customText: customText ? 'provided' : 'not provided'
       });
 
-      const songName = activeTab === 'custom'
-        ? `Custom: ${customText.slice(0, 30)}${customText.length > 30 ? '...' : ''}`
-        : `${theme} Theme`;
-
       await createSong({
         name: songName,
-        // Only use mood for custom songs
-        mood: activeTab === 'custom' ? mood : undefined,
-        // Only use theme for theme-based songs
+        // Use theme for theme-based songs
         theme: activeTab === 'themes' ? theme : undefined,
+        // Use mood only for fromScratch songs
+        mood: activeTab === 'custom' ? mood : undefined,
         tempo,
-        // Voice settings
+        // Always provide voice settings, even for build-for-me option
         voice: voiceSettings.isInstrumental ? undefined : voiceSettings.voice,
         isInstrumental: voiceSettings.isInstrumental,
         lyrics: customText.trim() || undefined,
@@ -120,14 +121,14 @@ export default function MusicGenerator() {
             )}
           </button>
           <button
-            onClick={() => setActiveTab('custom')}
+            onClick={() => setActiveTab('fromScratch')}
             className={`px-6 py-3 rounded-t-lg text-sm font-medium transition-all duration-300 relative
-                     ${activeTab === 'custom' 
+                     ${activeTab === 'fromScratch' 
                        ? 'text-white bg-white/10' 
                        : 'text-white/60 hover:text-white hover:bg-white/5'}`}
           >
             Build from Scratch
-            {activeTab === 'custom' && (
+            {activeTab === 'fromScratch' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary"></div>
             )}
           </button>
@@ -152,7 +153,7 @@ export default function MusicGenerator() {
               <LyricsInput
                 value={customText}
                 onChange={setCustomText}
-                isCustom
+                isFromScratch
               />
               <CustomOptions
                 tempo={tempo}
@@ -163,8 +164,8 @@ export default function MusicGenerator() {
             </>
           )}
           
-          {/* Only show voice options if user has ideas or in custom mode */}
-          {(hasIdeas || activeTab === 'custom') && (
+          {/* Only show voice options if user has ideas or in fromScratch mode */}
+          {(hasIdeas || activeTab === 'fromScratch') && (
             <VoiceSelector
               isInstrumental={voiceSettings.isInstrumental}
               selectedVoice={voiceSettings.voice}

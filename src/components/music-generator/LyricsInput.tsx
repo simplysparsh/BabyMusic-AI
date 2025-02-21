@@ -3,13 +3,13 @@ import React from 'react';
 interface LyricsInputProps {
   value: string;
   onChange: (value: string) => void;
-  isCustom?: boolean;
+  isFromScratch?: boolean;
   onHasIdeasChange?: (hasIdeas: boolean) => void;
 }
 
 const MAX_INPUT_LENGTH = 180;
 
-export default function LyricsInput({ value, onChange, isCustom = false, onHasIdeasChange }: LyricsInputProps) {
+export default function LyricsInput({ value, onChange, isFromScratch = false, onHasIdeasChange }: LyricsInputProps) {
   const [hasIdeas, setHasIdeas] = React.useState(false);
   const [isOverLimit, setIsOverLimit] = React.useState(false);
 
@@ -27,14 +27,14 @@ export default function LyricsInput({ value, onChange, isCustom = false, onHasId
   return (
     <div>
       <label className="block text-lg font-medium text-white/90 mb-2">
-        {isCustom ? 'Your Custom Song' : 'Your Musical Inspiration'}
+        {isFromScratch ? 'Build Your Song' : 'Your Musical Inspiration'}
         <span className="text-white/60 text-sm ml-2">
-          {!isCustom && '(Optional) '}
+          {!isFromScratch && '(Optional) '}
           ({MAX_INPUT_LENGTH} characters max)
         </span>
       </label>
       <div className="space-y-3">
-        {!isCustom && (
+        {!isFromScratch && (
           <div className="flex gap-3">
             <button
               onClick={() => {
@@ -59,7 +59,7 @@ export default function LyricsInput({ value, onChange, isCustom = false, onHasId
             </button>
           </div>
         )}
-        {(hasIdeas || isCustom) && (
+        {(hasIdeas || isFromScratch) && (
           <div className="space-y-2">
             <textarea
               value={value}

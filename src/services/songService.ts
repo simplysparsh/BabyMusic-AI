@@ -1,14 +1,20 @@
 import { supabase } from '../lib/supabase';
 import { createMusicGenerationTask } from '../lib/piapi';
 import { PRESET_CONFIGS } from '../data/lyrics';
-import type { Song, MusicMood, ThemeType, Language, PresetType, Tempo } from '../types';
+import type {
+  Song,
+  MusicMood,
+  ThemeType,
+  Language,
+  PresetType,
+  Tempo,
+} from '../types';
 
 export class SongService {
   // Core song operations
   static async createSong(params: {
     userId: string;
     name: string;
-    theme?: ThemeType;
     songParams: {
       tempo?: Tempo;
       voice?: VoiceType;
@@ -17,29 +23,59 @@ export class SongService {
       lyrics?: string;
       isInstrumental?: boolean;
       hasUserIdeas?: boolean;
-    }
+    };
   }): Promise<Song> {
     const { userId, name, songParams } = params;
-    const { theme, mood, lyrics, tempo, hasUserIdeas, isInstrumental, voice } = songParams;
-    
+    const { theme, mood, lyrics, tempo, hasUserIdeas, isInstrumental, voice } =
+      songParams;
+
+    console.log('Creating song with params:', {
+      userId,
+      name,
+      songParams: {
+        theme,
+        mood,
+        hasLyrics: !!lyrics,
+        tempo,
+        hasUserIdeas,
+        isInstrumental,
+        voice,
+      },
+    });
+
     if (!userId || !name) {
       throw new Error('User ID and name are required');
     }
 
     // Check if this is a preset song
-    const isPreset = name.toLowerCase().includes('playtime') ||
-                     name.toLowerCase().includes('mealtime') ||
-                     name.toLowerCase().includes('bedtime') ||
-                     name.toLowerCase().includes('potty');
+    const isPreset =
+      name.toLowerCase().includes('playtime') ||
+      name.toLowerCase().includes('mealtime') ||
+      name.toLowerCase().includes('bedtime') ||
+      name.toLowerCase().includes('potty');
+
+    console.log('Preset detection:', {
+      name,
+      isPreset,
+    });
 
     // Get preset config if applicable
-    const presetType = isPreset ? (
-      name.toLowerCase().includes('playtime') ? 'playing' :
-      name.toLowerCase().includes('mealtime') ? 'eating' :
-      name.toLowerCase().includes('bedtime') ? 'sleeping' :
-      'pooping'
-    ) as PresetType : undefined;
-    
+    const presetType = isPreset
+      ? ((name.toLowerCase().includes('playtime')
+          ? 'playing'
+          : name.toLowerCase().includes('mealtime')
+          ? 'eating'
+          : name.toLowerCase().includes('bedtime')
+          ? 'sleeping'
+          : 'pooping') as PresetType)
+      : undefined;
+
+    console.log('Preset type detection:', {
+      isPreset,
+      presetType,
+      hasConfig: presetType ? !!PRESET_CONFIGS[presetType] : false,
+    });
+
     const presetConfig = presetType ? PRESET_CONFIGS[presetType] : undefined;
 
     // For non-preset songs, require either theme or mood
@@ -49,24 +85,42 @@ export class SongService {
 
     // For custom theme songs, require mood
     if (!isPreset && theme === 'custom' && !mood) {
-      throw new Error('Mood is required for custom songs');
+      throw new Error('Mood is required for custom songs~songservice.ts');
     }
+
+    console.log('Creating song record:', {
+      name,
+      theme,
+      mood: isPreset ? presetConfig?.mood : mood,
+      voice_type: isInstrumental ? null : voice,
+      tempo,
+      lyrics: isPreset
+        ? 'using preset lyrics'
+        : lyrics
+        ? 'using custom lyrics'
+        : 'no lyrics',
+      is_preset: isPreset,
+      preset_type: presetType || null,
+      is_instrumental: isInstrumental || false,
+    });
 
     // Create initial song record
     const { data: song, error: createError } = await supabase
       .from('songs')
-      .insert([{
-        name,
-        theme,
-        mood: isPreset ? presetConfig?.mood : mood,
-        voice_type: isInstrumental ? null : voice,
-        tempo,
-        lyrics: isPreset ? presetConfig?.lyrics(name.split("'")[0]) : lyrics,
-        is_preset: isPreset,
-        preset_type: presetType || null,
-        is_instrumental: isInstrumental || false,
-        user_id: userId
-      }])
+      .insert([
+        {
+          name,
+          theme,
+          mood: isPreset ? presetConfig?.mood : mood,
+          voice_type: isInstrumental ? null : voice,
+          tempo,
+          lyrics: isPreset ? presetConfig?.lyrics(name.split("'")[0]) : lyrics,
+          is_preset: isPreset,
+          preset_type: presetType || null,
+          is_instrumental: isInstrumental || false,
+          user_id: userId,
+        },
+      ])
       .select()
       .single();
 
@@ -99,13 +153,15 @@ export class SongService {
     if (!userId) {
       throw new Error('User ID is required');
     }
-    
+
     const { data: songs, error } = await supabase
       .from('songs')
-      .select(`
+      .select(
+        `
         *,
         variations:song_variations(*)
-      `)
+      `
+      )
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -117,7 +173,7 @@ export class SongService {
     if (!userId) {
       throw new Error('User ID is required');
     }
-    
+
     const { error } = await supabase
       .from('songs')
       .delete()

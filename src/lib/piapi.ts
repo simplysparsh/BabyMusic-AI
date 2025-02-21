@@ -3,7 +3,6 @@ import { supabase } from './supabase';
 import { PRESET_CONFIGS } from '../data/lyrics/presets';
 import { THEME_CONFIGS } from '../data/lyrics/themes';
 import { LyricGenerationService } from '../services/lyricGenerationService';
-import { getPresetType } from '../utils/presetUtils';
 
 const API_URL = 'https://api.piapi.ai/api/v1';
 const API_KEY = import.meta.env.VITE_PIAPI_KEY;
@@ -234,7 +233,9 @@ export const createMusicGenerationTask = async ({
 
   const description = `${baseDescription}${truncatedLyrics}`;
 
-  const tags = theme ? `${theme}, children's music` : `${mood}, children's music`;
+  const tags = theme 
+    ? `${theme}, children's music` 
+    : `${mood}, children's music${voice && !isInstrumental ? `, ${voice}` : ''}`;
 
   // Ensure we don't exceed PIAPI limits
   const finalPrompt = lyrics || generatedLyrics || '';

@@ -5,7 +5,6 @@ import type { PresetType, Song } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { useSongStore } from '../store/songStore';
 import { useAudioStore } from '../store/audioStore';
-import { getPresetType } from '../utils/presetUtils';
 
 const PRESETS: {
   type: PresetType;

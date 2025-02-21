@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { createMusicGenerationTask } from '../lib/piapi';
-import { PRESET_CONFIGS } from '../constants/presets';
+import { PRESET_CONFIGS } from '../data/lyrics';
 import type { Song, MusicMood, ThemeType, Language, PresetType, Tempo } from '../types';
 
 export class SongService {

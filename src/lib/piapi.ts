@@ -1,6 +1,6 @@
 import { MusicMood, ThemeType } from '../types';
 import { supabase } from './supabase';
-import { PRESET_CONFIGS } from '../constants/presets';
+import { PRESET_CONFIGS } from '../data/lyrics';
 import { LyricGenerationService } from '../services/lyricGenerationService';
 
 const API_URL = 'https://api.piapi.ai/api/v1';
@@ -65,7 +65,6 @@ const getThemeDescription = (theme: ThemeType) => {
     cognitiveSpeech: 'Clear rhythmic patterns for speech development',
     sleepRegulation: 'Gentle lullaby with soothing patterns',
     socialEngagement: 'Interactive melody for social bonding',
-    musicalDevelopment: 'Progressive musical patterns for skill building',
     indianClassical: 'Simple Indian classical patterns',
     westernClassical: 'Adapted classical melodies for babies',
     custom: ''

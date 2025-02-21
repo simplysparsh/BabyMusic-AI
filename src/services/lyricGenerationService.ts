@@ -1,4 +1,6 @@
 import type { ThemeType, MusicMood, Tempo, VoiceType, AgeGroup } from '../types';
+import { ClaudeAPI } from '../lib/claude';
+import { PRESET_CONFIGS, THEME_LYRICS } from '../data/lyrics';
 
 interface LyricGenerationParams {
   babyName: string;
@@ -151,41 +153,18 @@ export class LyricGenerationService {
       '- Maximum length: 4-8 lines\n' +
       '- Make it musical and flowing';
 
-    // TODO: Replace with actual Claude API call
-    // For now, return sample lyrics based on theme
-    return generateSampleLyrics(babyName, theme, mood);
+    try {
+      return await ClaudeAPI.generateLyrics(basePrompt);
+    } catch (error) {
+      console.error('Failed to generate lyrics with Claude:', error);
+      // Use backup lyrics from our data files
+      if (isPreset && presetType) {
+        return PRESET_CONFIGS[presetType].lyrics(babyName);
+      } else if (theme) {
+        return THEME_LYRICS[theme](babyName);
+      } else {
+        return THEME_LYRICS.custom(babyName);
+      }
+    }
   }
-}
-
-// Temporary function to generate sample lyrics until Claude integration
-function generateSampleLyrics(name: string, theme?: ThemeType, mood?: MusicMood): string {
-  // Custom song with playful mood
-  if (!theme && mood === 'playful') {
-    return `${name} is dancing, twirling high,\n` +
-           `Like a butterfly in the summer sky!\n` +
-           `Clap your hands and spin around,\n` +
-           `${name}'s joy fills the air with sound!`;
-  }
-
-  // Theme-based with user ideas
-  if (theme === 'sleepRegulation') {
-    return `Sweet dreams little ${name}, close your eyes and rest,\n` +
-           `Like stars in the night sky, you shine the best.\n` +
-           `Gentle moonbeams watch you sleep,\n` +
-           `While ${name}'s dreams grow sweet and deep.`;
-  }
-  
-  // Default themed song
-  if (theme === 'pitchDevelopment') {
-    return `Up and down goes ${name}'s voice,\n` +
-           `Like a bird making musical choice.\n` +
-           `High notes soar and low notes play,\n` +
-           `${name}'s singing brightens every day!`;
-  }
-  
-  // Generic fallback always featuring the name
-  return `${name}, ${name}, what do you see?\n` +
-         `A world full of wonder, just waiting to be!\n` +
-         `${name}, ${name}, what do you hear?\n` +
-         `Music and laughter, sweet and clear!`;
 }

@@ -5,10 +5,6 @@ export type ThemeType =
   | 'cognitiveSpeech' 
   | 'sleepRegulation'
   | 'socialEngagement'
-  | 'musicalDevelopment'
-  | 'indianClassical'
-  | 'westernClassical'
-  | 'musicalDevelopment'
   | 'indianClassical'
   | 'westernClassical'
   | 'custom';

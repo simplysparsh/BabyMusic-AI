@@ -71,8 +71,8 @@ export default function LyricsInput({ value, onChange, isCustom = false, onHasId
 • [Name] explores a magical garden`}
               className="w-full h-40 bg-[#2A2D3E] border border-white/10 rounded-xl px-6 py-4
                      text-white placeholder:text-white/40 placeholder:text-sm focus:outline-none focus:ring-2
-                      focus:ring-primary/50 transition-all duration-300 resize-none
-                      ${isOverLimit ? 'border-red-400 focus:ring-red-400/50' : ''}"
+                     focus:ring-primary/50 transition-all duration-300 resize-none
+                     ${isOverLimit ? 'border-red-400 focus:ring-red-400/50' : ''}"
             />
             <div className="flex justify-between text-sm">
               <span className={`${isOverLimit ? 'text-red-400' : 'text-white/60'}`}>

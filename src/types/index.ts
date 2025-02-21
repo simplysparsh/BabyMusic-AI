@@ -24,6 +24,8 @@ export interface MusicGenerationParams {
   isInstrumental?: boolean;
   hasUserIdeas?: boolean;
   voice?: VoiceType;
+  is_preset?: boolean;
+  preset_type?: PresetType;
 }
 
 export interface Song {

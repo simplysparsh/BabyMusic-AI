@@ -46,6 +46,14 @@ export default function PresetSongs() {
   const [timeLeft, setTimeLeft] = useState(240); // 4 minutes in seconds
   const { playAudio, stopAllAudio } = useAudioStore();
   const [currentVariation, setCurrentVariation] = useState<Record<string, number>>({});
+  
+  const getPresetType = (name: string): PresetType | null => {
+    if (name.toLowerCase().includes('playtime')) return 'playing';
+    if (name.toLowerCase().includes('mealtime')) return 'eating';
+    if (name.toLowerCase().includes('bedtime')) return 'sleeping';
+    if (name.toLowerCase().includes('potty')) return 'pooping';
+    return null;
+  };
 
   // Handle countdown timer
   useEffect(() => {

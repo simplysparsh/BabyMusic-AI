@@ -28,6 +28,14 @@ interface SongState {
   deleteAllSongs: () => Promise<void>;
 }
 
+function getPresetType(name: string): string | null {
+  return name.toLowerCase().includes('playtime') ? 'playing'
+    : name.toLowerCase().includes('mealtime') ? 'eating'
+    : name.toLowerCase().includes('bedtime') ? 'sleeping'
+    : name.toLowerCase().includes('potty') ? 'pooping'
+    : null;
+}
+
 export const useSongStore = create<SongState>((set, get) => ({
   songs: [],
   isLoading: false,
@@ -73,11 +81,7 @@ export const useSongStore = create<SongState>((set, get) => ({
           }
           
           if (eventType === 'UPDATE' || eventType === 'INSERT') {
-            const presetType = newSong.name.toLowerCase().includes('playtime') ? 'playing'
-              : newSong.name.toLowerCase().includes('mealtime') ? 'eating'
-              : newSong.name.toLowerCase().includes('bedtime') ? 'sleeping'
-              : newSong.name.toLowerCase().includes('potty') ? 'pooping'
-              : null;
+            const presetType = getPresetType(newSong.name);
 
             // Track preset songs being processed
             if (presetType && !presetSongsProcessing.has(newSong.id)) {
@@ -247,11 +251,9 @@ export const useSongStore = create<SongState>((set, get) => ({
           // Update songs and clear preset types for completed songs
           const completedPresetTypes = new Set<string>();
           songs?.forEach(song => {
-            if (song.audio_url) {
-              if (song.name.toLowerCase().includes('playtime')) completedPresetTypes.add('playing');
-              if (song.name.toLowerCase().includes('mealtime')) completedPresetTypes.add('eating');
-              if (song.name.toLowerCase().includes('bedtime')) completedPresetTypes.add('sleeping');
-              if (song.name.toLowerCase().includes('potty')) completedPresetTypes.add('pooping');
+            const presetType = getPresetType(song.name);
+            if (song.audio_url && presetType) {
+              completedPresetTypes.add(presetType);
             }
           });
 
@@ -325,17 +327,8 @@ export const useSongStore = create<SongState>((set, get) => ({
       }
 
       // Determine if this is a preset song
-      const isPreset = name.toLowerCase().includes('playtime') ||
-                      name.toLowerCase().includes('mealtime') ||
-                      name.toLowerCase().includes('bedtime') ||
-                      name.toLowerCase().includes('potty');
-
-      // Check if this is a preset song type
-      const presetType = name.toLowerCase().includes('playtime') ? 'playing'
-        : name.toLowerCase().includes('mealtime') ? 'eating'
-        : name.toLowerCase().includes('bedtime') ? 'sleeping'
-        : name.toLowerCase().includes('potty') ? 'pooping'
-        : null;
+      const presetType = getPresetType(name);
+      const isPreset = !!presetType;
 
       // If it's a preset and we're already generating it, don't create a new one
       if (presetType && get().presetSongTypes.has(presetType)) {
@@ -345,11 +338,7 @@ export const useSongStore = create<SongState>((set, get) => ({
       // If it's a preset song, delete any existing ones of the same type
       if (presetType) {
         const existingSongs = get().songs.filter(s => {
-          const songType = s.name.toLowerCase().includes('playtime') ? 'playing'
-            : s.name.toLowerCase().includes('mealtime') ? 'eating'
-            : s.name.toLowerCase().includes('bedtime') ? 'sleeping'
-            : s.name.toLowerCase().includes('potty') ? 'pooping'
-            : null;
+          const songType = getPresetType(s.name);
           return songType === presetType;
         });
 
@@ -455,11 +444,7 @@ export const useSongStore = create<SongState>((set, get) => ({
     } catch (error) {
       
       // Clear preset type and generating state
-      const presetType = name.toLowerCase().includes('playtime') ? 'playing'
-        : name.toLowerCase().includes('mealtime') ? 'eating'
-        : name.toLowerCase().includes('bedtime') ? 'sleeping'
-        : name.toLowerCase().includes('potty') ? 'pooping'
-        : null;
+      const presetType = getPresetType(name);
 
       if (presetType) {
         set(state => ({

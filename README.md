@@ -1,17 +1,17 @@
 # 🎵 Baby Music AI
 
-> AI-powered music generation for your little one's special moments
+> AI-powered music generation for your little one's special moments.
 
 Baby Music AI is an innovative web application that creates personalized lullabies and learning songs for children using advanced AI technology. Create unique melodies for every moment of your baby's day, from playtime to bedtime.
 
 ## ✨ Features
 
-- 🎹 **AI Music Generation** - Create unique, personalized songs with multiple variations
-- 🌙 **Special Moments** - Dedicated songs for playtime, mealtime, bedtime, and more
-- 🎨 **Customization** - Choose from various moods, instruments, and styles
-- 💫 **Real-time Updates** - Watch your melodies come to life with live generation status
-- 🔄 **Multiple Variations** - Get different versions of each song
-- 🎯 **Easy Management** - Organize and play your collection of melodies
+- 🎹 **AI Music Generation** - Create unique, personalized songs with multiple variations.
+- 🌙 **Special Moments** - Dedicated songs for playtime, mealtime, bedtime, and more.
+- 🎨 **Customization** - Choose from various moods, instruments, and styles.
+- 💫 **Real-time Updates** - Watch your melodies come to life with live generation status.
+- 🔄 **Multiple Variations** - Get different versions of each song.
+- 🎯 **Easy Management** - Organize and play your collection of melodies.
 
 ## 🚀 Tech Stack
 
@@ -35,6 +35,7 @@ Baby Music AI is an innovative web application that creates personalized lullabi
 ### Environment Setup
 
 #### Development
+
 Create a `.env.local` file in the root directory with your development environment variables:
 
 ```env
@@ -50,6 +51,7 @@ Note: `.env.local` is gitignored and should not be committed to version control.
 Note: The `VITE_WEBHOOK_URL` variable is only required when testing with webhook.site. In production, the webhook endpoint is automatically handled by the Supabase Edge Function.
 
 #### Production
+
 For production deployment, configure the following variables in Netlify's dashboard:
 
 1. `VITE_SUPABASE_URL` - Your Supabase project URL
@@ -107,16 +109,19 @@ src/
 ## 📦 Core Components
 
 ### MusicGenerator
+
 - Handles music generation requests
 - Supports multiple moods and instruments
 - Real-time generation status
 
 ### SongList
+
 - Displays generated songs with variations
 - Playback controls
 - Download and share options
 
 ### PresetSongs
+
 - Special moment presets
 - Customized for your baby
 - Quick access to common scenarios
@@ -133,11 +138,13 @@ The application uses Zustand for state management with the following stores:
 ## 🌐 API Integration
 
 ### PIAPI Integration
+
 - Base URL: https://api.piapi.ai/api/v1
 - Supports custom music generation
 - Webhook integration for status updates
 
 ### Supabase Integration
+
 - Real-time database updates
 - Secure authentication
 - File storage for audio files
@@ -152,26 +159,27 @@ The application uses Zustand for state management with the following stores:
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-
 ## 📄 License
 
 This project is licensed under **CC BY-NC-SA+RS v1.0** (Attribution-NonCommercial-ShareAlike + Revenue Sharing).
 
-- **Personal and Non-Commercial Use:** You are free to use, modify, and share this work for non-commercial purposes as long as you provide proper attribution.  
-- **Commercial Use:** If you use this work for any commercial purpose (including sales, ads, SaaS, or monetized services), you must **share 10% of gross revenue** with the original author.  
-- **Derivative Works:** Any modifications or derivatives must be licensed under the same terms (ShareAlike).  
+- **Personal and Non-Commercial Use:** You are free to use, modify, and share this work for non-commercial purposes as long as you provide proper attribution.
+- **Commercial Use:** If you use this work for any commercial purpose (including sales, ads, SaaS, or monetized services), you must **share 10% of gross revenue** with the original author.
+- **Derivative Works:** Any modifications or derivatives must be licensed under the same terms (ShareAlike).
 
 ### Attribution Requirement
-If you use or distribute this project, you must credit the original author in a **visible location**, such as:  
-- The **UI or footer** of a published application.  
-- The **README file or documentation** of derivative projects.  
-- An **"About" section** or similar public acknowledgment.  
+
+If you use or distribute this project, you must credit the original author in a **visible location**, such as:
+
+- The **UI or footer** of a published application.
+- The **README file or documentation** of derivative projects.
+- An **"About" section** or similar public acknowledgment.
 
 ### Full License Details
-For complete terms, refer to the **[LICENSE](./LICENSE)** file.  
+
+For complete terms, refer to the **[LICENSE](./LICENSE)** file.
 
 If you require a **custom commercial license** or an exemption from revenue-sharing, please contact the original author to discuss separate terms.
-
 
 ## 🙏 Acknowledgments
 

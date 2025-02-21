@@ -1,10 +1,16 @@
 import { MusicMood, ThemeType } from '../types';
 import { supabase } from './supabase';
 import { PRESET_CONFIGS } from '../constants/presets';
+import { LyricGenerationService } from '../services/lyricGenerationService';
 
 const API_URL = 'https://api.piapi.ai/api/v1';
 const API_KEY = import.meta.env.VITE_PIAPI_KEY;
 const WEBHOOK_SECRET = import.meta.env.VITE_WEBHOOK_SECRET;
+
+const PIAPI_LIMITS = {
+  PROMPT_MAX_LENGTH: 3000,
+  TAGS_MAX_LENGTH: 200
+};
 
 // Edge Function URL with anon key for authentication
 const WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/piapi-webhook`;
@@ -53,7 +59,7 @@ const getMoodPrompt = (mood: MusicMood) => {
   return prompts[mood];
 };
 
-const getThemePrompt = (theme: ThemeType) => {
+const getThemeDescription = (theme: ThemeType) => {
   const prompts = {
     pitchDevelopment: 'Melodic patterns for pitch recognition training',
     cognitiveSpeech: 'Clear rhythmic patterns for speech development',
@@ -67,20 +73,21 @@ const getThemePrompt = (theme: ThemeType) => {
   return prompts[theme];
 };
 
-const getLyricsPrompt = (lyrics: string) => {
-  return `children's song: ${lyrics}`;
-};
-
 export const createMusicGenerationTask = async (
   theme?: ThemeType,
   mood?: MusicMood, 
   lyrics?: string,
-  name?: string
+  name?: string,
+  ageGroup?: AgeGroup,
+  tempo?: Tempo,
+  isInstrumental?: boolean,
+  hasUserIdeas?: boolean
 ) => {
   console.log('Creating music generation task:', { theme, mood, name });
 
   let baseDescription: string;
   let title = '';  // Initialize with empty string to ensure it's always a string
+  let generatedLyrics: string | undefined;
   
   // Check if this is a preset song
   const presetType = name?.toLowerCase().includes('playtime') ? 'playing'
@@ -93,9 +100,25 @@ export const createMusicGenerationTask = async (
     const config = PRESET_CONFIGS[presetType];
     baseDescription = config.description;
     title = name || '';
+    
+    // Generate lyrics for preset songs
+    try {
+      generatedLyrics = await LyricGenerationService.generateLyrics({
+        babyName: name?.split("'")[0] || 'little one',
+        theme: undefined,
+        mood: config.mood,
+        isPreset: true,
+        presetType,
+        ageGroup
+      });
+    } catch (error) {
+      console.error('Failed to generate preset lyrics, using fallback:', error);
+      generatedLyrics = config.lyrics(name?.split("'")[0] || 'little one');
+    }
+    
     console.log('Preset song configuration:', { title, presetType, mood: config.mood });
   } else if (typeof theme === 'string' && theme !== 'custom') {
-    baseDescription = getThemePrompt(theme);
+    baseDescription = getThemeDescription(theme);
     // Generate version number using current date (MM-DD-YY)
     const now = new Date();
     const version = `${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}-${now.getFullYear().toString().slice(-2)}`;
@@ -112,25 +135,52 @@ export const createMusicGenerationTask = async (
     throw new Error('Failed to generate song description');
   }
 
-  const lyricsPrompt = typeof lyrics === 'string' ? getLyricsPrompt(lyrics) : '';
+  // Generate lyrics if needed
+  if (!isInstrumental && (theme || lyrics)) {
+    try {
+      generatedLyrics = await LyricGenerationService.generateLyrics({
+        babyName: name || 'little one',
+        theme,
+        mood,
+        tempo,
+        ageGroup,
+        userInput: lyrics,
+        isCustom: !theme,
+        hasUserIdeas
+      });
+    } catch (error) {
+      console.error('Failed to generate lyrics:', error);
+      throw new Error('Failed to generate lyrics. Please try again.');
+    }
+  }
 
   const maxLyricsLength = 200 - baseDescription.length - 2;
 
   // Handle lyrics truncation safely
   let truncatedLyrics = '';
-  if (lyricsPrompt) {
-    truncatedLyrics = `. ${lyricsPrompt.length > maxLyricsLength 
-      ? lyricsPrompt.slice(0, maxLyricsLength - 3) + '...' 
-      : lyricsPrompt}`;
+  if (generatedLyrics) {
+    truncatedLyrics = `. ${generatedLyrics.length > maxLyricsLength 
+      ? generatedLyrics.slice(0, maxLyricsLength - 3) + '...' 
+      : generatedLyrics}`;
   }
   
   const description = `${baseDescription}${truncatedLyrics}`;
 
   const tags = theme !== 'custom' ? `${theme}, children's music` : `${mood}, children's music`;
+  
+  // Ensure we don't exceed PIAPI limits
+  const finalPrompt = generatedLyrics || lyrics || '';
+  const truncatedPrompt = finalPrompt.length > PIAPI_LIMITS.PROMPT_MAX_LENGTH 
+    ? finalPrompt.slice(0, PIAPI_LIMITS.PROMPT_MAX_LENGTH)
+    : finalPrompt;
+
+  const truncatedTags = description.length > PIAPI_LIMITS.TAGS_MAX_LENGTH
+    ? description.slice(0, PIAPI_LIMITS.TAGS_MAX_LENGTH)
+    : description;
 
   console.log('Final request configuration:', { 
     title,
-    description: description.slice(0, 50) + '...',
+    description: truncatedTags.slice(0, 50) + '...',
     tags,
     isInstrumental: !lyrics
   });
@@ -149,8 +199,8 @@ export const createMusicGenerationTask = async (
     },
     input: {
       title: title,
-      prompt: lyrics, //3000 character limit
-      tags: description, //200 character limit
+      prompt: truncatedPrompt,
+      tags: truncatedTags,
       make_instrumental: !lyrics,
       negative_tags: 'rock, metal, aggressive, harsh',
     }

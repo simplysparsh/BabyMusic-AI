@@ -61,8 +61,10 @@ export default function MusicGenerator() {
       await createSong({
         name: songName,
         mood,
+        tempo,
         voice: isInstrumental ? undefined : voice,
-        lyrics: customText.trim() || undefined
+        lyrics: customText.trim() || undefined,
+        hasUserIdeas: hasIdeas
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate music');

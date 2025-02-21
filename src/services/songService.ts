@@ -1,18 +1,20 @@
 import { supabase } from '../lib/supabase';
 import { createMusicGenerationTask } from '../lib/piapi';
 import { PRESET_CONFIGS } from '../constants/presets';
-import type { Song, MusicMood, ThemeType, Language } from '../types';
+import type { Song, MusicMood, ThemeType, Language, PresetType, Tempo } from '../types';
 
 export class SongService {
   // Core song operations
   static async createSong(params: {
     userId: string;
     name: string;
+    tempo?: Tempo;
     theme?: ThemeType;
     mood?: MusicMood;
-    lyrics?: string
+    lyrics?: string;
+    hasUserIdeas?: boolean;
   }): Promise<Song> {
-    const { userId, name, theme, mood, lyrics } = params;
+    const { userId, name, theme, mood, lyrics, tempo, hasUserIdeas } = params;
     
     if (!userId || !name) {
       throw new Error('User ID and name are required');
@@ -66,7 +68,11 @@ export class SongService {
       theme,
       isPreset ? presetConfig?.mood : mood,
       isPreset ? presetConfig?.lyrics(name.split("'")[0]) : lyrics,
-      name
+      name,
+      undefined, // ageGroup will be fetched from profile
+      tempo,
+      false, // isInstrumental
+      hasUserIdeas
     );
 
     // Update song with task ID

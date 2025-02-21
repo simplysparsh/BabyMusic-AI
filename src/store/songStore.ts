@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from './authStore';
 import { useErrorStore } from './errorStore';
 import { createMusicGenerationTask } from '../lib/piapi';
-import type { Song, MusicMood, Instrument } from '../types';
+import type { Song, MusicMood, Instrument, Tempo } from '../types';
 
 interface SongState {
   songs: Song[];
@@ -20,8 +20,10 @@ interface SongState {
   createSong: (params: {
     name: string;
     mood: MusicMood;
-    instrument: Instrument;
+    instrument?: Instrument;
+    tempo?: Tempo;
     lyrics?: string;
+    hasUserIdeas?: boolean;
   }) => Promise<Song>;
   deleteAllSongs: () => Promise<void>;
 }
@@ -285,7 +287,14 @@ export const useSongStore = create<SongState>((set, get) => ({
     }
   },
 
-  createSong: async ({ name, mood, instrument, lyrics }) => {
+  createSong: async ({ 
+    name, 
+    mood, 
+    instrument, 
+    lyrics,
+    tempo,
+    hasUserIdeas 
+  }) => {
     let newSong;
     try {
       // Create initial song with staged status
@@ -385,10 +394,14 @@ export const useSongStore = create<SongState>((set, get) => ({
       
       // Start the music generation task asynchronously
       taskId = await createMusicGenerationTask(
-        mood, 
-        presetType ? undefined : instrument,
-        lyrics,
-        profile?.preferredLanguage || 'English'
+        undefined, // theme
+        mood,
+        lyrics, 
+        name,
+        profile?.ageGroup,
+        tempo,
+        isInstrumental,
+        hasUserIdeas
       );
 
       // Update the song with the task ID

@@ -29,7 +29,7 @@ export class ClaudeAPI {
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-3-opus-20240229',
+          model: 'claude-3-5-haiku-20241022',
           max_tokens: 1000,
           messages: [{
             role: 'user',
@@ -56,17 +56,16 @@ export class ClaudeAPI {
     const systemPrompt = `You are a professional children's songwriter specializing in creating engaging, 
 age-appropriate lyrics. Your task is to create lyrics based on the following requirements:
 
-1. The lyrics are for songs upto 2 mins.
-2. Use simple, clear language appropriate for young children
-3. Include natural repetition for memorability
-4. Maintain consistent rhythm and meter
-5. Ensure lyrics are positive and uplifting
-6. Follow all specific mood, theme, and tempo guidance provided
-7. Always feature the child's name prominently
-8. Keep total output under 3000 characters
+1. Length: 4-8 lines maximum
+2. Language: Simple, child-friendly words
+3. Pattern: Include natural repetition
+4. Rhythm: Maintain consistent meter
+5. Tone: Positive and uplifting
+6. Theme: Follow provided mood/theme
+7. Name: Feature child's name prominently
+8. Format: Plain text with line breaks
 
-Format the output as plain text lyrics with line breaks.
-Do not include any explanations or additional text.`;
+Output only the lyrics, no explanations or additional text.`;
 
     const fullPrompt = `${systemPrompt}\n\n${prompt}`;
     

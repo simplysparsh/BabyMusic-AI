@@ -7,7 +7,7 @@ interface LyricsInputProps {
   onHasIdeasChange?: (hasIdeas: boolean) => void;
 }
 
-const MAX_INPUT_LENGTH = 300;
+const MAX_INPUT_LENGTH = 180;
 
 export default function LyricsInput({ value, onChange, isFromScratch = false, onHasIdeasChange }: LyricsInputProps) {
   const [hasIdeas, setHasIdeas] = React.useState(false);
@@ -27,10 +27,9 @@ export default function LyricsInput({ value, onChange, isFromScratch = false, on
   return (
     <div>
       <label className="block text-lg font-medium text-white/90 mb-2">
-        {isFromScratch ? 'Your Song Ideas' : 'Additional Context'}
+        {isFromScratch ? 'Your Song Ideas' : 'Customize Your Song'}
         <span className="text-white/60 text-sm ml-2">
-          {!isFromScratch && !hasIdeas && '(Optional) '}
-          ({MAX_INPUT_LENGTH} characters max)
+          {(isFromScratch || hasIdeas) && `(${MAX_INPUT_LENGTH} characters max)`}
         </span>
       </label>
       <div className="space-y-3">

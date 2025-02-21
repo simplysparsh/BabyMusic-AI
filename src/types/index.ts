@@ -4,10 +4,9 @@ export type ThemeType =
   | 'pitchDevelopment' 
   | 'cognitiveSpeech' 
   | 'sleepRegulation'
-  | 'socialEngagement'
-  | 'indianClassical'
-  | 'westernClassical'
-  | 'custom';
+  | 'socialEngagement' 
+  | 'indianClassical' 
+  | 'westernClassical';
 
 export type Tempo = 'slow' | 'medium' | 'fast';
 

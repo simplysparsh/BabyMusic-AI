@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { useSongStore } from './songStore';
 import { useErrorStore } from './errorStore';
-import { PresetService } from '../services/presetService';
+import { PRESET_CONFIGS } from '../data/lyrics';
 import { ProfileService } from '../services/profileService';
 import { type User } from '@supabase/supabase-js';
 import type { UserProfile } from '../types';
@@ -255,12 +255,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     });
 
-    // Generate initial preset songs for new user
-    await PresetService.regenerateAllPresets({
-      userId: data.user.id,
-      babyName: babyName.trim(),
-      language: 'English'
+    // Generate initial preset songs
+    const { createSong } = useSongStore.getState();
+    const presetPromises = Object.entries(PRESET_CONFIGS).map(([type, config]) => {
+      return createSong({
+        name: config.title(babyName.trim()),
+        mood: config.mood,
+        lyrics: config.lyrics(babyName.trim())
+      });
     });
+
+    await Promise.all(presetPromises);
   },
   signOut: async () => {
     set({ initialized: false });

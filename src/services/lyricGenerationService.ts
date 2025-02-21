@@ -48,7 +48,7 @@ const THEME_PROMPTS: Record<ThemeType, (name: string) => string> = {
     `Write lyrics that introduce ${name} to musical concepts. Include rhythm patterns and musical terms.`,
   
   indianClassical: (name) =>
-    `Compose lyrics inspired by Indian classical music for ${name}. Use simple Sanskrit-inspired sounds.`,
+    `Create lyrics inspired by Indian classical music for ${name}. Keep the language simple and child-friendly`,
   
   westernClassical: (name) =>
     `Create lyrics inspired by Western classical melodies for ${name}. Focus on harmony and musical flow.`,
@@ -112,7 +112,7 @@ export class LyricGenerationService {
     } else if (theme) {
       basePrompt = THEME_PROMPTS[theme](babyName);
     } else {
-      basePrompt = THEME_PROMPTS.custom(babyName);
+      basePrompt = `Write engaging children's song lyrics for ${babyName}. Make it age-appropriate and fun.`;
     }
 
     // Add age-specific modifications if available

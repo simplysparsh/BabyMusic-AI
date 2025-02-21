@@ -11,7 +11,7 @@ export class SongService {
     theme?: ThemeType;
     songParams: {
       tempo?: Tempo;
-      voiceType?: VoiceType;
+      voice?: VoiceType;
       theme?: ThemeType;
       mood?: MusicMood;
       lyrics?: string;
@@ -20,7 +20,7 @@ export class SongService {
     }
   }): Promise<Song> {
     const { userId, name, songParams } = params;
-    const { theme, mood, lyrics, tempo, hasUserIdeas, isInstrumental } = songParams;
+    const { theme, mood, lyrics, tempo, hasUserIdeas, isInstrumental, voice } = songParams;
     
     if (!userId || !name) {
       throw new Error('User ID and name are required');
@@ -59,11 +59,12 @@ export class SongService {
         name,
         theme,
         mood: isPreset ? presetConfig?.mood : mood,
-        voice_type: isInstrumental ? null : voiceType,
+        voice_type: isInstrumental ? null : voice,
         tempo,
         lyrics: isPreset ? presetConfig?.lyrics(name.split("'")[0]) : lyrics,
         is_preset: isPreset,
         preset_type: presetType || null,
+        is_instrumental: isInstrumental || false,
         user_id: userId
       }])
       .select()

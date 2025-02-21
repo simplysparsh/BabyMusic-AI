@@ -15,10 +15,8 @@ const GENERATION_TIME = 240; // 4 minutes in seconds
 export default function MusicGenerator() {
   const [activeTab, setActiveTab] = useState<TabType>('themes');
   const [theme, setTheme] = useState<ThemeType>('pitchDevelopment');
-  const [voice, setVoice] = useState<VoiceType>('softFemale');
   const [tempo, setTempo] = useState<Tempo>('medium');
   const [mood, setMood] = useState<MusicMood>('calm');
-  const [isInstrumental, setIsInstrumental] = useState(false);
   const [customText, setCustomText] = useState('');
   const [timeLeft, setTimeLeft] = useState(GENERATION_TIME);
   const [error, setError] = useState<string | null>(null);
@@ -72,15 +70,28 @@ export default function MusicGenerator() {
     setError(null);
 
     try {
+      console.log('Starting song generation:', {
+        activeTab,
+        theme: activeTab === 'themes' ? theme : undefined,
+        mood,
+        hasIdeas,
+        isInstrumental: voiceSettings.isInstrumental,
+        voice: voiceSettings.isInstrumental ? undefined : voiceSettings.voice,
+        customText: customText ? 'provided' : 'not provided'
+      });
+
       const songName = activeTab === 'custom'
         ? `Custom: ${customText.slice(0, 30)}${customText.length > 30 ? '...' : ''}`
         : `${theme} Theme`;
 
       await createSong({
         name: songName,
-        mood,
+        // Only use mood for custom songs
+        mood: activeTab === 'custom' ? mood : undefined,
+        // Only use theme for theme-based songs
         theme: activeTab === 'themes' ? theme : undefined,
         tempo,
+        // Voice settings
         voice: voiceSettings.isInstrumental ? undefined : voiceSettings.voice,
         isInstrumental: voiceSettings.isInstrumental,
         lyrics: customText.trim() || undefined,

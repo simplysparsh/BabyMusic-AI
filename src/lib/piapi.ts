@@ -65,24 +65,45 @@ const getThemeDescription = (theme: ThemeType) => {
     cognitiveSpeech: 'Clear rhythmic patterns for speech development',
     sleepRegulation: 'Gentle lullaby with soothing patterns',
     socialEngagement: 'Interactive melody for social bonding',
-    indianClassical: 'Simple Indian classical patterns',
-    westernClassical: 'Adapted classical melodies for babies',
-    custom: ''
+    indianClassical: 'Peaceful Indian classical melody with gentle ragas and traditional elements',
+    westernClassical: 'Adapted classical melodies for babies'
   };
   return prompts[theme];
 };
 
-export const createMusicGenerationTask = async (
-  theme?: ThemeType,
-  mood?: MusicMood, 
-  lyrics?: string,
-  name?: string,
-  ageGroup?: AgeGroup,
-  tempo?: Tempo,
-  isInstrumental?: boolean,
-  hasUserIdeas?: boolean
-) => {
-  console.log('Creating music generation task:', { theme, mood, name });
+interface MusicGenerationParams {
+  theme?: ThemeType;
+  mood?: MusicMood;
+  lyrics?: string;
+  name?: string;
+  ageGroup?: AgeGroup;
+  tempo?: Tempo;
+  isInstrumental?: boolean;
+  hasUserIdeas?: boolean;
+}
+
+export const createMusicGenerationTask = async (params: MusicGenerationParams) => {
+  const {
+    theme,
+    mood,
+    lyrics,
+    name,
+    ageGroup,
+    tempo,
+    isInstrumental,
+    hasUserIdeas
+  } = params;
+
+  console.log('Creating music generation task:', { 
+    theme, 
+    mood, 
+    name,
+    ageGroup,
+    tempo,
+    isInstrumental,
+    hasUserIdeas,
+    lyrics: lyrics ? 'provided' : 'not provided'
+  });
 
   let baseDescription: string;
   let title = '';  // Initialize with empty string to ensure it's always a string
@@ -98,6 +119,7 @@ export const createMusicGenerationTask = async (
   if (presetType) {
     const config = PRESET_CONFIGS[presetType];
     baseDescription = config.description;
+    mood = config.mood; // Use preset's defined mood
     title = name || '';
     
     // Generate lyrics for preset songs
@@ -116,15 +138,24 @@ export const createMusicGenerationTask = async (
     }
     
     console.log('Preset song configuration:', { title, presetType, mood: config.mood });
-  } else if (typeof theme === 'string' && theme !== 'custom') {
+  }
+  // Handle theme-based songs
+  if (theme && !isPreset) {
     baseDescription = getThemeDescription(theme);
-    // Generate version number using current date (MM-DD-YY)
     const now = new Date();
     const version = `${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}-${now.getFullYear().toString().slice(-2)}`;
+    
+    // Use theme's predefined mood
+    const themeConfig = THEME_CONFIGS[theme];
+    const themeMood = themeConfig.mood;
     title = `${theme} v${version}`;
-    console.log('Themed song configuration:', { title, theme, mood });
-  } else {
-    if (!mood) throw new Error('Mood is required for custom songs');
+    console.log('Themed song configuration:', { title, theme, mood: themeMood });
+  } 
+  // Handle custom songs
+  else if (!isPreset) {
+    if (!mood) {
+      throw new Error('Mood is required for custom songs');
+    }
     baseDescription = getMoodPrompt(mood);
     title = name || `${mood} ${lyrics ? 'vocal' : 'instrumental'} melody`;
     console.log('Custom song configuration:', { title, mood, baseDescription });
@@ -188,7 +219,6 @@ export const createMusicGenerationTask = async (
   const requestBody = {
     model: 'music-s',
     task_type: 'generate_music_custom', //Uses API mode to give lyrics, title, description.
-    service_mode: 'public',
     config: {
       webhook_config: {
         endpoint: WEBHOOK_URL,
@@ -200,12 +230,18 @@ export const createMusicGenerationTask = async (
       title: title,
       prompt: truncatedPrompt,
       tags: truncatedTags,
-      make_instrumental: !lyrics,
+      make_instrumental: isInstrumental || false,
       negative_tags: 'rock, metal, aggressive, harsh',
     }
   };
 
-  console.log('Sending API request:', { "prompt": lyrics, "title": title, "tags": description });
+  console.log('Sending API request:', { 
+    prompt: lyrics ? 'provided' : 'not provided',
+    title,
+    tags: description,
+    isInstrumental,
+    hasUserIdeas
+  });
 
   const response = await fetch(`${API_URL}/task`, {
     method: 'POST',

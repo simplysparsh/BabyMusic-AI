@@ -1,5 +1,33 @@
 import type { ThemeType } from '../../types';
 
+interface ThemeConfig {
+  mood: MusicMood;
+  description: string;
+}
+
+export const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
+  pitchDevelopment: {
+    mood: 'learning',
+    description: 'Melodic patterns for pitch recognition training'
+  },
+  cognitiveSpeech: {
+    mood: 'learning',
+    description: 'Clear rhythmic patterns for speech development'
+  },
+  sleepRegulation: {
+    mood: 'calm',
+    description: 'Gentle lullaby with soothing patterns'
+  },
+  socialEngagement: {
+    mood: 'playful',
+    description: 'Interactive melody for social bonding'
+  },
+  indianClassical: {
+    mood: 'calm',
+    description: 'Peaceful Indian classical melody with gentle ragas'
+  }
+};
+
 export const THEME_LYRICS: Record<ThemeType, (name: string) => string> = {
   pitchDevelopment: (name) =>
     `Up and down goes ${name}'s voice,\n` +
@@ -42,14 +70,14 @@ export const THEME_LYRICS: Record<ThemeType, (name: string) => string> = {
     `Building bonds both old and new!`,
 
   indianClassical: (name) =>
-    `Sa Re Ga, ${name} sings clear,\n` +
-    `Ancient melodies appear.\n` +
-    `Ragas flow like gentle streams,\n` +
-    `Carrying ${name} through musical dreams!\n\n` +
-    `Tabla beats, rhythmic treats,\n` +
-    `${name}'s voice with tradition meets!\n` +
-    `Pure and true, morning dew,\n` +
-    `Classical wisdom shining through!`,
+    `Om Shanti ${name}, peaceful and bright,\n` +
+    `Like morning ragas at first light.\n` +
+    `Gentle swaras guide the way,\n` +
+    `As ${name} learns to sing and play.\n\n` +
+    `Peaceful rhythms, soft and slow,\n` +
+    `Help ${name}'s inner light to grow.\n` +
+    `Ancient wisdom, new and pure,\n` +
+    `Making melodies to endure.`,
 
   westernClassical: (name) =>
     `${name} dances with Mozart's grace,\n` +

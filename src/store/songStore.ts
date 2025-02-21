@@ -290,13 +290,23 @@ export const useSongStore = create<SongState>((set, get) => ({
   createSong: async ({ 
     name, 
     mood, 
-    theme,
+    theme, 
     instrument, 
     lyrics,
     tempo,
     isInstrumental,
     hasUserIdeas 
   }) => {
+    console.log('Creating song:', {
+      name,
+      mood,
+      theme,
+      lyrics,
+      tempo,
+      isInstrumental,
+      hasUserIdeas
+    });
+
     let newSong;
     try {
       // Create initial song with staged status
@@ -369,7 +379,7 @@ export const useSongStore = create<SongState>((set, get) => ({
           name,
           mood,
           theme,
-          instrument,
+          voice_type: voiceType,
           lyrics,
           is_instrumental: isInstrumental,
           has_user_ideas: hasUserIdeas,
@@ -400,7 +410,7 @@ export const useSongStore = create<SongState>((set, get) => ({
       
       // Start the music generation task asynchronously
       taskId = await createMusicGenerationTask(
-        undefined, // theme
+        theme,
         mood,
         lyrics, 
         name,

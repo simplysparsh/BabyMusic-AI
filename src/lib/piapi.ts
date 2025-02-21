@@ -62,7 +62,7 @@ const getThemeDescription = (theme: ThemeType) => {
     westernClassical: 'Adapted classical melodies for babies'
   };
   
-  if (!prompts[theme]) {
+  if (!theme || !prompts[theme]) {
     throw new Error(`Invalid theme: ${theme}`);
   }
   
@@ -124,9 +124,9 @@ export const createMusicGenerationTask = async ({
     presetType,
     isPreset,
     theme,
-    themeProvided: !!theme,
+    themeProvided: theme !== undefined,
     mood,
-    moodProvided: !!mood
+    moodProvided: mood !== undefined
   });
 
   // Determine song type based on parameters
@@ -140,7 +140,7 @@ export const createMusicGenerationTask = async ({
     hasTheme: !!theme,
     hasMood: !!mood,
     themeValue: theme,
-    isValidTheme: !theme || Object.keys(prompts).includes(theme)
+    moodValue: mood
   });
 
   // Validate requirements

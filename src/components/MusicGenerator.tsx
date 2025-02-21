@@ -62,9 +62,15 @@ export default function MusicGenerator() {
       return;
     }
 
-    // Require lyrics for custom songs and when user has ideas
-    if ((activeTab === 'fromScratch' || hasIdeas) && !customText.trim()) {
+    // Require lyrics for fromScratch mode
+    if (activeTab === 'fromScratch' && !customText.trim()) {
       setError('Please enter your custom text');
+      return;
+    }
+
+    // Require mood for fromScratch mode
+    if (activeTab === 'fromScratch' && !mood) {
+      setError('Please select a mood for your song');
       return;
     }
 
@@ -72,13 +78,13 @@ export default function MusicGenerator() {
 
     try {
       const songName = activeTab === 'fromScratch'
-        ? `Custom: ${customText.slice(0, 30)}${customText.length > 30 ? '...' : ''}`
+        ? `${mood} Song: ${customText.slice(0, 30)}${customText.length > 30 ? '...' : ''}`
         : `${theme} Theme`;
 
       console.log('Starting song generation:', {
         activeTab,
         theme: activeTab === 'themes' ? theme : undefined,
-        mood: activeTab === 'custom' || hasIdeas ? mood : undefined,
+        mood: activeTab === 'fromScratch' ? mood : null,
         hasIdeas,
         isInstrumental: voiceSettings.isInstrumental,
         voice: voiceSettings.isInstrumental ? undefined : voiceSettings.voice,
@@ -87,12 +93,9 @@ export default function MusicGenerator() {
 
       await createSong({
         name: songName,
-        // Use theme for theme-based songs
         theme: activeTab === 'themes' ? theme : undefined,
-        // Use mood only for fromScratch songs
-        mood: activeTab === 'custom' ? mood : undefined,
+        mood: activeTab === 'fromScratch' ? mood : null,
         tempo,
-        // Always provide voice settings, even for build-for-me option
         voice: voiceSettings.isInstrumental ? undefined : voiceSettings.voice,
         isInstrumental: voiceSettings.isInstrumental,
         lyrics: customText.trim() || undefined,
@@ -139,10 +142,12 @@ export default function MusicGenerator() {
           {activeTab === 'themes' ? (
             <>
               <ThemeSelector
+                key="theme-selector"
                 selectedTheme={theme}
                 onThemeSelect={setTheme}
               />
               <LyricsInput
+                key="theme-lyrics"
                 value={customText}
                 onChange={setCustomText}
                 onHasIdeasChange={setHasIdeas}
@@ -151,11 +156,13 @@ export default function MusicGenerator() {
           ) : (
             <>
               <LyricsInput
+                key="scratch-lyrics"
                 value={customText}
                 onChange={setCustomText}
                 isFromScratch
               />
               <CustomOptions
+                key="scratch-options"
                 tempo={tempo}
                 mood={mood}
                 onTempoSelect={setTempo}

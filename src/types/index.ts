@@ -46,6 +46,20 @@ interface TaskStatus {
   };
 }
 
+export type TaskStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'staged';
+
+export interface MusicGenerationParams {
+  theme?: ThemeType;
+  mood?: MusicMood;
+  lyrics?: string;
+  name?: string;
+  ageGroup?: AgeGroup;
+  tempo?: Tempo;
+  isInstrumental?: boolean;
+  hasUserIdeas?: boolean;
+  voice?: VoiceType;
+}
+
 const headers = {
   'Content-Type': 'application/json',
   'x-api-key': API_KEY,

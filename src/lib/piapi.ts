@@ -1,6 +1,7 @@
 import { MusicMood, ThemeType } from '../types';
 import { supabase } from './supabase';
 import { PRESET_CONFIGS } from '../data/lyrics/presets';
+import { THEME_LYRICS } from '../data/lyrics/themes';
 import { LyricGenerationService } from '../services/lyricGenerationService';
 
 const API_URL = 'https://api.piapi.ai/api/v1';
@@ -77,9 +78,10 @@ export const createMusicGenerationTask = async ({
   ageGroup,
   tempo,
   isInstrumental,
-  hasUserIdeas
+  hasUserIdeas,
+  voice
 }: MusicGenerationParams) => {
-  console.log('Raw params received:', {
+  console.log('piapi.createMusicGenerationTask received:', {
     theme,
     mood,
     lyrics,
@@ -87,18 +89,8 @@ export const createMusicGenerationTask = async ({
     ageGroup,
     tempo,
     isInstrumental,
-    hasUserIdeas
-  });
-
-  console.log('Received parameters:', {
-    theme,
-    mood,
-    name,
-    ageGroup,
-    tempo,
-    isInstrumental,
     hasUserIdeas,
-    hasLyrics: !!lyrics
+    voice
   });
 
   let baseDescription: string;
@@ -118,16 +110,6 @@ export const createMusicGenerationTask = async ({
 
   // Determine if this is a preset song
   const isPreset = !!presetType;
-
-  console.log('Song type detection:', {
-    name,
-    presetType,
-    isPreset,
-    theme,
-    themeProvided: theme !== undefined,
-    mood,
-    moodProvided: mood !== undefined
-  });
 
   // Determine song type based on parameters
   const songType = isPreset ? 'preset' 
@@ -209,6 +191,13 @@ export const createMusicGenerationTask = async ({
   // Generate lyrics if needed
   try {
     if (!isInstrumental) {
+      console.log('Starting lyrics generation:', {
+        songType,
+        theme,
+        mood,
+        hasUserIdeas
+      });
+
       try {
         generatedLyrics = await LyricGenerationService.generateLyrics({
           babyName: name || 'little one',
@@ -221,24 +210,36 @@ export const createMusicGenerationTask = async ({
           hasUserIdeas,
         });
       } catch (error) {
-        console.error('Failed to generate lyrics:', error);
-        // Use fallback lyrics from theme or preset configs
+        console.error('Lyrics generation failed, using fallback:', error);
+
+        // Use appropriate fallback based on song type
         if (presetType && PRESET_CONFIGS[presetType]) {
+          console.log('Using preset fallback lyrics');
           generatedLyrics = PRESET_CONFIGS[presetType].lyrics(
             name?.split("'")[0] || 'little one'
           );
         } else if (theme && THEME_LYRICS[theme]) {
+          console.log('Using theme fallback lyrics');
           generatedLyrics = THEME_LYRICS[theme](
             name?.split("'")[0] || 'little one'
           );
+        } else if (songType === 'fromScratch' || hasUserIdeas) {
+          console.log('Using custom fallback lyrics');
+          // For songs from scratch or custom ideas, use a mood-based template
+          generatedLyrics = `Let's make ${mood} music together,\n` +
+            `${name || 'little one'} leads the way.\n` +
+            `With ${mood} melodies flowing,\n` +
+            `Creating magic today!`;
         } else {
+          console.error('No fallback lyrics available');
           throw new Error('Failed to generate lyrics. Please try again.');
         }
+        console.log('Successfully applied fallback lyrics');
       }
     }
   } catch (error) {
     console.error('Lyrics generation error:', error);
-    // Optionally handle or rethrow the error
+    throw new Error('Failed to generate or apply fallback lyrics. Please try again.');
   }
 
   const maxLyricsLength = 200 - baseDescription.length - 2;
@@ -261,7 +262,7 @@ export const createMusicGenerationTask = async ({
       : `${mood}, children's music`;
 
   // Ensure we don't exceed PIAPI limits
-  const finalPrompt = generatedLyrics || lyrics || '';
+  const finalPrompt = lyrics || generatedLyrics || '';
   const truncatedPrompt =
     finalPrompt.length > PIAPI_LIMITS.PROMPT_MAX_LENGTH
       ? finalPrompt.slice(0, PIAPI_LIMITS.PROMPT_MAX_LENGTH)
@@ -277,6 +278,8 @@ export const createMusicGenerationTask = async ({
     description: truncatedTags.slice(0, 50) + '...',
     tags,
     isInstrumental: !lyrics,
+    hasPrompt: !!truncatedPrompt,
+    promptLength: truncatedPrompt.length
   });
 
   // ##### Calls API to generate music #####
@@ -292,7 +295,7 @@ export const createMusicGenerationTask = async ({
     },
     input: {
       title: title,
-      prompt: truncatedPrompt,
+      prompt: truncatedPrompt || description, // Use description as fallback if no lyrics
       tags: truncatedTags,
       make_instrumental: isInstrumental || false,
       negative_tags: 'rock, metal, aggressive, harsh',

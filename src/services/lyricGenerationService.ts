@@ -88,6 +88,11 @@ const TEMPO_MODIFIERS: Record<Tempo, string> = {
 
 export class LyricGenerationService {
   static async generateLyrics(params: LyricGenerationParams): Promise<string> {
+    console.log('LyricGenerationService.generateLyrics called with:', {
+      ...params,
+      userInput: params.userInput ? 'provided' : 'not provided'
+    });
+
     // Validate required parameters
     if (!params.babyName) {
       throw new Error('Baby name is required for lyric generation');
@@ -140,19 +145,19 @@ export class LyricGenerationService {
     // Handle user ideas differently based on context
     if (hasUserIdeas && userInput) {
       if (isCustom) {
-        // For custom songs, use user input as primary inspiration
+        // For custom songs, use user input as additional context
         basePrompt =
-          `Create lyrics for a children's song about: ${userInput}\n\n` +
+          `Create lyrics for a children's song with this additional context: ${userInput}\n\n` +
           `Requirements:\n` +
           `- Must prominently feature the name "${babyName}"\n` +
           `- Keep the original theme/idea from user input\n` +
           `- Adapt to ${mood} mood and ${tempo || 'moderate'} tempo`;
       } else {
-        // For themed songs, blend user ideas with theme
+        // For themed songs, use user input as additional context
         basePrompt +=
           '\n\nSpecial Instructions:\n' +
-          `- Incorporate these ideas from the parent: ${userInput}\n` +
-          '- Blend parent ideas with the theme naturally\n' +
+          `- Use this additional context from the parent: ${userInput}\n` +
+          '- Blend the context with the theme naturally\n' +
           `- Ensure ${babyName}'s name is featured prominently`;
       }
     } else if (isCustom) {
@@ -175,6 +180,7 @@ export class LyricGenerationService {
       '- Make it musical and flowing';
 
     try {
+      console.log('Calling Claude API for lyrics generation');
       return await ClaudeAPI.generateLyrics(basePrompt);
     } catch (error) {
       console.error('Lyric generation failed:', error);
@@ -186,13 +192,25 @@ export class LyricGenerationService {
 
       console.error('Failed to generate lyrics with Claude:', error);
       // Use backup lyrics from our data files
+      let fallbackLyrics: string;
       if (isPreset && presetType) {
-        return PRESET_CONFIGS[presetType].lyrics(babyName);
+        fallbackLyrics = PRESET_CONFIGS[presetType].lyrics(babyName);
       } else if (theme) {
-        return THEME_LYRICS[theme](babyName);
+        fallbackLyrics = THEME_LYRICS[theme](babyName);
       } else {
-        return THEME_LYRICS.custom(babyName);
+        // For custom songs, create a mood-based template
+        fallbackLyrics = `Let's make ${mood} music together,\n` +
+          `${babyName} leads the way.\n` +
+          `With ${mood} melodies flowing,\n` +
+          `Creating magic today!`;
       }
+      
+      console.log('Using fallback lyrics:', {
+        type: isPreset ? 'preset' : theme ? 'theme' : 'custom',
+        length: fallbackLyrics.length
+      });
+      
+      return fallbackLyrics;
     }
   }
 }

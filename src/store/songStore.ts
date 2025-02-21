@@ -297,7 +297,7 @@ export const useSongStore = create<SongState>((set, get) => ({
     isInstrumental,
     hasUserIdeas 
   }) => {
-    console.log('Creating song:', {
+    console.log('songStore.createSong called with:', {
       name,
       mood,
       theme,
@@ -417,16 +417,24 @@ export const useSongStore = create<SongState>((set, get) => ({
       let taskId: string;
       
       // Start the music generation task asynchronously
-      taskId = await createMusicGenerationTask(
+      const params = {
         theme,
         mood,
         lyrics, 
         name,
-        profile?.ageGroup,
+        ageGroup: profile?.ageGroup,
         tempo,
         isInstrumental,
-        hasUserIdeas
-      );
+        hasUserIdeas,
+        voice
+      };
+
+      console.log('Calling createMusicGenerationTask with:', {
+        ...params,
+        lyrics: lyrics ? 'provided' : 'not provided'
+      });
+      
+      taskId = await createMusicGenerationTask(params);
 
       // Update the song with the task ID
       const { error: updateError } = await supabase

@@ -62,45 +62,68 @@ export default function MusicGenerator() {
       return;
     }
 
-    // Require lyrics for fromScratch mode
-    if (activeTab === 'fromScratch' && !customText.trim()) {
-      setError('Please enter your custom text');
-      return;
-    }
-
-    // Require mood for fromScratch mode
-    if (activeTab === 'fromScratch' && !mood) {
-      setError('Please select a mood for your song');
-      return;
-    }
+    console.log('Generate clicked:', { 
+      activeTab, 
+      theme, 
+      mood, 
+      customText,
+      hasIdeas,
+      voiceSettings
+    });
 
     setError(null);
 
     try {
-      const songName = activeTab === 'fromScratch'
-        ? `${mood} Song: ${customText.slice(0, 30)}${customText.length > 30 ? '...' : ''}`
-        : `${theme} Theme`;
-
-      console.log('Starting song generation:', {
-        activeTab,
-        theme: activeTab === 'themes' ? theme : undefined,
-        mood: activeTab === 'fromScratch' ? mood : null,
-        hasIdeas,
-        isInstrumental: voiceSettings.isInstrumental,
-        voice: voiceSettings.isInstrumental ? undefined : voiceSettings.voice,
-        customText: customText ? 'provided' : 'not provided'
-      });
-
-      await createSong({
-        name: songName,
-        theme: activeTab === 'themes' ? theme : undefined,
-        mood: activeTab === 'fromScratch' ? mood : null,
+      const baseParams = {
         tempo,
         voice: voiceSettings.isInstrumental ? undefined : voiceSettings.voice,
         isInstrumental: voiceSettings.isInstrumental,
-        lyrics: customText.trim() || undefined,
-        hasUserIdeas: hasIdeas
-      });
+        hasUserIdeas: hasIdeas || activeTab === 'fromScratch'
+      };
+
+      if (activeTab === 'themes') {
+        if (!theme) {
+          setError('Please select a theme');
+          return;
+        }
+
+        console.log('Creating themed song:', {
+          theme,
+          hasIdeas,
+          customText: customText.trim()
+        });
+
+        await createSong({
+          ...baseParams,
+          name: `${theme} Theme`,
+          theme,
+          mood: hasIdeas ? mood : undefined,
+          lyrics: customText.trim() || undefined,
+        });
+      } else {
+        // fromScratch mode
+        if (!mood) {
+          setError('Please select a mood for your song');
+          return;
+        }
+
+        if (!customText.trim()) {
+          setError('Please enter your custom text');
+          return;
+        }
+
+        console.log('Creating custom song:', {
+          mood,
+          customText: customText.trim()
+        });
+
+        await createSong({
+          ...baseParams,
+          name: `${mood} Song: ${customText.slice(0, 30)}${customText.length > 30 ? '...' : ''}`,
+          mood,
+          lyrics: customText.trim()
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate music');
     }

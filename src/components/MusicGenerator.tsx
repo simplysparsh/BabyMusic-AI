@@ -14,9 +14,9 @@ const GENERATION_TIME = 240; // 4 minutes in seconds
 
 export default function MusicGenerator() {
   const [activeTab, setActiveTab] = useState<TabType>('themes');
-  const [theme, setTheme] = useState<ThemeType>('pitchDevelopment');
-  const [tempo, setTempo] = useState<Tempo>('medium');
-  const [mood, setMood] = useState<MusicMood>('calm');
+  const [theme, setTheme] = useState<ThemeType | undefined>();
+  const [tempo, setTempo] = useState<Tempo | undefined>();
+  const [mood, setMood] = useState<MusicMood | undefined>();
   const [voiceSettings, setVoiceSettings] = useState({
     isInstrumental: false,
     voice: 'softFemale' as VoiceType
@@ -56,9 +56,21 @@ export default function MusicGenerator() {
       voice: 'softFemale' as VoiceType
     });
   }, [activeTab]);
+
   const handleGenerate = async () => {
     if (!user?.id) {
       setError('Please sign in to generate music');
+      return;
+    }
+    
+    // Validate required fields based on active tab
+    if (activeTab === 'themes' && !theme) {
+      setError('Please select a theme');
+      return;
+    }
+    
+    if (activeTab === 'fromScratch' && !mood) {
+      setError('Please select a mood');
       return;
     }
 
@@ -75,7 +87,6 @@ export default function MusicGenerator() {
 
     try {
       const baseParams = {
-        tempo,
         voice: voiceSettings.isInstrumental ? undefined : voiceSettings.voice,
         isInstrumental: voiceSettings.isInstrumental,
         hasUserIdeas: hasIdeas || activeTab === 'fromScratch'
@@ -97,7 +108,6 @@ export default function MusicGenerator() {
           ...baseParams,
           name: `${theme} Theme`,
           theme,
-          mood: hasIdeas ? mood : undefined,
           lyrics: customText.trim() || undefined,
         });
       } else {
@@ -120,6 +130,7 @@ export default function MusicGenerator() {
         await createSong({
           ...baseParams,
           name: `${mood} Song: ${customText.slice(0, 30)}${customText.length > 30 ? '...' : ''}`,
+          tempo,
           mood,
           lyrics: customText.trim()
         });

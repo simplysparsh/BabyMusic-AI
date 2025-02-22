@@ -160,7 +160,7 @@ export const createMusicGenerationTask = async ({
     const config = THEME_CONFIGS[theme];
     baseDescription = config.description;
     title = getThemeTitle(theme, babyName);
-    console.log('Themed song configuration:', { title, theme, mood });
+    console.log('Themed song configuration:', { title, theme });
   } else {
     if (!mood) throw new Error('Mood is required for custom songs');
     baseDescription = getMoodPrompt(mood);
@@ -274,7 +274,7 @@ export const createMusicGenerationTask = async ({
       prompt: truncatedPrompt || description, // Use description as fallback if no lyrics
       tags: truncatedTags,
       make_instrumental: isInstrumental || false,
-      negative_tags: 'rock, metal, aggressive, harsh',
+      negative_tags: theme ? undefined : 'rock, metal, aggressive, harsh',
     },
   };
 

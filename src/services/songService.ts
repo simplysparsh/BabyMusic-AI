@@ -83,15 +83,10 @@ export class SongService {
       throw new Error('Either theme or mood is required');
     }
 
-    // For custom theme songs, require mood
-    if (!isPreset && theme === 'custom' && !mood) {
-      throw new Error('Mood is required for custom songs~songservice.ts');
-    }
-
     console.log('Creating song record:', {
       name,
       theme,
-      mood: isPreset ? presetConfig?.mood : mood,
+      mood: isPreset ? presetConfig?.mood : theme ? undefined : mood,
       voice_type: isInstrumental ? null : voice,
       tempo,
       lyrics: isPreset
@@ -111,7 +106,7 @@ export class SongService {
         {
           name,
           theme,
-          mood: isPreset ? presetConfig?.mood : mood,
+          mood: isPreset ? presetConfig?.mood : theme ? undefined : mood,
           voice_type: isInstrumental ? null : voice,
           tempo,
           lyrics: isPreset ? presetConfig?.lyrics(name.split("'")[0]) : lyrics,

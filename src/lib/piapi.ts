@@ -267,7 +267,7 @@ export const createMusicGenerationTask = async ({
     },
     input: {
       title: title,
-      prompt: truncatedPrompt || description, // Use description as fallback if no lyrics
+      prompt: truncatedPrompt
       tags: truncatedTags,
       make_instrumental: isInstrumental || false,
       negative_tags: 'rock, metal, aggressive, harsh',

@@ -49,7 +49,8 @@ export class LyricGenerationService {
   static async generateLyrics(params: LyricGenerationParams): Promise<string> {
     console.log('LyricGenerationService.generateLyrics called with:', {
       ...params,
-      userInput: params.userInput ? 'provided' : 'not provided'
+      userInput: params.userInput ? 'provided' : 'not provided',
+      hasName: !!params.babyName
     });
 
     // Validate required parameters
@@ -107,15 +108,33 @@ export class LyricGenerationService {
     try {
       console.log('Calling Claude API for lyrics generation');
       return await ClaudeAPI.generateLyrics(basePrompt);
-    } catch (error) {
-      console.error('Lyric generation failed:', error);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Lyric generation failed:', {
+        error: errorMessage,
+        params: {
+          hasName: !!babyName,
+          theme,
+          mood,
+          isPreset,
+          presetType,
+          hasUserInput: !!userInput
+        }
+      });
 
       // Use fallback lyrics but preserve error for monitoring
-      if (error instanceof Error) {
-        await logLyricGenerationError(error.message, params);
+      if (err instanceof Error) {
+        try {
+          await logLyricGenerationError(errorMessage, params);
+        } catch (logError) {
+          console.error('Failed to log lyric generation error:', {
+            originalError: errorMessage,
+            logError
+          });
+          // Continue with fallback lyrics even if logging fails
+        }
       }
 
-      console.error('Failed to generate lyrics with Claude:', error);
       // Use backup lyrics from our data files
       let fallbackLyrics: string;
       if (isPreset && presetType && PRESET_CONFIGS[presetType]) {
@@ -140,7 +159,7 @@ export class LyricGenerationService {
   }
 }
 
-async function logLyricGenerationError(error: string, params: LyricGenerationParams) {
+export const logLyricGenerationError = async (error: string, params: LyricGenerationParams) => {
   try {
     await supabase.from('lyric_generation_errors').insert([
       {
@@ -156,4 +175,4 @@ async function logLyricGenerationError(error: string, params: LyricGenerationPar
   } catch (err) {
     console.error('Failed to log lyric generation error:', err);
   }
-}
+};

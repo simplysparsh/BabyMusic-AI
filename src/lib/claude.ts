@@ -4,7 +4,7 @@ const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY;
 
 if (!CLAUDE_API_KEY) {
-  throw new Error('CLAUDE_API_KEY environment variable is required');
+  throw new Error('VITE_CLAUDE_API_KEY environment variable is required');
 }
 
 interface ClaudeMessage {
@@ -21,6 +21,12 @@ interface ClaudeResponse {
 export class ClaudeAPI {
   private static async makeRequest(prompt: string): Promise<string> {
     try {
+      console.log('Making Claude API request:', {
+        promptLength: prompt.length,
+        apiUrl: CLAUDE_API_URL,
+        hasApiKey: !!CLAUDE_API_KEY
+      });
+
       const response = await fetch(CLAUDE_API_URL, {
         method: 'POST',
         headers: {
@@ -29,7 +35,7 @@ export class ClaudeAPI {
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-3-5-haiku-20241022',
+          model: 'claude-3-haiku-20240307',
           max_tokens: 1000,
           messages: [{
             role: 'user',
@@ -40,19 +46,34 @@ export class ClaudeAPI {
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Claude API error: ${error}`);
+        const errorText = await response.text();
+        console.error('Claude API error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        
+        throw new Error(
+          response.status === 401 ? 'Invalid API key' :
+          response.status === 429 ? 'Rate limit exceeded' :
+          response.status >= 500 ? 'Claude API service error' :
+          `Claude API error: ${errorText || response.statusText}`
+        );
       }
 
       const data = await response.json();
       return data.content[0].text;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Claude API error:', error);
       throw new Error('Failed to generate lyrics. Please try again.');
     }
   }
 
   static async generateLyrics(prompt: string): Promise<string> {
+    if (!prompt?.trim()) {
+      throw new Error('Prompt is required for lyrics generation');
+    }
+
     const systemPrompt = `You are a professional children's songwriter specializing in creating engaging, 
 age-appropriate lyrics. Your task is to create lyrics based on the following requirements:
 

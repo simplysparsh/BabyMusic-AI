@@ -130,12 +130,12 @@ const getCustomTitle = (mood: MusicMood, babyName: string, isInstrumental: boole
 export const createMusicGenerationTask = async ({
   theme,
   mood,
-  lyrics,
+  userInput,
   name,
   ageGroup,
   tempo,
   isInstrumental,
-  hasUserIdeas,
+  wantsCustomLyrics,
   voice,
   is_preset,
   preset_type
@@ -178,7 +178,8 @@ export const createMusicGenerationTask = async ({
       console.log('Starting lyrics generation:', {
         theme,
         mood,
-        hasUserIdeas,
+        wantsCustomLyrics,
+        hasUserInput: !!userInput
       });
 
       try {
@@ -188,9 +189,9 @@ export const createMusicGenerationTask = async ({
           mood,
           tempo,
           ageGroup,
-          userInput: lyrics,
-          isCustom: !theme || hasUserIdeas,
-          hasUserIdeas,
+          userInput,
+          isCustom: !theme || wantsCustomLyrics,
+          wantsCustomLyrics,
         });
       } catch (error) {
         console.error('Lyrics generation failed, using fallback:', error);
@@ -237,8 +238,8 @@ export const createMusicGenerationTask = async ({
     ? `${theme}, children's music` 
     : `${mood}, children's music${voice && !isInstrumental ? `, ${voice}` : ''}`;
 
-  // Ensure we don't exceed PIAPI limits
-  const finalPrompt = lyrics || generatedLyrics || '';
+  // Use generated lyrics as the prompt for music generation
+  const finalPrompt = generatedLyrics || '';
   const truncatedPrompt =
     finalPrompt.length > PIAPI_LIMITS.PROMPT_MAX_LENGTH
       ? finalPrompt.slice(0, PIAPI_LIMITS.PROMPT_MAX_LENGTH)
@@ -274,16 +275,17 @@ export const createMusicGenerationTask = async ({
       prompt: truncatedPrompt || description, // Use description as fallback if no lyrics
       tags: truncatedTags,
       make_instrumental: isInstrumental || false,
-      negative_tags: theme ? undefined : 'rock, metal, aggressive, harsh',
+      negative_tags: 'rock, metal, aggressive, harsh',
     },
   };
 
   console.log('Sending API request:', {
-    prompt: lyrics ? 'provided' : 'not provided',
+    hasUserInput: !!userInput,
+    promptLength: finalPrompt.length,
     title,
     tags: description,
     isInstrumental,
-    hasUserIdeas,
+    wantsCustomLyrics,
   });
 
   const response = await fetch(`${API_URL}/task`, {

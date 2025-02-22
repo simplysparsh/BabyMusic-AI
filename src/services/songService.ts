@@ -15,23 +15,42 @@ export class SongService {
   static async createSong(params: {
     userId: string;
     name: string;
+    babyName: string;
     songParams: {
       tempo?: Tempo;
       voice?: VoiceType;
       theme?: ThemeType;
       mood?: MusicMood;
-      lyrics?: string;
+      userInput?: string; // User's custom ideas/context for lyrics generation
       isInstrumental?: boolean;
-      hasUserIdeas?: boolean;
+      wantsCustomLyrics?: boolean; // Whether user wants to customize lyrics (from "I have ideas" toggle)
     };
   }): Promise<Song> {
-    const { userId, name, songParams } = params;
-    const { theme, mood, lyrics, tempo, hasUserIdeas, isInstrumental, voice } =
+    const { userId, name, babyName, songParams } = params;
+    const { theme, mood, userInput, tempo, wantsCustomLyrics, isInstrumental, voice } =
       songParams;
+
+    // Helper functions
+    const isPresetSong = (name: string) => {
+      return name.toLowerCase().includes('playtime') ||
+        name.toLowerCase().includes('mealtime') ||
+        name.toLowerCase().includes('bedtime') ||
+        name.toLowerCase().includes('potty');
+    };
+
+    const getPresetType = (name: string): PresetType | undefined => {
+      const lowerName = name.toLowerCase();
+      if (lowerName.includes('playtime')) return 'playing';
+      if (lowerName.includes('mealtime')) return 'eating';
+      if (lowerName.includes('bedtime')) return 'sleeping';
+      if (lowerName.includes('potty')) return 'pooping';
+      return undefined;
+    };
 
     console.log('Creating song with params:', {
       userId,
       name,
+      babyName,
       songParams: {
         theme,
         mood,
@@ -48,11 +67,7 @@ export class SongService {
     }
 
     // Check if this is a preset song
-    const isPreset =
-      name.toLowerCase().includes('playtime') ||
-      name.toLowerCase().includes('mealtime') ||
-      name.toLowerCase().includes('bedtime') ||
-      name.toLowerCase().includes('potty');
+    const isPreset = isPresetSong(name);
 
     console.log('Preset detection:', {
       name,
@@ -60,15 +75,7 @@ export class SongService {
     });
 
     // Get preset config if applicable
-    const presetType = isPreset
-      ? ((name.toLowerCase().includes('playtime')
-          ? 'playing'
-          : name.toLowerCase().includes('mealtime')
-          ? 'eating'
-          : name.toLowerCase().includes('bedtime')
-          ? 'sleeping'
-          : 'pooping') as PresetType)
-      : undefined;
+    const presetType = isPreset ? getPresetType(name) : undefined;
 
     console.log('Preset type detection:', {
       isPreset,
@@ -83,17 +90,18 @@ export class SongService {
       throw new Error('Either theme or mood is required');
     }
 
+    // Helper function to determine the mood
+    const determineMood = () => isPreset ? presetConfig?.mood : theme ? undefined : mood;
+
     console.log('Creating song record:', {
       name,
       theme,
-      mood: isPreset ? presetConfig?.mood : theme ? undefined : mood,
+      mood: determineMood(), 
       voice_type: isInstrumental ? null : voice,
       tempo,
-      lyrics: isPreset
-        ? 'using preset lyrics'
-        : lyrics
-        ? 'using custom lyrics'
-        : 'no lyrics',
+      wantsCustomLyrics,
+      hasUserInput: !!userInput,
+      userInputLength: userInput ? userInput.length : 0,
       is_preset: isPreset,
       preset_type: presetType || null,
       is_instrumental: isInstrumental || false,
@@ -102,14 +110,17 @@ export class SongService {
     // Create initial song record
     const { data: song, error: createError } = await supabase
       .from('songs')
+      // Store user-provided lyrics or null - actual lyrics will be generated during task creation
       .insert([
         {
           name,
           theme,
-          mood: isPreset ? presetConfig?.mood : theme ? undefined : mood,
+          mood: determineMood(),
           voice_type: isInstrumental ? null : voice,
           tempo,
-          lyrics: isPreset ? presetConfig?.lyrics(name.split("'")[0]) : lyrics,
+          lyrics: null, // Will be set after generation
+          user_lyric_input: userInput || null, // Store user's custom input for lyrics generation
+          wants_custom_lyrics: wantsCustomLyrics || false, // Store whether user wants custom lyrics
           is_preset: isPreset,
           preset_type: presetType || null,
           is_instrumental: isInstrumental || false,
@@ -124,13 +135,15 @@ export class SongService {
     // Start generation task
     const taskId = await createMusicGenerationTask(
       theme,
-      isPreset ? presetConfig?.mood : mood,
-      isPreset ? presetConfig?.lyrics(name.split("'")[0]) : lyrics,
-      name.split("'")[0],
+      mood: isPreset ? presetConfig?.mood : mood,
+      userInput, // Pass user's custom input to Claude for lyrics generation
+      name: babyName,
       undefined, // ageGroup will be fetched from profile
       tempo,
       isInstrumental,
-      hasUserIdeas
+      wantsCustomLyrics,
+      is_preset: isPreset,
+      preset_type: presetType
     );
 
     // Update song with task ID

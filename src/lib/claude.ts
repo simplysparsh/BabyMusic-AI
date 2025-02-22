@@ -1,48 +1,57 @@
 import { supabase } from './supabase';
 
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY;
-
-if (!CLAUDE_API_KEY) {
-  throw new Error('VITE_CLAUDE_API_KEY environment variable is required');
-}
-
-interface ClaudeMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-interface ClaudeResponse {
-  id: string;
-  content: string;
-  role: 'assistant';
+interface ValidatedResponse {
+  text: string;
+  quality: {
+    length: number;
+    hasName: boolean
+  };
 }
 
 export class ClaudeAPI {
-  private static async makeRequest(prompt: string): Promise<string> {
+  private static validateResponse(text: string, prompt: string): ValidatedResponse {
+    const trimmedText = text.trim();
+    
+    // Check if response contains the name from the prompt
+    const nameMatch = prompt.match(/for\s+(\w+)/);
+    const expectedName = nameMatch ? nameMatch[1] : null;
+    const hasName = expectedName ? trimmedText.includes(expectedName) : true;
+
+    return {
+      text: trimmedText.length > 3000 ? trimmedText.slice(0, 3000) : trimmedText,
+      quality: {
+        length: trimmedText.length,
+        hasName
+      }
+    };
+  }
+
+  static async makeRequest(fullPrompt: string): Promise<ValidatedResponse> {
     try {
       console.log('Making Claude API request:', {
-        promptLength: prompt.length,
-        apiUrl: CLAUDE_API_URL,
-        hasApiKey: !!CLAUDE_API_KEY
+        promptLength: fullPrompt.length,
+        apiUrl: 'https://api.anthropic.com/v1/messages',
+        hasApiKey: !!import.meta.env.VITE_CLAUDE_API_KEY,
       });
 
-      const response = await fetch(CLAUDE_API_URL, {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': CLAUDE_API_KEY,
-          'anthropic-version': '2023-06-01'
+          'x-api-key': import.meta.env.VITE_CLAUDE_API_KEY,
+          'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
           model: 'claude-3-haiku-20240307',
           max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: prompt
-          }],
-          temperature: 0.7
-        })
+          messages: [
+            {
+              role: 'user',
+              content: fullPrompt,
+            },
+          ],
+          temperature: 0.7,
+        }),
       });
 
       if (!response.ok) {
@@ -50,65 +59,37 @@ export class ClaudeAPI {
         console.error('Claude API error response:', {
           status: response.status,
           statusText: response.statusText,
-          error: errorText
+          error: errorText,
         });
-        
+
         throw new Error(
-          response.status === 401 ? 'Invalid API key' :
-          response.status === 429 ? 'Rate limit exceeded' :
-          response.status >= 500 ? 'Claude API service error' :
-          `Claude API error: ${errorText || response.statusText}`
+          response.status === 401
+            ? 'Invalid API key'
+            : response.status === 429
+            ? 'Rate limit exceeded'
+            : response.status >= 500
+            ? 'Claude API service error'
+            : `Claude API error: ${errorText || response.statusText}`
         );
       }
 
       const data = await response.json();
-      return data.content[0].text;
+      const rawResponse = data.content[0].text;
+      
+      // Validate and process the response
+      const validatedResponse = this.validateResponse(rawResponse, fullPrompt);
+      
+      // Log validation results
+      console.log('Claude response validation:', {
+        length: validatedResponse.quality.length,
+        hasName: validatedResponse.quality.hasName,
+        truncated: validatedResponse.text.length < rawResponse.length
+      });
+
+      return validatedResponse;
     } catch (error: unknown) {
       console.error('Claude API error:', error);
       throw new Error('Failed to generate lyrics. Please try again.');
-    }
-  }
-
-  static async generateLyrics(prompt: string): Promise<string> {
-    if (!prompt?.trim()) {
-      throw new Error('Prompt is required for lyrics generation');
-    }
-
-    const systemPrompt = `You are a professional children's songwriter specializing in creating engaging, 
-age-appropriate lyrics. Your task is to create lyrics based on the following requirements:
-
-1. Name: ALWAYS use the child's name exactly as provided, do not modify or abbreviate it
-2. Length: 4-8 lines maximum
-3. Language: Simple, child-friendly words
-4. Pattern: Include natural repetition
-5. Rhythm: Maintain consistent meter
-6. Tone: Positive and uplifting
-7. Theme: Follow provided mood/theme
-8. Format: Plain text with line breaks
-
-Output only the lyrics, no explanations or additional text.`;
-
-    const fullPrompt = `${systemPrompt}\n\n${prompt}`;
-    
-    try {
-      console.log('Sending lyrics prompt to Claude:', {
-        promptStart: prompt.slice(0, 100) + '...',
-        hasName: prompt.includes('for') && /for\s+\w+/.test(prompt)
-      });
-
-      const lyrics = await this.makeRequest(fullPrompt);
-      // Ensure output doesn't exceed PIAPI limit
-      const trimmedLyrics = lyrics.trim();
-      
-      console.log('Claude response:', {
-        lyricsStart: trimmedLyrics.slice(0, 100) + '...',
-        length: trimmedLyrics.length
-      });
-      
-      return trimmedLyrics.length > 3000 ? trimmedLyrics.slice(0, 3000) : trimmedLyrics;
-    } catch (error) {
-      console.error('Lyrics generation failed:', error);
-      throw error;
     }
   }
 }

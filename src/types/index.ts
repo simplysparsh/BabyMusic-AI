@@ -22,7 +22,7 @@ export interface MusicGenerationParams {
   ageGroup?: AgeGroup;
   tempo?: Tempo;
   isInstrumental?: boolean;
-  hasUserIdeas?: boolean;
+  songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
   voice?: VoiceType;
   is_preset?: boolean;
   preset_type?: PresetType;

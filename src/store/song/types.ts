@@ -34,5 +34,5 @@ export interface CreateSongParams {
   lyrics?: string;
   tempo?: Tempo;
   isInstrumental?: boolean;
-  hasUserIdeas?: boolean;
+  songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
 } 

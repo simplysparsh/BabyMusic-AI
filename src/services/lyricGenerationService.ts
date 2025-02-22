@@ -158,7 +158,7 @@ export class LyricGenerationService {
           theme,
           mood,
           isPreset,
-          presetType,
+          songType,
           hasUserInput: !!userInput,
         },
       });

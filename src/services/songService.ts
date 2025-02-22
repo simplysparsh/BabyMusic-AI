@@ -56,7 +56,6 @@ export class SongService {
         mood,
         hasLyrics: !!lyrics,
         tempo,
-        hasUserIdeas,
         isInstrumental,
         voice,
       },
@@ -99,7 +98,7 @@ export class SongService {
       mood: determineMood(), 
       voice_type: isInstrumental ? null : voice,
       tempo,
-      wantsCustomLyrics,
+      songType,
       hasUserInput: !!userInput,
       song_type: songType,
       is_preset: isPreset,
@@ -118,6 +117,7 @@ export class SongService {
           mood: determineMood(),
           voice_type: isInstrumental ? null : voice,
           tempo,
+          song_type: songType,
           lyrics: null, // Will be set after generation
           user_lyric_input: userInput || null, // Store user's custom input for lyrics generation
           wants_custom_lyrics: wantsCustomLyrics || false, // Store whether user wants custom lyrics

@@ -4,18 +4,18 @@ interface LyricsInputProps {
   value: string;
   onChange: (value: string) => void;
   isFromScratch?: boolean;
-  onHasIdeasChange?: (hasIdeas: boolean) => void;
+  onSongTypeChange: (songType: 'theme' | 'theme-with-input' | 'from-scratch') => void;
 }
 
 const MAX_INPUT_LENGTH = 180;
 
-export default function LyricsInput({ value, onChange, isFromScratch = false, onHasIdeasChange }: LyricsInputProps) {
-  const [hasIdeas, setHasIdeas] = React.useState(false);
+export default function LyricsInput({ value, onChange, isFromScratch = false, onSongTypeChange }: LyricsInputProps) {
+  const [showCustomInput, setShowCustomInput] = React.useState(false);
   const [isOverLimit, setIsOverLimit] = React.useState(false);
 
-  const handleHasIdeasChange = (newHasIdeas: boolean) => {
-    setHasIdeas(newHasIdeas);
-    onHasIdeasChange?.(newHasIdeas);
+  const handleCustomInputChange = (wantsCustomInput: boolean) => {
+    setShowCustomInput(wantsCustomInput);
+    onSongTypeChange(wantsCustomInput ? 'theme-with-input' : 'theme');
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -29,7 +29,7 @@ export default function LyricsInput({ value, onChange, isFromScratch = false, on
       <label className="block text-lg font-medium text-white/90 mb-2">
         {isFromScratch ? 'Your Song Ideas' : 'Customize Your Song'}
         <span className="text-white/60 text-sm ml-2">
-          {(isFromScratch || hasIdeas) && `(${MAX_INPUT_LENGTH} characters max)`}
+          {(isFromScratch || showCustomInput) && `(${MAX_INPUT_LENGTH} characters max)`}
         </span>
       </label>
       <div className="space-y-3">
@@ -37,20 +37,20 @@ export default function LyricsInput({ value, onChange, isFromScratch = false, on
           <div className="flex gap-3">
             <button
               onClick={() => {
-                handleHasIdeasChange(false);
+                handleCustomInputChange(false);
                 onChange('');
               }}
               className={`px-4 py-2 rounded-xl text-sm transition-all duration-300
-                       ${!hasIdeas
+                       ${!showCustomInput
                          ? 'bg-gradient-to-r from-primary to-secondary text-black'
                          : 'bg-white/[0.07] text-white hover:bg-white/[0.1]'}`}
             >
               Build for me
             </button>
             <button
-              onClick={() => handleHasIdeasChange(true)}
+              onClick={() => handleCustomInputChange(true)}
               className={`px-4 py-2 rounded-xl text-sm transition-all duration-300
-                       ${hasIdeas
+                       ${showCustomInput
                          ? 'bg-gradient-to-r from-primary to-secondary text-black'
                          : 'bg-white/[0.07] text-white hover:bg-white/[0.1]'}`}
             >
@@ -58,7 +58,7 @@ export default function LyricsInput({ value, onChange, isFromScratch = false, on
             </button>
           </div>
         )}
-        {(hasIdeas || isFromScratch) && (
+        {(showCustomInput || isFromScratch) && (
           <div className="space-y-2">
             <textarea
               value={value}

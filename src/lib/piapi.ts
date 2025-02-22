@@ -138,9 +138,17 @@ export const createMusicGenerationTask = async ({
   wantsCustomLyrics,
   voice,
   is_preset,
-  preset_type
+  preset_type,
+  songType
 }: MusicGenerationParams) => {
-  console.log('Creating music generation task:', { theme, mood, name, is_preset, preset_type });
+  console.log('Creating music generation task:', { 
+    theme, 
+    mood, 
+    name, 
+    songType,
+    is_preset, 
+    preset_type 
+  });
     
   let baseDescription: string;
   let title = '';
@@ -280,7 +288,7 @@ export const createMusicGenerationTask = async ({
     title,
     tags: description,
     isInstrumental,
-    wantsCustomLyrics,
+    songType
   });
 
   const response = await fetch(`${API_URL}/task`, {

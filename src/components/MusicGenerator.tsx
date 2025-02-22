@@ -49,7 +49,7 @@ export default function MusicGenerator() {
   // Reset states when changing tabs
   useEffect(() => {
     setCustomText('');
-    setHasIdeas(false);
+    setSongType(activeTab === 'themes' ? 'theme' : 'from-scratch');
     setError(null);
     setVoiceSettings({
       isInstrumental: false,
@@ -184,7 +184,7 @@ export default function MusicGenerator() {
                 key="theme-lyrics"
                 value={customText}
                 onChange={setCustomText}
-                onSongTypeChange={(hasIdeas) => setSongType(hasIdeas ? 'theme-with-input' : 'theme')}
+                onSongTypeChange={setSongType}
               />
             </>
           ) : (
@@ -194,7 +194,7 @@ export default function MusicGenerator() {
                 value={customText}
                 onChange={setCustomText}
                 isFromScratch
-                onSongTypeChange={() => setSongType('from-scratch')}
+                onSongTypeChange={setSongType}
               />
               <CustomOptions
                 key="scratch-options"

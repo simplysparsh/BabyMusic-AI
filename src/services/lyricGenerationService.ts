@@ -71,18 +71,21 @@ export class LyricGenerationService {
       presetType,
     } = params;
 
+    // Ensure clean baby name
+    const name = babyName.trim();
+    
     // Base prompt based on context
     let basePrompt = '';
 
     if (isPreset && presetType && PRESET_CONFIGS[presetType]) {
-      basePrompt = PRESET_CONFIGS[presetType].description;
+      basePrompt = `Create a ${PRESET_CONFIGS[presetType].description} for ${name}`;
     } else if (theme && !hasUserIdeas && THEME_CONFIGS[theme]) {
-      basePrompt = THEME_CONFIGS[theme].prompt;
+      basePrompt = `${THEME_CONFIGS[theme].prompt} for ${name}`;
     } else if (!theme || hasUserIdeas) {
       if (!mood) {
         throw new Error('Mood is required for custom songs');
       }
-      basePrompt = `Write engaging children's song lyrics for ${babyName}. Make it age-appropriate and fun.`;
+      basePrompt = `Write engaging children's song lyrics for ${name}. Make it age-appropriate and fun.`;
     }
 
     // Add age-specific modifications if available
@@ -138,20 +141,23 @@ export class LyricGenerationService {
       // Use backup lyrics from our data files
       let fallbackLyrics: string;
       if (isPreset && presetType && PRESET_CONFIGS[presetType]) {
-        fallbackLyrics = PRESET_CONFIGS[presetType].lyrics(babyName);
+        fallbackLyrics = PRESET_CONFIGS[presetType].lyrics(name);
       } else if (theme && THEME_CONFIGS[theme]) {
-        fallbackLyrics = THEME_CONFIGS[theme].lyrics(babyName);
+        fallbackLyrics = THEME_CONFIGS[theme].lyrics(name);
       } else {
         // For custom songs, create a mood-based template
-        fallbackLyrics = `Let's make ${mood} music together,\n` +
-          `${babyName} leads the way.\n` +
-          `With ${mood} melodies flowing,\n` +
-          `Creating magic today!`;
+        fallbackLyrics = [
+          `Let's make ${mood} music together,`,
+          `${name} leads the way!`,
+          `With ${mood} melodies flowing,`,
+          `${name}'s magic today!`
+        ].join('\n');
       }
       
       console.log('Using fallback lyrics:', {
         type: isPreset ? 'preset' : theme ? 'theme' : 'custom',
-        length: fallbackLyrics.length
+        length: fallbackLyrics.length,
+        babyName: babyName.trim()
       });
       
       return fallbackLyrics;

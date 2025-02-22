@@ -77,13 +77,13 @@ export class ClaudeAPI {
     const systemPrompt = `You are a professional children's songwriter specializing in creating engaging, 
 age-appropriate lyrics. Your task is to create lyrics based on the following requirements:
 
-1. Length: 4-8 lines maximum
-2. Language: Simple, child-friendly words
-3. Pattern: Include natural repetition
-4. Rhythm: Maintain consistent meter
-5. Tone: Positive and uplifting
-6. Theme: Follow provided mood/theme
-7. Name: Feature child's name prominently
+1. Name: ALWAYS use the child's name exactly as provided, do not modify or abbreviate it
+2. Length: 4-8 lines maximum
+3. Language: Simple, child-friendly words
+4. Pattern: Include natural repetition
+5. Rhythm: Maintain consistent meter
+6. Tone: Positive and uplifting
+7. Theme: Follow provided mood/theme
 8. Format: Plain text with line breaks
 
 Output only the lyrics, no explanations or additional text.`;
@@ -91,9 +91,20 @@ Output only the lyrics, no explanations or additional text.`;
     const fullPrompt = `${systemPrompt}\n\n${prompt}`;
     
     try {
+      console.log('Sending lyrics prompt to Claude:', {
+        promptStart: prompt.slice(0, 100) + '...',
+        hasName: prompt.includes('for') && /for\s+\w+/.test(prompt)
+      });
+
       const lyrics = await this.makeRequest(fullPrompt);
       // Ensure output doesn't exceed PIAPI limit
       const trimmedLyrics = lyrics.trim();
+      
+      console.log('Claude response:', {
+        lyricsStart: trimmedLyrics.slice(0, 100) + '...',
+        length: trimmedLyrics.length
+      });
+      
       return trimmedLyrics.length > 3000 ? trimmedLyrics.slice(0, 3000) : trimmedLyrics;
     } catch (error) {
       console.error('Lyrics generation failed:', error);

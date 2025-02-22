@@ -30,8 +30,7 @@ interface LyricGenerationParams {
   mood?: MusicMood;
   tempo?: Tempo;
   userInput?: string;
-  isCustom?: boolean;
-  hasUserIdeas?: boolean;
+  songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
   isPreset?: boolean;
   presetType?: PresetType;
 }
@@ -78,8 +77,7 @@ export class LyricGenerationService {
       mood,
       tempo,
       userInput,
-      isCustom,
-      hasUserIdeas,
+      songType,
       isPreset,
       presetType,
     } = params;
@@ -90,15 +88,19 @@ export class LyricGenerationService {
     // Base prompt based on context
     let lyricsBasePrompt = '';
 
-    if (isPreset && presetType && PRESET_CONFIGS[presetType]) {
+    if (songType === 'preset' && presetType && PRESET_CONFIGS[presetType]) {
       lyricsBasePrompt = `Create a ${PRESET_CONFIGS[presetType].description} for ${name}`;
-    } else if (theme && !hasUserIdeas && THEME_CONFIGS[theme]) {
+    } else if (songType === 'theme' && theme && THEME_CONFIGS[theme]) {
       lyricsBasePrompt = `${THEME_CONFIGS[theme].prompt} for ${name}`;
-    } else if (!theme || hasUserIdeas) {
+    } else if (songType === 'theme-with-input' && theme) {
+      lyricsBasePrompt = `${THEME_CONFIGS[theme].prompt} for ${name}`;
+    } else if (songType === 'from-scratch') {
       if (!mood) {
-        throw new Error('Mood is required for custom songs');
+        throw new Error('Mood is required for songs built from scratch');
       }
       lyricsBasePrompt = `Write engaging children's song lyrics for ${name}. Make it age-appropriate and fun.`;
+    } else {
+      throw new Error('Invalid song type');
     }
 
     // Add age-specific modifications if available
@@ -177,11 +179,13 @@ export class LyricGenerationService {
       // Use backup lyrics from our data files
       let fallbackLyrics: string;
       if (isPreset && presetType && PRESET_CONFIGS[presetType]) {
+      }
+      if (songType === 'preset' && presetType && PRESET_CONFIGS[presetType]) {
         fallbackLyrics = PRESET_CONFIGS[presetType].lyrics(name);
-      } else if (theme && THEME_CONFIGS[theme]) {
+      } else if ((songType === 'theme' || songType === 'theme-with-input') && theme && THEME_CONFIGS[theme]) {
         fallbackLyrics = THEME_CONFIGS[theme].lyrics(name);
       } else {
-        // For custom songs, create a mood-based template
+        // For songs built from scratch, create a mood-based template
         fallbackLyrics = [
           `Let's make ${mood} music together,`,
           `${name} leads the way!`,
@@ -191,7 +195,7 @@ export class LyricGenerationService {
       }
 
       console.log('Using fallback lyrics:', {
-        type: isPreset ? 'preset' : theme ? 'theme' : 'custom',
+        songType,
         length: fallbackLyrics.length,
         babyName: babyName.trim(),
       });
@@ -213,8 +217,8 @@ export const logLyricGenerationError = async (
         mood: params.mood,
         is_preset: params.isPreset,
         preset_type: params.presetType,
-        has_user_ideas: params.hasUserIdeas,
-        has_user_input: !!params.userInput,
+        song_type: params.songType,
+        songType,
       },
     ]);
   } catch (err) {

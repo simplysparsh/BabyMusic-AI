@@ -24,7 +24,7 @@ export default function MusicGenerator() {
   const [customText, setCustomText] = useState('');
   const [timeLeft, setTimeLeft] = useState(GENERATION_TIME);
   const [error, setError] = useState<string | null>(null);
-  const [hasIdeas, setHasIdeas] = useState(false);
+  const [songType, setSongType] = useState<'preset' | 'theme' | 'theme-with-input' | 'from-scratch'>('theme');
   
   const { createSong, generatingSongs } = useSongStore();
   const { user } = useAuthStore();
@@ -63,13 +63,13 @@ export default function MusicGenerator() {
       return;
     }
     
-    // Validate required fields based on active tab
-    if (activeTab === 'themes' && !theme) {
+    // Validate required fields based on song type
+    if ((songType === 'theme' || songType === 'theme-with-input') && !theme) {
       setError('Please select a theme');
       return;
     }
     
-    if (activeTab === 'fromScratch' && !mood) {
+    if (songType === 'from-scratch' && !mood) {
       setError('Please select a mood');
       return;
     }
@@ -79,7 +79,7 @@ export default function MusicGenerator() {
       theme, 
       mood, 
       customText,
-      hasIdeas,
+      songType,
       voiceSettings
     });
 
@@ -89,10 +89,10 @@ export default function MusicGenerator() {
       const baseParams = {
         voice: voiceSettings.isInstrumental ? undefined : voiceSettings.voice,
         isInstrumental: voiceSettings.isInstrumental,
-        hasUserIdeas: hasIdeas || activeTab === 'fromScratch'
+        songType
       };
 
-      if (activeTab === 'themes') {
+      if (songType === 'theme' || songType === 'theme-with-input') {
         if (!theme) {
           setError('Please select a theme');
           return;
@@ -100,7 +100,7 @@ export default function MusicGenerator() {
 
         console.log('Creating themed song:', {
           theme,
-          hasIdeas,
+          songType,
           customText: customText.trim()
         });
 
@@ -111,7 +111,7 @@ export default function MusicGenerator() {
           lyrics: customText.trim() || undefined,
         });
       } else {
-        // fromScratch mode
+        // from-scratch mode
         if (!mood) {
           setError('Please select a mood for your song');
           return;
@@ -184,7 +184,7 @@ export default function MusicGenerator() {
                 key="theme-lyrics"
                 value={customText}
                 onChange={setCustomText}
-                onHasIdeasChange={setHasIdeas}
+                onSongTypeChange={(hasIdeas) => setSongType(hasIdeas ? 'theme-with-input' : 'theme')}
               />
             </>
           ) : (
@@ -194,6 +194,7 @@ export default function MusicGenerator() {
                 value={customText}
                 onChange={setCustomText}
                 isFromScratch
+                onSongTypeChange={() => setSongType('from-scratch')}
               />
               <CustomOptions
                 key="scratch-options"
@@ -206,7 +207,7 @@ export default function MusicGenerator() {
           )}
           
           {/* Only show voice options if user has ideas or in fromScratch mode */}
-          {(hasIdeas || activeTab === 'fromScratch') && (
+          {(songType === 'theme-with-input' || songType === 'from-scratch') && (
             <VoiceSelector
               isInstrumental={voiceSettings.isInstrumental}
               selectedVoice={voiceSettings.voice}

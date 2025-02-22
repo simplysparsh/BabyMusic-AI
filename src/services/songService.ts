@@ -23,11 +23,11 @@ export class SongService {
       mood?: MusicMood;
       userInput?: string; // User's custom ideas/context for lyrics generation
       isInstrumental?: boolean;
-      wantsCustomLyrics?: boolean; // Whether user wants to customize lyrics (from "I have ideas" toggle)
+      songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
     };
   }): Promise<Song> {
     const { userId, name, babyName, songParams } = params;
-    const { theme, mood, userInput, tempo, wantsCustomLyrics, isInstrumental, voice } =
+    const { theme, mood, userInput, tempo, songType, isInstrumental, voice } =
       songParams;
 
     // Helper functions
@@ -101,7 +101,7 @@ export class SongService {
       tempo,
       wantsCustomLyrics,
       hasUserInput: !!userInput,
-      userInputLength: userInput ? userInput.length : 0,
+      song_type: songType,
       is_preset: isPreset,
       preset_type: presetType || null,
       is_instrumental: isInstrumental || false,

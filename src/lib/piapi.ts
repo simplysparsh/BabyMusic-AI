@@ -141,13 +141,13 @@ export const createMusicGenerationTask = async ({
   preset_type
 }: MusicGenerationParams) => {
   console.log('Creating music generation task:', { theme, mood, name, is_preset, preset_type });
-
+    
   let baseDescription: string;
   let title = '';
   let generatedLyrics = '';
-  
+    
   const babyName = name || 'little one';
-  
+    
   // Determine song type and configuration
   if (is_preset && preset_type && PRESET_CONFIGS[preset_type]) {
     const config = PRESET_CONFIGS[preset_type];
@@ -175,12 +175,7 @@ export const createMusicGenerationTask = async ({
   // Generate lyrics if needed
   if (!isInstrumental) {
     try {
-      console.log('Starting lyrics generation:', {
-        theme,
-        mood,
-        wantsCustomLyrics,
-        hasUserInput: !!userInput
-      });
+      // Removed duplicate log since we already logged configuration above
 
       try {
         generatedLyrics = await LyricGenerationService.generateLyrics({
@@ -254,7 +249,7 @@ export const createMusicGenerationTask = async ({
     title,
     description: truncatedTags.slice(0, 50) + '...',
     tags,
-    isInstrumental: !lyrics,
+    isInstrumental,
     hasPrompt: !!truncatedPrompt,
     promptLength: truncatedPrompt.length,
   });

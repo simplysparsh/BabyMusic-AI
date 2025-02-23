@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 import { PRESET_CONFIGS } from '../data/lyrics/presets';
 import { THEME_CONFIGS } from '../data/lyrics/themes';
 import { LyricGenerationService } from '../services/lyricGenerationService';
+import { SongPromptService } from '../services/songPromptService';
 
 const API_URL = 'https://api.piapi.ai/api/v1';
 const API_KEY = import.meta.env.VITE_PIAPI_KEY;
@@ -149,46 +150,34 @@ export const createMusicGenerationTask = async ({
     preset_type 
   });
     
-  let baseDescription: string;
-  let title = '';
-  let generatedLyrics = '';
-    
   const babyName = name || 'little one';
-    
-  // Determine song type and configuration
-  if (is_preset && preset_type && PRESET_CONFIGS[preset_type]) {
-    const config = PRESET_CONFIGS[preset_type];
-    baseDescription = config.description;
-    const now = new Date();
-    const version = now.getTime();
-    title = `${config.title(babyName)} (v${Math.floor((version % 1000000) / 100000)})`;
-    console.log('Preset song configuration:', { title, presetType: preset_type });
-  } else if (theme && THEME_CONFIGS[theme]) {
-    const config = THEME_CONFIGS[theme];
-    baseDescription = config.description;
-    title = getThemeTitle(theme, babyName);
-    console.log('Themed song configuration:', { title, theme });
-  } else if (songType === 'from-scratch') {
-    if (!mood) {
-      throw new Error('Mood is required for from-scratch songs');
-    }
-    baseDescription = getMoodPrompt(mood);
-    title = getCustomTitle(mood, babyName, isInstrumental || false);
-    console.log('From-scratch song configuration:', { title, mood, baseDescription });
-  } else {
-    throw new Error('Invalid song configuration');
-  }
+  
+  // Get base description and title using SongPromptService
+  const baseDescription = SongPromptService.getBaseDescription({
+    theme,
+    mood,
+    isPreset: is_preset,
+    presetType: preset_type
+  });
 
-  if (!baseDescription) {
-    throw new Error('Failed to generate song description');
-  }
+  const title = SongPromptService.generateTitle({
+    theme,
+    mood,
+    babyName,
+    isInstrumental,
+    isPreset: is_preset,
+    presetType: preset_type
+  });
+
+  console.log('Song configuration:', { title, baseDescription });
 
   // Generate lyrics if needed
+  let generatedLyrics = '';
   if (!isInstrumental) {
     try {
       try {
         generatedLyrics = await LyricGenerationService.generateLyrics({
-          babyName: name || 'little one',
+          babyName,
           theme,
           mood,
           tempo,
@@ -200,27 +189,14 @@ export const createMusicGenerationTask = async ({
         });
       } catch (error) {
         console.error('Lyrics generation failed, using fallback:', error);
-
-        // Use appropriate fallback based on song type
-        if (is_preset && preset_type && PRESET_CONFIGS[preset_type]) {
-          console.log('Using preset fallback lyrics');
-          generatedLyrics = PRESET_CONFIGS[preset_type].lyrics(name || 'little one');
-        } else if (theme && THEME_CONFIGS[theme]) {
-          console.log('Using theme fallback lyrics');
-          generatedLyrics = THEME_CONFIGS[theme].lyrics(name || 'little one');
-        } else {
-          console.log('Using custom fallback lyrics');
-          // For custom songs, use a mood-based template
-          generatedLyrics = songType === 'from-scratch' && mood
-            ? `Let's make ${mood} music together,\n` +
-              `${name || 'little one'} leads the way.\n` +
-              `With ${mood} melodies flowing,\n` +
-              `Creating magic today!`
-            : `Let's make music together,\n` +
-              `${name || 'little one'} leads the way.\n` +
-              `With melodies flowing,\n` +
-              `Creating magic today!`;
-        }
+        generatedLyrics = await LyricGenerationService.getFallbackLyrics({
+          babyName,
+          theme,
+          mood,
+          isPreset: is_preset,
+          presetType: preset_type,
+          songType
+        });
         console.log('Successfully applied fallback lyrics');
       }
     } catch (error) {

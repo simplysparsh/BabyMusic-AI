@@ -9,7 +9,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../authStore';
 import { createMusicGenerationTask } from '../../lib/piapi';
 import { getPresetType } from '../../utils/presetUtils';
-import { PRESET_CONFIGS } from '../../data/lyrics';
+import { SongService } from '../../services/songService';
 import type { Song } from '../../types';
 import type { SongState, CreateSongParams } from './types';
 
@@ -144,68 +144,31 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         });
       }
 
-      // Create the initial song record
-      const { data, error: insertError } = await supabase
-        .from('songs')
-        .insert([{
-          name,
-          mood,
+      // Create the song using SongService
+      const song = await SongService.createSong({
+        userId: user.id,
+        name,
+        babyName: profile.babyName,
+        songParams: {
           theme,
-          lyrics,
+          mood,
           tempo,
-          is_instrumental: isInstrumental,
-          song_type: songType,
-          user_lyric_input: lyrics,
-          user_id: user.id,
-          audio_url: null,
-          status: 'staged'
-        }])
-        .select()
-        .single();
-
-      if (insertError || !data) throw insertError || new Error('Failed to create song');
-      newSong = data as Song;
+          isInstrumental,
+          songType,
+          voice: undefined,
+          userInput: lyrics
+        }
+      });
 
       // Update UI state
       set({
-        songs: [newSong, ...get().songs],
-        generatingSongs: new Set([...get().generatingSongs, newSong.id])
+        songs: [song, ...get().songs],
+        generatingSongs: new Set([...get().generatingSongs, song.id])
       });
 
-      // Start music generation
-      const taskId = await createMusicGenerationTask({
-        theme,
-        mood: isPreset && presetType ? PRESET_CONFIGS[presetType].mood 
-            : (songType === 'theme' || songType === 'theme-with-input') ? undefined 
-            : mood,
-        lyrics, 
-        name,
-        ageGroup: profile?.ageGroup,
-        tempo: (songType === 'theme' || songType === 'theme-with-input') ? undefined : tempo,
-        isInstrumental,
-        songType,
-        voice: newSong?.voice,
-        is_preset: isPreset,
-        preset_type: presetType || undefined
-      });
-
-      // Update song with task ID
-      const { error: updateError } = await supabase
-        .from('songs')
-        .update({ task_id: taskId })
-        .eq('id', newSong.id);
-
-      if (updateError) throw updateError;
-
-      set({
-        processingTaskIds: new Set([...get().processingTaskIds, taskId])
-      });
-      
-      return newSong;
+      return song;
     } catch (error) {
       // Clear preset type and generating state
-      const presetType = getPresetType(name);
-
       if (presetType) {
         set({
           presetSongTypes: new Set([...get().presetSongTypes].filter(t => t !== presetType))

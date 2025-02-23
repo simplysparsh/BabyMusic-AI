@@ -203,6 +203,39 @@ export class LyricGenerationService {
       return fallbackLyrics;
     }
   }
+
+  static async getFallbackLyrics(params: {
+    babyName: string;
+    theme?: ThemeType;
+    mood?: MusicMood;
+    isPreset?: boolean;
+    presetType?: PresetType;
+    songType?: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
+  }): Promise<string> {
+    const { babyName, theme, mood, isPreset, presetType, songType } = params;
+
+    if (isPreset && presetType && PRESET_CONFIGS[presetType]) {
+      console.log('Using preset fallback lyrics');
+      return PRESET_CONFIGS[presetType].lyrics(babyName);
+    }
+
+    if (theme && THEME_CONFIGS[theme]) {
+      console.log('Using theme fallback lyrics');
+      return THEME_CONFIGS[theme].lyrics(babyName);
+    }
+
+    console.log('Using custom fallback lyrics');
+    // For custom songs, use a mood-based template
+    return songType === 'from-scratch' && mood
+      ? `Let's make ${mood} music together,\n` +
+        `${babyName} leads the way.\n` +
+        `With ${mood} melodies flowing,\n` +
+        `Creating magic today!`
+      : `Let's make music together,\n` +
+        `${babyName} leads the way.\n` +
+        `With melodies flowing,\n` +
+        `Creating magic today!`;
+  }
 }
 
 export const logLyricGenerationError = async (
@@ -215,13 +248,16 @@ export const logLyricGenerationError = async (
         error_message: error,
         theme: params.theme,
         mood: params.mood,
+        song_type: params.songType,
         is_preset: params.isPreset,
         preset_type: params.presetType,
-        song_type: params.songType,
-        songType,
-      },
+        has_user_input: !!params.userInput,
+      }
     ]);
-  } catch (err) {
-    console.error('Failed to log lyric generation error:', err);
+  } catch (logError) {
+    console.error('Failed to log lyric generation error:', {
+      originalError: error,
+      logError,
+    });
   }
 };

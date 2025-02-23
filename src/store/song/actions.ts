@@ -2,15 +2,13 @@
 // - src/store/song/actions.ts: Actions for managing songs (create, delete, load)
 // - Parent: src/store/songStore.ts
 // - Related: src/store/song/types.ts (types)
-// - Related: src/lib/piapi.ts (music generation)
 // - Related: src/lib/supabase.ts (database)
 
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../authStore';
-import { createMusicGenerationTask } from '../../lib/piapi';
 import { getPresetType } from '../../utils/presetUtils';
 import { SongService } from '../../services/songService';
-import type { Song } from '../../types';
+import type { Song, PresetType } from '../../types';
 import type { SongState, CreateSongParams } from './types';
 
 type SetState = (state: Partial<SongState>) => void;
@@ -93,7 +91,9 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       isInstrumental
     });
 
-    let newSong: Song | null = null;
+    let currentPresetType: PresetType | null = null;
+    let createdSong: Song | undefined;
+    
     try {
       const user = useAuthStore.getState().user;
       const profile = useAuthStore.getState().profile;
@@ -107,20 +107,16 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       }
 
       // Determine if this is a preset song
-      const presetType = getPresetType(name);
-      const isPreset = !!presetType;
+      currentPresetType = getPresetType(name);
 
       // If it's a preset and we're already generating it, don't create a new one
-      if (presetType && get().presetSongTypes.has(presetType)) {
-        throw new Error(`${presetType} song is already being generated`);
+      if (currentPresetType && get().presetSongTypes.has(currentPresetType)) {
+        throw new Error(`${currentPresetType} song is already being generated`);
       }
       
       // If it's a preset song, delete any existing ones of the same type
-      if (presetType) {
-        const existingSongs = get().songs.filter(s => {
-          const songType = getPresetType(s.name);
-          return songType === presetType;
-        });
+      if (currentPresetType) {
+        const existingSongs = get().songs.filter(s => getPresetType(s.name) === currentPresetType);
 
         if (existingSongs.length > 0) {
           const { error: deleteError } = await supabase
@@ -135,17 +131,15 @@ export const createSongActions = (set: SetState, get: GetState) => ({
             songs: get().songs.filter(s => !existingSongs.find(es => es.id === s.id))
           });
         }
-      }
 
-      // Track preset type if applicable
-      if (presetType) {
+        // Track preset type
         set({
-          presetSongTypes: new Set([...get().presetSongTypes, presetType])
+          presetSongTypes: new Set([...get().presetSongTypes, currentPresetType])
         });
       }
 
       // Create the song using SongService
-      const song = await SongService.createSong({
+      createdSong = await SongService.createSong({
         userId: user.id,
         name,
         babyName: profile.babyName,
@@ -160,31 +154,39 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         }
       });
 
+      if (!createdSong) {
+        throw new Error('Failed to create song record');
+      }
+
       // Update UI state
       set({
-        songs: [song, ...get().songs],
-        generatingSongs: new Set([...get().generatingSongs, song.id])
+        songs: [createdSong, ...get().songs],
+        generatingSongs: new Set([...get().generatingSongs, createdSong.id])
       });
 
-      return song;
+      return createdSong;
     } catch (error) {
-      // Clear preset type and generating state
-      if (presetType) {
+      // Clear preset type if applicable
+      if (currentPresetType) {
         set({
-          presetSongTypes: new Set([...get().presetSongTypes].filter(t => t !== presetType))
+          presetSongTypes: new Set([...get().presetSongTypes].filter(t => t !== currentPresetType))
         });
       }
 
       // Update song with error state if it was created
-      if (newSong?.id) {
-        await supabase
-          .from('songs')
-          .update({ error: 'Failed to start music generation' })
-          .eq('id', newSong.id);
+      if (createdSong?.id) {
+        try {
+          await supabase
+            .from('songs')
+            .update({ error: 'Failed to start music generation' })
+            .eq('id', createdSong.id);
 
-        set({
-          generatingSongs: new Set([...get().generatingSongs].filter(id => id !== newSong.id))
-        });
+          set({
+            generatingSongs: new Set([...get().generatingSongs].filter(id => id !== createdSong.id))
+          });
+        } catch (updateError) {
+          console.error('Failed to update song error state:', updateError);
+        }
       }
 
       throw error instanceof Error ? error : new Error('Failed to create song');

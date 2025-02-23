@@ -5,7 +5,6 @@ import type {
   Song,
   MusicMood,
   ThemeType,
-  Language,
   PresetType,
   Tempo,
   VoiceType
@@ -80,7 +79,7 @@ export class SongService {
       songParams: {
         theme,
         mood,
-        hasLyrics: !!lyrics,
+        hasUserInput: !!userInput,
         tempo,
         isInstrumental,
         voice,

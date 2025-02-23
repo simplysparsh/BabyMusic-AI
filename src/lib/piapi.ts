@@ -135,11 +135,10 @@ export const createMusicGenerationTask = async ({
   ageGroup,
   tempo,
   isInstrumental,
-  wantsCustomLyrics,
+  songType,
   voice,
   is_preset,
   preset_type,
-  songType
 }: MusicGenerationParams) => {
   console.log('Creating music generation task:', { 
     theme, 
@@ -163,16 +162,16 @@ export const createMusicGenerationTask = async ({
     const now = new Date();
     const version = now.getTime();
     title = `${config.title(babyName)} (v${Math.floor((version % 1000000) / 100000)})`;
-    console.log('Preset song configuration:', { title, presetType: preset_type, mood: config.mood });
+    console.log('Preset song configuration:', { title, presetType: preset_type });
   } else if (theme && THEME_CONFIGS[theme]) {
     const config = THEME_CONFIGS[theme];
     baseDescription = config.description;
     title = getThemeTitle(theme, babyName);
     console.log('Themed song configuration:', { title, theme });
   } else {
-    if (!mood) throw new Error('Mood is required for custom songs');
-    baseDescription = getMoodPrompt(mood);
-    title = getCustomTitle(mood, babyName, isInstrumental || false);
+    // For custom songs, use the mood provided by SongService
+    baseDescription = getMoodPrompt(mood || 'calm'); // Fallback for type safety
+    title = getCustomTitle(mood || 'calm', babyName, isInstrumental || false);
     console.log('Custom song configuration:', { title, mood, baseDescription });
   }
 
@@ -183,8 +182,6 @@ export const createMusicGenerationTask = async ({
   // Generate lyrics if needed
   if (!isInstrumental) {
     try {
-      // Removed duplicate log since we already logged configuration above
-
       try {
         generatedLyrics = await LyricGenerationService.generateLyrics({
           babyName: name || 'little one',
@@ -193,8 +190,9 @@ export const createMusicGenerationTask = async ({
           tempo,
           ageGroup,
           userInput,
-          isCustom: !theme || wantsCustomLyrics,
-          wantsCustomLyrics,
+          songType,
+          isPreset: is_preset,
+          presetType: preset_type
         });
       } catch (error) {
         console.error('Lyrics generation failed, using fallback:', error);
@@ -239,7 +237,7 @@ export const createMusicGenerationTask = async ({
 
   const tags = theme 
     ? `${theme}, children's music` 
-    : `${mood}, children's music${voice && !isInstrumental ? `, ${voice}` : ''}`;
+    : `${mood}, children's music${voice ? `, ${voice}` : ''}`;
 
   // Use generated lyrics as the prompt for music generation
   const finalPrompt = generatedLyrics || '';
@@ -265,7 +263,7 @@ export const createMusicGenerationTask = async ({
   // ##### Calls API to generate music #####
   const requestBody = {
     model: 'music-s',
-    task_type: 'generate_music_custom', //Uses API mode to give lyrics, title, description.
+    task_type: 'generate_music_custom',
     config: {
       webhook_config: {
         endpoint: WEBHOOK_URL,
@@ -279,6 +277,9 @@ export const createMusicGenerationTask = async ({
       tags: truncatedTags,
       make_instrumental: isInstrumental || false,
       negative_tags: 'rock, metal, aggressive, harsh',
+      // Use mood and tempo as provided by SongService
+      ...(mood && { mood }),
+      ...(tempo && { tempo })
     },
   };
 

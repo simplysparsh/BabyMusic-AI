@@ -29,7 +29,11 @@ export interface SongState {
 
 export interface CreateSongParams {
   name: string;
-  mood: MusicMood;
+  // For themed songs (songType === 'theme' | 'theme-with-input'):
+  // - mood and tempo are optional as they are determined by the API based on the theme
+  // For custom songs (songType === 'from-scratch'):
+  // - mood and tempo are required to specify the exact characteristics
+  mood?: MusicMood;
   theme?: ThemeType;
   lyrics?: string;
   tempo?: Tempo;

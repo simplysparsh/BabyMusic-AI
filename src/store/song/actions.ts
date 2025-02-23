@@ -9,6 +9,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../authStore';
 import { createMusicGenerationTask } from '../../lib/piapi';
 import { getPresetType } from '../../utils/presetUtils';
+import { SongService } from '../../services/songService';
 import type { Song } from '../../types';
 import type { SongState, CreateSongParams } from './types';
 
@@ -92,7 +93,8 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       isInstrumental
     });
 
-    let newSong: Song | null = null;
+    let createdSong: Song | null = null;
+
     try {
       const user = useAuthStore.getState().user;
       const profile = useAuthStore.getState().profile;
@@ -143,35 +145,28 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         });
       }
 
-      // Create the initial song record
-      const { data, error: insertError } = await supabase
-        .from('songs')
-        .insert([{
-          name,
-          mood,
+      // Create song using SongService
+      createdSong = await SongService.createSong({
+        userId: user.id,
+        name,
+        babyName: profile.babyName,
+        songParams: {
           theme,
-          lyrics,
+          mood,
           tempo,
-          is_instrumental: isInstrumental,
-          song_type: songType,
-          user_lyric_input: lyrics,
-          user_id: user.id,
-          audio_url: null,
-          status: 'staged'
-        }])
-        .select()
-        .single();
-
-      if (insertError || !data) throw insertError || new Error('Failed to create song');
-      newSong = data as Song;
+          isInstrumental,
+          songType,
+          userInput: lyrics
+        }
+      });
 
       // Update UI state
       set({
-        songs: [newSong, ...get().songs],
-        generatingSongs: new Set([...get().generatingSongs, newSong.id])
+        songs: [createdSong, ...get().songs],
+        generatingSongs: new Set([...get().generatingSongs, createdSong.id])
       });
 
-      // Start music generation
+      // Start music generation using the song service's parameters
       const taskId = await createMusicGenerationTask({
         theme,
         mood,
@@ -181,7 +176,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         tempo,
         isInstrumental,
         songType,
-        voice: newSong.voice,
+        voice: createdSong.voice,
         is_preset: isPreset,
         preset_type: presetType || undefined
       });
@@ -190,7 +185,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       const { error: updateError } = await supabase
         .from('songs')
         .update({ task_id: taskId })
-        .eq('id', newSong.id);
+        .eq('id', createdSong.id);
 
       if (updateError) throw updateError;
 
@@ -198,7 +193,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         processingTaskIds: new Set([...get().processingTaskIds, taskId])
       });
       
-      return newSong;
+      return createdSong;
     } catch (error) {
       // Clear preset type and generating state
       const presetType = getPresetType(name);
@@ -210,14 +205,14 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       }
 
       // Update song with error state if it was created
-      if (newSong?.id) {
+      if (createdSong?.id) {
         await supabase
           .from('songs')
           .update({ error: 'Failed to start music generation' })
-          .eq('id', newSong.id);
+          .eq('id', createdSong.id);
 
         set({
-          generatingSongs: new Set([...get().generatingSongs].filter(id => id !== newSong.id))
+          generatingSongs: new Set([...get().generatingSongs].filter(id => id !== createdSong.id))
         });
       }
 

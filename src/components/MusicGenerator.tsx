@@ -8,9 +8,15 @@ import VoiceSelector from './music-generator/VoiceSelector';
 import CustomOptions from './music-generator/CustomOptions';
 import LyricsInput from './music-generator/LyricsInput';
 import GenerationProgress from './music-generator/GenerationProgress';
+import { THEMES } from './music-generator/ThemeSelector';
 
 type TabType = 'themes' | 'fromScratch';
 const GENERATION_TIME = 240; // 4 minutes in seconds
+
+const getThemeDisplayName = (themeType: ThemeType): string => {
+  const theme = THEMES.find((t: { type: ThemeType }) => t.type === themeType);
+  return theme ? theme.title : themeType;
+};
 
 export default function MusicGenerator() {
   const [activeTab, setActiveTab] = useState<TabType>('themes');
@@ -104,11 +110,17 @@ export default function MusicGenerator() {
           customText: customText.trim()
         });
 
+        // For themed songs, we don't specify mood or tempo
+        // Let the API determine these based on the theme's characteristics
+        // For example:
+        // - sleepRegulation theme should naturally be calm and slow
+        // - pitchDevelopment theme should adapt to learning pace
+        // - socialEngagement theme should match interaction dynamics
         await createSong({
           ...baseParams,
-          name: `${theme} Theme`,
+          name: `${getThemeDisplayName(theme)} Theme`,
           theme,
-          lyrics: customText.trim() || undefined,
+          lyrics: customText.trim() || undefined
         });
       } else {
         // from-scratch mode
@@ -122,6 +134,11 @@ export default function MusicGenerator() {
           return;
         }
 
+        if (!tempo) {
+          setError('Please select a tempo for your song');
+          return;
+        }
+
         console.log('Creating custom song:', {
           mood,
           customText: customText.trim()
@@ -130,8 +147,8 @@ export default function MusicGenerator() {
         await createSong({
           ...baseParams,
           name: `${mood} Song: ${customText.slice(0, 30)}${customText.length > 30 ? '...' : ''}`,
-          tempo,
-          mood,
+          tempo: tempo,
+          mood: mood,
           lyrics: customText.trim()
         });
       }

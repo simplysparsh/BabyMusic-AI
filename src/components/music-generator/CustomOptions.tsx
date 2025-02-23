@@ -15,17 +15,17 @@ const MOOD_OPTIONS: { type: MusicMood; label: string }[] = [
 ];
 
 interface CustomOptionsProps {
-  tempo: Tempo;
-  mood: MusicMood;
-  onTempoSelect: (tempo: Tempo) => void;
+  mood?: MusicMood;
+  tempo?: Tempo;
   onMoodSelect: (mood: MusicMood) => void;
+  onTempoSelect: (tempo: Tempo) => void;
 }
 
 export default function CustomOptions({ 
-  tempo, 
   mood, 
-  onTempoSelect, 
-  onMoodSelect 
+  tempo, 
+  onMoodSelect, 
+  onTempoSelect 
 }: CustomOptionsProps) {
   return (
     <div className="space-y-6">

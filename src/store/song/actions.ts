@@ -9,7 +9,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../authStore';
 import { createMusicGenerationTask } from '../../lib/piapi';
 import { getPresetType } from '../../utils/presetUtils';
-import { SongService } from '../../services/songService';
+import { PRESET_CONFIGS } from '../../data/lyrics';
 import type { Song } from '../../types';
 import type { SongState, CreateSongParams } from './types';
 
@@ -93,8 +93,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       isInstrumental
     });
 
-    let createdSong: Song | null = null;
-
+    let newSong: Song | null = null;
     try {
       const user = useAuthStore.getState().user;
       const profile = useAuthStore.getState().profile;
@@ -145,38 +144,47 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         });
       }
 
-      // Create song using SongService
-      createdSong = await SongService.createSong({
-        userId: user.id,
-        name,
-        babyName: profile.babyName,
-        songParams: {
-          theme,
+      // Create the initial song record
+      const { data, error: insertError } = await supabase
+        .from('songs')
+        .insert([{
+          name,
           mood,
+          theme,
+          lyrics,
           tempo,
-          isInstrumental,
-          songType,
-          userInput: lyrics
-        }
-      });
+          is_instrumental: isInstrumental,
+          song_type: songType,
+          user_lyric_input: lyrics,
+          user_id: user.id,
+          audio_url: null,
+          status: 'staged'
+        }])
+        .select()
+        .single();
+
+      if (insertError || !data) throw insertError || new Error('Failed to create song');
+      newSong = data as Song;
 
       // Update UI state
       set({
-        songs: [createdSong, ...get().songs],
-        generatingSongs: new Set([...get().generatingSongs, createdSong.id])
+        songs: [newSong, ...get().songs],
+        generatingSongs: new Set([...get().generatingSongs, newSong.id])
       });
 
-      // Start music generation using the song service's parameters
+      // Start music generation
       const taskId = await createMusicGenerationTask({
         theme,
-        mood,
+        mood: isPreset && presetType ? PRESET_CONFIGS[presetType].mood 
+            : (songType === 'theme' || songType === 'theme-with-input') ? undefined 
+            : mood,
         lyrics, 
         name,
         ageGroup: profile?.ageGroup,
-        tempo,
+        tempo: (songType === 'theme' || songType === 'theme-with-input') ? undefined : tempo,
         isInstrumental,
         songType,
-        voice: createdSong.voice,
+        voice: newSong?.voice,
         is_preset: isPreset,
         preset_type: presetType || undefined
       });
@@ -185,7 +193,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       const { error: updateError } = await supabase
         .from('songs')
         .update({ task_id: taskId })
-        .eq('id', createdSong.id);
+        .eq('id', newSong.id);
 
       if (updateError) throw updateError;
 
@@ -193,7 +201,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         processingTaskIds: new Set([...get().processingTaskIds, taskId])
       });
       
-      return createdSong;
+      return newSong;
     } catch (error) {
       // Clear preset type and generating state
       const presetType = getPresetType(name);
@@ -205,14 +213,14 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       }
 
       // Update song with error state if it was created
-      if (createdSong?.id) {
+      if (newSong?.id) {
         await supabase
           .from('songs')
           .update({ error: 'Failed to start music generation' })
-          .eq('id', createdSong.id);
+          .eq('id', newSong.id);
 
         set({
-          generatingSongs: new Set([...get().generatingSongs].filter(id => id !== createdSong.id))
+          generatingSongs: new Set([...get().generatingSongs].filter(id => id !== newSong.id))
         });
       }
 

@@ -2,7 +2,7 @@ import React from 'react';
 import type { ThemeType } from '../../types';
 import { Music2, Brain, Heart, Star, Wand2 } from 'lucide-react';
 
-const THEMES: { type: ThemeType; title: string; description: string; icon: any }[] = [
+export const THEMES: { type: ThemeType; title: string; description: string; icon: any }[] = [
   {
     type: 'pitchDevelopment',
     title: 'Musical Intelligence',
@@ -42,7 +42,7 @@ const THEMES: { type: ThemeType; title: string; description: string; icon: any }
 ];
 
 interface ThemeSelectorProps {
-  selectedTheme: ThemeType;
+  selectedTheme?: ThemeType;
   onThemeSelect: (theme: ThemeType) => void;
 }
 

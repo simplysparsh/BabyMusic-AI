@@ -168,11 +168,15 @@ export const createMusicGenerationTask = async ({
     baseDescription = config.description;
     title = getThemeTitle(theme, babyName);
     console.log('Themed song configuration:', { title, theme });
+  } else if (songType === 'from-scratch') {
+    if (!mood) {
+      throw new Error('Mood is required for from-scratch songs');
+    }
+    baseDescription = getMoodPrompt(mood);
+    title = getCustomTitle(mood, babyName, isInstrumental || false);
+    console.log('From-scratch song configuration:', { title, mood, baseDescription });
   } else {
-    // For custom songs, use the mood provided by SongService
-    baseDescription = getMoodPrompt(mood || 'calm'); // Fallback for type safety
-    title = getCustomTitle(mood || 'calm', babyName, isInstrumental || false);
-    console.log('Custom song configuration:', { title, mood, baseDescription });
+    throw new Error('Invalid song configuration');
   }
 
   if (!baseDescription) {
@@ -207,11 +211,15 @@ export const createMusicGenerationTask = async ({
         } else {
           console.log('Using custom fallback lyrics');
           // For custom songs, use a mood-based template
-          generatedLyrics =
-            `Let's make ${mood} music together,\n` +
-            `${name || 'little one'} leads the way.\n` +
-            `With ${mood} melodies flowing,\n` +
-            `Creating magic today!`;
+          generatedLyrics = songType === 'from-scratch' && mood
+            ? `Let's make ${mood} music together,\n` +
+              `${name || 'little one'} leads the way.\n` +
+              `With ${mood} melodies flowing,\n` +
+              `Creating magic today!`
+            : `Let's make music together,\n` +
+              `${name || 'little one'} leads the way.\n` +
+              `With melodies flowing,\n` +
+              `Creating magic today!`;
         }
         console.log('Successfully applied fallback lyrics');
       }
@@ -237,7 +245,9 @@ export const createMusicGenerationTask = async ({
 
   const tags = theme 
     ? `${theme}, children's music` 
-    : `${mood}, children's music${voice ? `, ${voice}` : ''}`;
+    : songType === 'from-scratch' && mood
+      ? `${mood}, children's music${voice ? `, ${voice}` : ''}`
+      : `children's music${voice ? `, ${voice}` : ''}`;
 
   // Use generated lyrics as the prompt for music generation
   const finalPrompt = generatedLyrics || '';

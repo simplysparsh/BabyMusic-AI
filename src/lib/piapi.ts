@@ -270,12 +270,12 @@ export const createMusicGenerationTask = async ({
   };
 
   console.log('Sending API request:', {
-    hasUserInput: !!userInput,
+    songType,
+    userInput: userInput ? 'provided' : 'not provided',
     promptLength: finalPrompt.length,
     title,
     tags: description,
     isInstrumental,
-    songType
   });
 
   const response = await fetch(`${API_URL}/task`, {

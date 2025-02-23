@@ -86,7 +86,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       name,
       mood,
       theme,
-      hasUserInput: !!userInput,
+      userInput: userInput ? 'provided' : 'not provided',
       songType,
       isInstrumental
     });

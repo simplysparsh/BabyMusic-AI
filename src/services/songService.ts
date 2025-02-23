@@ -119,7 +119,6 @@ export class SongService {
       mood: determinedMood,
       voice_type: isInstrumental ? null : voice,
       tempo,
-      hasUserInput: !!userInput,
       song_type: songType,
       is_preset: isPreset,
       preset_type: presetType || null,

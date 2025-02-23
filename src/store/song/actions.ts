@@ -81,12 +81,12 @@ export const createSongActions = (set: SetState, get: GetState) => ({
     }
   },
 
-  createSong: async ({ name, mood, theme, lyrics, tempo, isInstrumental, songType }: CreateSongParams): Promise<Song> => {
+  createSong: async ({ name, mood, theme, userInput, tempo, isInstrumental, songType }: CreateSongParams): Promise<Song> => {
     console.log('songStore.createSong called with:', {
       name,
       mood,
       theme,
-      lyrics: lyrics ? 'provided' : 'not provided',
+      hasUserInput: !!userInput,
       songType,
       isInstrumental
     });
@@ -150,7 +150,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
           isInstrumental,
           songType,
           voice: undefined,
-          userInput: lyrics
+          userInput
         }
       });
 

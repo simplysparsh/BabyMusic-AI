@@ -35,7 +35,7 @@ export interface CreateSongParams {
   // - mood and tempo are required to specify the exact characteristics
   mood?: MusicMood;
   theme?: ThemeType;
-  lyrics?: string;
+  userInput?: string; // User's input text to help generate lyrics
   tempo?: Tempo;
   isInstrumental?: boolean;
   songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';

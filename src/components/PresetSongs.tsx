@@ -39,13 +39,10 @@ const PRESETS: {
 
 const PresetSongs: FC = () => {
   const { user, profile } = useAuthStore();
-  const { isPlaying, currentSong, songNames, presetSongTypes, generatingSongs, handlePresetClick } = usePresetSongs();
+  const { isPlaying, currentSong, songNames, presetSongTypes, generatingSongs, handlePresetClick, presetSongs } = usePresetSongs();
   const [timeLeft, setTimeLeft] = useState<number>(240); // 4 minutes in seconds
   const { playAudio, stopAllAudio } = useAudioStore();
   const [currentVariation, setCurrentVariation] = useState<Record<string, number>>({});
-  
-  // Get preset songs from usePresetSongs hook
-  const { presetSongs } = usePresetSongs();
   
   // Handle countdown timer
   useEffect(() => {
@@ -70,20 +67,13 @@ const PresetSongs: FC = () => {
     };
   }, [stopAllAudio]);
 
-  // Set up song names when user or profile changes
-  useEffect(() => {
-    if (user && profile?.babyName) {
-      // Note: Removed setSongNames as it's handled by usePresetSongs hook
-    }
-  }, [user, profile?.babyName]);
-
   const handlePlay = (audioUrl: string, type: PresetType) => {
     playAudio(audioUrl);
   };
 
   const handleVariationChange = (e: MouseEvent<HTMLDivElement>, type: PresetType, direction: 'next' | 'prev') => {
     e.stopPropagation();
-    const song = songs.find((s: Song) => s.name === songNames[type]);
+    const song = presetSongs.find((s: Song) => s.name === songNames[type]);
     if (!song?.variations?.length) return;
 
     const currentIndex = currentVariation[type] || 0;
@@ -111,7 +101,7 @@ const PresetSongs: FC = () => {
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 relative">
         {PRESETS.map(({ type, icon: Icon, title, description }) => {
-          const song = songs.find((s: Song) => s.name === songNames[type]);
+          const song = presetSongs.find((s: Song) => s.name === songNames[type]);
           const isGenerating = presetSongTypes.has(type) || 
                              (song && !song.audioUrl && ['staged', 'pending', 'processing'].includes(song.status || ''));
           
@@ -216,9 +206,9 @@ const PresetSongs: FC = () => {
                   ) : description}
                 </p>
                 {!presetSongTypes.has(type) &&
-                 !songs.some((s: Song) => s.name === songNames[type] && generatingSongs.has(s.id)) &&
+                 !presetSongs.some((s: Song) => s.name === songNames[type] && generatingSongs.has(s.id)) &&
                  songNames[type] &&
-                 (songs.find((s: Song) => s.name === songNames[type])?.variations?.length ?? 0) > 0 && (
+                 (presetSongs.find((s: Song) => s.name === songNames[type])?.variations?.length ?? 0) > 0 && (
                   <div className="flex items-center gap-1 mt-3 text-white/60">
                     <div
                       role="button"
@@ -230,7 +220,7 @@ const PresetSongs: FC = () => {
                       <ChevronLeft className="w-3 h-3" />
                     </div>
                     <span className="text-xs">
-                      {(currentVariation[type] || 0) + 1}/{songs.find((s: Song) => s.name === songNames[type])?.variations?.length ?? 0}
+                      {(currentVariation[type] || 0) + 1}/{presetSongs.find((s: Song) => s.name === songNames[type])?.variations?.length ?? 0}
                     </span>
                     <div
                       role="button"

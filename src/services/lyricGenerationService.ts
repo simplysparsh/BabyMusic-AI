@@ -60,13 +60,18 @@ export class LyricGenerationService {
   static async generateLyrics(params: LyricGenerationParams): Promise<string> {
     console.log('LyricGenerationService.generateLyrics called with:', {
       ...params,
-      userInput: params.userInput ? 'provided' : 'not provided',
-      hasName: !!params.babyName,
+      userInput: params.userInput ? 'provided' : 'not provided'
     });
 
     // Validate required parameters
     if (!params.babyName) {
       throw new Error('Baby name is required for lyric generation');
+    }
+
+    // Ensure Claude API key is configured
+    if (!import.meta.env.VITE_CLAUDE_API_KEY) {
+      console.warn('Claude API key not found, using fallback lyrics');
+      return this.getFallbackLyrics(params);
     }
 
     const {
@@ -131,6 +136,7 @@ export class LyricGenerationService {
       console.log('Sending lyrics prompt to Claude:', {
         promptStart: lyricsBasePrompt.slice(0, 150) + '...\n',
         hasName: lyricsBasePrompt.includes('for') && /for\s+\w+/.test(lyricsBasePrompt),
+        promptLength: fullPrompt.length
       });
 
       const lyrics = await ClaudeAPI.makeRequest(fullPrompt);

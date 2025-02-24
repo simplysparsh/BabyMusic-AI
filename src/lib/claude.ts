@@ -29,10 +29,12 @@ export class ClaudeAPI {
   static async makeRequest(fullPrompt: string): Promise<ValidatedResponse> {
     try {
       console.log('Making Claude API request:', {
-        promptLength: fullPrompt.length,
-        apiUrl: 'https://api.anthropic.com/v1/messages',
-        hasApiKey: !!import.meta.env.VITE_CLAUDE_API_KEY,
+        promptLength: fullPrompt.length
       });
+
+      if (!import.meta.env.VITE_CLAUDE_API_KEY) {
+        throw new Error('Claude API key is not configured');
+      }
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -57,9 +59,7 @@ export class ClaudeAPI {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Claude API error response:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText,
+          status: response.status
         });
 
         throw new Error(

@@ -12,7 +12,7 @@ export function usePresetSongs() {
 
   // Get preset songs from the list
   const presetSongs = songs.filter(song => {
-    return song.song_type === 'preset';
+    return song.song_type === 'preset' && song.preset_type;
   });
 
   // Generate song names based on baby name
@@ -31,7 +31,7 @@ export function usePresetSongs() {
     const songName = songNames[type];
     const config = PRESET_CONFIGS[type];
 
-    if (!songName) {
+    if (!songName || !config) {
       return;
     }
 
@@ -57,6 +57,8 @@ export function usePresetSongs() {
         await createSong({
           name: songName,
           mood: config.mood,
+          songType: 'preset',
+          preset_type: type,
           lyrics: config.lyrics(profile.babyName)
         });
       } catch (error) {

@@ -175,33 +175,28 @@ export const createMusicGenerationTask = async ({
   let generatedLyrics = '';
   if (!isInstrumental) {
     try {
-      try {
-        generatedLyrics = await LyricGenerationService.generateLyrics({
-          babyName,
-          theme,
-          mood,
-          tempo,
-          ageGroup,
-          userInput,
-          songType,
-          isPreset: is_preset,
-          presetType: preset_type
-        });
-      } catch (error) {
-        console.error('Lyrics generation failed, using fallback:', error);
-        generatedLyrics = await LyricGenerationService.getFallbackLyrics({
-          babyName,
-          theme,
-          mood,
-          isPreset: is_preset,
-          presetType: preset_type,
-          songType
-        });
-        console.log('Successfully applied fallback lyrics');
-      }
+      generatedLyrics = await LyricGenerationService.generateLyrics({
+        babyName,
+        theme,
+        mood,
+        tempo,
+        ageGroup,
+        userInput,
+        songType,
+        isPreset: is_preset,
+        presetType: preset_type
+      });
     } catch (error) {
-      console.error('Lyrics generation error:', error);
-      throw new Error('Failed to generate or apply fallback lyrics. Please try again.');
+      console.error('Lyrics generation failed, using fallback:', error);
+      generatedLyrics = await LyricGenerationService.getFallbackLyrics({
+        babyName,
+        theme,
+        mood,
+        isPreset: is_preset,
+        presetType: preset_type,
+        songType
+      });
+      console.log('Successfully applied fallback lyrics');
     }
   }
 

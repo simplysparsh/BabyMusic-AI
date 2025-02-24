@@ -149,7 +149,7 @@ export class LyricGenerationService {
       }
 
       return lyrics.text;
-    } catch (err: unknown) {
+    } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       console.error('Lyric generation failed:', {
         error: errorMessage,
@@ -178,8 +178,6 @@ export class LyricGenerationService {
 
       // Use backup lyrics from our data files
       let fallbackLyrics: string;
-      if (isPreset && presetType && PRESET_CONFIGS[presetType]) {
-      }
       if (songType === 'preset' && presetType && PRESET_CONFIGS[presetType]) {
         fallbackLyrics = PRESET_CONFIGS[presetType].lyrics(name);
       } else if ((songType === 'theme' || songType === 'theme-with-input') && theme && THEME_CONFIGS[theme]) {

@@ -79,8 +79,7 @@ export class SongService {
       songParams: {
         theme,
         mood,
-        hasUserInput: !!userInput,
-        userInput: userInput ? 'provided' : 'not provided',
+        userInput: userInput ? `"${userInput}"` : 'not provided',
         tempo,
         isInstrumental,
         voice,

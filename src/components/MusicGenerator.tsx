@@ -120,7 +120,7 @@ export default function MusicGenerator() {
           ...baseParams,
           name: `${getThemeDisplayName(theme)} Theme`,
           theme,
-          lyrics: customText.trim() || undefined
+          userInput: customText.trim() || undefined
         });
       } else {
         // from-scratch mode
@@ -149,7 +149,7 @@ export default function MusicGenerator() {
           name: `${mood} Song: ${customText.slice(0, 30)}${customText.length > 30 ? '...' : ''}`,
           tempo: tempo,
           mood: mood,
-          lyrics: customText.trim()
+          userInput: customText.trim()
         });
       }
     } catch (err) {

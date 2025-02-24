@@ -3,7 +3,6 @@ import { Baby, UtensilsCrossed, Moon, Waves, Play, Pause, Wand2, Music, ChevronR
 import { usePresetSongs } from '../hooks/usePresetSongs';
 import type { PresetType, Song } from '../types';
 import { useAuthStore } from '../store/authStore';
-import { useSongStore } from '../store/songStore';
 import { useAudioStore } from '../store/audioStore';
 
 const PRESETS: {
@@ -41,10 +40,12 @@ const PRESETS: {
 const PresetSongs: FC = () => {
   const { user, profile } = useAuthStore();
   const { isPlaying, currentSong, songNames, presetSongTypes, generatingSongs, handlePresetClick } = usePresetSongs();
-  const { songs } = useSongStore();
   const [timeLeft, setTimeLeft] = useState<number>(240); // 4 minutes in seconds
   const { playAudio, stopAllAudio } = useAudioStore();
   const [currentVariation, setCurrentVariation] = useState<Record<string, number>>({});
+  
+  // Get preset songs from the list
+  const presetSongs = presetSongs;
   
   // Handle countdown timer
   useEffect(() => {

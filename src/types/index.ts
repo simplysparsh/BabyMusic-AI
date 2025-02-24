@@ -24,7 +24,6 @@ export interface MusicGenerationParams {
   isInstrumental?: boolean;
   songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
   voice?: VoiceType;
-  is_preset?: boolean;
   preset_type?: PresetType;
   userInput?: string;
 }

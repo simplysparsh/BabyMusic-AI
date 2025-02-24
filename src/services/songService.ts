@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { createMusicGenerationTask } from '../lib/piapi';
 import { PRESET_CONFIGS } from '../data/lyrics';
+import { getPresetType } from '../utils/presetUtils';
 import type {
   Song,
   MusicMood,
@@ -18,13 +19,13 @@ export class SongService {
    */
   private static determineMood(params: {
     songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
-    presetType?: PresetType;
-    mood?: MusicMood;
+    presetType?: PresetType | null;
+    mood?: MusicMood | null;
   }): MusicMood | undefined {
     const { songType, presetType, mood } = params;
 
     // For presets: use the preset's defined mood
-    if (presetType && PRESET_CONFIGS[presetType]) {
+    if (songType === 'preset' && presetType && PRESET_CONFIGS[presetType]) {
       return PRESET_CONFIGS[presetType].mood;
     }
 
@@ -55,27 +56,9 @@ export class SongService {
     const { userId, name, babyName, songParams } = params;
     const { theme, mood, userInput, tempo, songType, isInstrumental, voice } = songParams;
 
-    // Helper functions
-    const isPresetSong = (name: string) => {
-      return name.toLowerCase().includes('playtime') ||
-        name.toLowerCase().includes('mealtime') ||
-        name.toLowerCase().includes('bedtime') ||
-        name.toLowerCase().includes('potty');
-    };
-
-    const getPresetType = (name: string): PresetType | undefined => {
-      const lowerName = name.toLowerCase();
-      if (lowerName.includes('playtime')) return 'playing';
-      if (lowerName.includes('mealtime')) return 'eating';
-      if (lowerName.includes('bedtime')) return 'sleeping';
-      if (lowerName.includes('potty')) return 'pooping';
-      return undefined;
-    };
-
     console.log('Creating song with params:', {
       userId,
       name,
-      babyName,
       songParams: {
         theme,
         mood,
@@ -83,6 +66,7 @@ export class SongService {
         tempo,
         isInstrumental,
         voice,
+        songType
       },
     });
 
@@ -90,19 +74,18 @@ export class SongService {
       throw new Error('User ID and name are required');
     }
 
-    // Check if this is a preset song
-    const isPreset = isPresetSong(name);
-    const presetType = isPreset ? getPresetType(name) : undefined;
+    // Get preset type if applicable
+    const presetType = songType === 'preset' ? getPresetType(name) : undefined;
 
     console.log('Preset detection:', {
       name,
-      isPreset,
+      songType,
       presetType,
       hasConfig: presetType ? !!PRESET_CONFIGS[presetType] : false,
     });
 
-    // For non-preset songs, require either theme or mood
-    if (!isPreset && !theme && !mood) {
+    // For non-preset/non-theme songs, require mood
+    if (songType === 'from-scratch' && !mood) {
       throw new Error('Either theme or mood is required');
     }
 
@@ -120,7 +103,6 @@ export class SongService {
       voice_type: isInstrumental ? null : voice,
       tempo,
       song_type: songType,
-      is_preset: isPreset,
       preset_type: presetType || null,
       is_instrumental: isInstrumental || false,
       user_lyric_input: userInput || null,
@@ -139,7 +121,6 @@ export class SongService {
         song_type: songType,
         lyrics: null,
         user_lyric_input: userInput || null,
-        is_preset: isPreset,
         preset_type: presetType || null,
         is_instrumental: isInstrumental || false,
         user_id: userId,
@@ -155,7 +136,6 @@ export class SongService {
           theme,
           mood: determinedMood,
           songType,
-          isPreset,
           hasUserInput: !!userInput
         }
       });
@@ -166,7 +146,6 @@ export class SongService {
       id: song.id,
       name: song.name,
       songType,
-      isPreset,
       hasUserInput: !!userInput
     });
 
@@ -183,7 +162,7 @@ export class SongService {
         isInstrumental,
         songType,
         voice,
-        is_preset: isPreset,
+        is_preset: songType === 'preset',
         preset_type: presetType
       });
 

@@ -15,12 +15,3 @@ export const getPresetType = (name: string): PresetType | null => {
   if (lowerName.includes('potty')) return 'pooping';
   return null;
 };
-
-/**
- * Checks if a song name corresponds to a preset song
- * @param name The song name to check
- * @returns True if it's a preset song name
- */
-export const isPresetSong = (name: string): boolean => {
-  return getPresetType(name) !== null;
-};

@@ -12,13 +12,7 @@ export function usePresetSongs() {
 
   // Get preset songs from the list
   const presetSongs = songs.filter(song => {
-    const name = song.name.toLowerCase();
-    return (
-      name.includes('playtime') ||
-      name.includes('mealtime') ||
-      name.includes('bedtime') ||
-      name.includes('potty')
-    );
+    return song.song_type === 'preset';
   });
 
   // Generate song names based on baby name

@@ -31,7 +31,6 @@ interface LyricGenerationParams {
   tempo?: Tempo;
   userInput?: string;
   songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
-  isPreset?: boolean;
   presetType?: PresetType;
 }
 
@@ -78,7 +77,6 @@ export class LyricGenerationService {
       tempo,
       userInput,
       songType,
-      isPreset,
       presetType,
     } = params;
 
@@ -157,7 +155,7 @@ export class LyricGenerationService {
           hasName: !!babyName,
           theme,
           mood,
-          isPreset,
+          isPreset: songType === 'preset',
           songType,
           hasUserInput: !!userInput,
         },
@@ -206,13 +204,12 @@ export class LyricGenerationService {
     babyName: string;
     theme?: ThemeType;
     mood?: MusicMood;
-    isPreset?: boolean;
     presetType?: PresetType;
     songType?: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
   }): Promise<string> {
-    const { babyName, theme, mood, isPreset, presetType, songType } = params;
+    const { babyName, theme, mood, presetType, songType } = params;
 
-    if (isPreset && presetType && PRESET_CONFIGS[presetType]) {
+    if (songType === 'preset' && presetType && PRESET_CONFIGS[presetType]) {
       console.log('Using preset fallback lyrics');
       return PRESET_CONFIGS[presetType].lyrics(babyName);
     }
@@ -247,7 +244,6 @@ export const logLyricGenerationError = async (
         theme: params.theme,
         mood: params.mood,
         song_type: params.songType,
-        is_preset: params.isPreset,
         preset_type: params.presetType,
         has_user_input: !!params.userInput,
       }

@@ -138,15 +138,13 @@ export const createMusicGenerationTask = async ({
   isInstrumental,
   songType,
   voice,
-  is_preset,
   preset_type,
-}: MusicGenerationParams) => {
+}: MusicGenerationParams): Promise<string> => {
   console.log('Creating music generation task:', { 
     theme, 
     mood, 
     name, 
     songType,
-    is_preset, 
     preset_type 
   });
     
@@ -156,7 +154,7 @@ export const createMusicGenerationTask = async ({
   const baseDescription = SongPromptService.getBaseDescription({
     theme,
     mood,
-    isPreset: is_preset,
+    songType,
     presetType: preset_type
   });
 
@@ -165,7 +163,7 @@ export const createMusicGenerationTask = async ({
     mood,
     babyName,
     isInstrumental,
-    isPreset: is_preset,
+    songType,
     presetType: preset_type
   });
 
@@ -183,7 +181,6 @@ export const createMusicGenerationTask = async ({
         ageGroup,
         userInput,
         songType,
-        isPreset: is_preset,
         presetType: preset_type
       });
     } catch (error) {
@@ -192,7 +189,6 @@ export const createMusicGenerationTask = async ({
         babyName,
         theme,
         mood,
-        isPreset: is_preset,
         presetType: preset_type,
         songType
       });

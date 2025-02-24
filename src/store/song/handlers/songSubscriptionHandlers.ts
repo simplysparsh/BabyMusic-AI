@@ -11,6 +11,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 interface SongPayload {
   id: string;
   name: string;
+  song_type: string;
   error?: string | null;
   audioUrl?: string | null;
   task_id?: string;
@@ -29,10 +30,10 @@ export async function handleSongUpdate(
   supabase: SupabaseClient,
   presetSongsProcessing: Set<string>
 ) {
-  const presetType = getPresetType(newSong.name);
+  const presetType = newSong.song_type === 'preset' ? getPresetType(newSong.name) : null;
 
   // Track preset songs being processed
-  if (presetType && !presetSongsProcessing.has(newSong.id)) {
+  if (newSong.song_type === 'preset' && presetType && !presetSongsProcessing.has(newSong.id)) {
     presetSongsProcessing.add(newSong.id);
     set({
       presetSongTypes: new Set([...get().presetSongTypes, presetType])
@@ -42,7 +43,7 @@ export async function handleSongUpdate(
   // Handle error state
   if (newSong.error) {
     // Clear preset type if applicable
-    if (presetType) {
+    if (newSong.song_type === 'preset' && presetType) {
       presetSongsProcessing.delete(newSong.id);
       const newPresetTypes = new Set(get().presetSongTypes);
       newPresetTypes.delete(presetType);
@@ -53,7 +54,7 @@ export async function handleSongUpdate(
   // Handle successful completion
   if (newSong.audioUrl) {
     // Clear preset type if applicable
-    if (presetType) {
+    if (newSong.song_type === 'preset' && presetType) {
       presetSongsProcessing.delete(newSong.id);
       const newPresetTypes = new Set(get().presetSongTypes);
       newPresetTypes.delete(presetType);

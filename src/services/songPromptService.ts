@@ -48,14 +48,14 @@ export class SongPromptService {
     mood?: MusicMood;
     babyName: string;
     isInstrumental?: boolean;
-    isPreset?: boolean;
+    songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
     presetType?: PresetType;
   }): string {
-    const { theme, mood, babyName, isInstrumental, isPreset, presetType } = params;
+    const { theme, mood, babyName, isInstrumental, songType, presetType } = params;
     const now = new Date();
     const version = Math.floor((now.getTime() % 1000000) / 100000);
 
-    if (isPreset && presetType && PRESET_CONFIGS[presetType]) {
+    if (songType === 'preset' && presetType && PRESET_CONFIGS[presetType]) {
       return `${PRESET_CONFIGS[presetType].title(babyName)} (v${version})`;
     }
 
@@ -89,12 +89,12 @@ export class SongPromptService {
   static getBaseDescription(params: {
     theme?: ThemeType;
     mood?: MusicMood;
-    isPreset?: boolean;
+    songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
     presetType?: PresetType;
   }): string {
-    const { theme, mood, isPreset, presetType } = params;
+    const { theme, mood, songType, presetType } = params;
 
-    if (isPreset && presetType && PRESET_CONFIGS[presetType]) {
+    if (songType === 'preset' && presetType && PRESET_CONFIGS[presetType]) {
       return PRESET_CONFIGS[presetType].description;
     }
 

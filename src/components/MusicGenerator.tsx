@@ -9,6 +9,7 @@ import CustomOptions from './music-generator/CustomOptions';
 import LyricsInput from './music-generator/LyricsInput';
 import GenerationProgress from './music-generator/GenerationProgress';
 import { THEMES } from './music-generator/ThemeSelector';
+import { SongPromptService } from '../services/songPromptService';
 
 type TabType = 'themes' | 'fromScratch';
 const GENERATION_TIME = 240; // 4 minutes in seconds
@@ -112,7 +113,11 @@ export default function MusicGenerator() {
 
         await createSong({
           ...baseParams,
-          name: `${getThemeDisplayName(theme)} Theme`,
+          name: SongPromptService.generateTitle({
+            theme,
+            babyName: user.user_metadata.babyName || 'Baby',
+            isInstrumental: voiceSettings.isInstrumental
+          }),
           theme,
           userInput: userInput.trim() || undefined
         });

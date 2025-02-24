@@ -25,63 +25,45 @@ console.log('Edge Function started:', {
 serve(async (req) => {
   try {
     // Log incoming request
-    console.log('Webhook request received:', {
+    console.log('Webhook received:', {
       method: req.method,
       headers: Object.fromEntries(req.headers.entries()),
-      timestamp: new Date().toISOString()
     });
-
-    // Verify request method
-    if (req.method !== 'POST') {
-      throw new Error(`Invalid method: ${req.method}`);
-    }
-
-    // Verify required environment variables
-    if (!WEBHOOK_SECRET || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      const missing = [
-        !WEBHOOK_SECRET && 'WEBHOOK_SECRET',
-        !SUPABASE_URL && 'SUPABASE_URL',
-        !SUPABASE_SERVICE_ROLE_KEY && 'SUPABASE_SERVICE_ROLE_KEY'
-      ].filter(Boolean).join(', ');
-      throw new Error(`Missing required environment variables: ${missing}`);
-    }
 
     // Verify webhook secret
-    const webhookSecret = req.headers.get('x-webhook-secret');
-    console.log('Webhook secret validation:', {
-      receivedSecret: webhookSecret,
-      expectedSecret: WEBHOOK_SECRET,
-      match: webhookSecret === WEBHOOK_SECRET
-    });
+    const secret = req.headers.get('x-webhook-secret');
+    if (secret !== Deno.env.get('WEBHOOK_SECRET')) {
+      console.error('Invalid webhook secret');
+      throw new Error('Invalid webhook secret');
+    }
 
-    if (!webhookSecret) {
-      throw new Error('Missing webhook secret in request headers');
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+      console.log('Webhook body:', JSON.stringify(body, null, 2));
+    } catch (error) {
+      console.error('Failed to parse webhook body:', error);
+      throw new Error('Invalid webhook body');
     }
-    
-    if (webhookSecret !== WEBHOOK_SECRET) {
-      throw new Error('Webhook secret mismatch');
+
+    // Extract task details
+    const { task_id, status, error: taskError, output } = body;
+    if (!task_id) {
+      console.error('Missing task_id in webhook');
+      throw new Error('Missing task_id');
     }
+
+    console.log('Processing webhook:', {
+      task_id,
+      status,
+      error: taskError,
+      hasOutput: !!output
+    });
 
     // Initialize Supabase client with service role key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    // Parse request body
-    const payload = await req.json()
-    console.log('Webhook payload:', {
-      hasTaskId: !!payload?.task_id,
-      hasDataTaskId: !!payload?.data?.task_id,
-      status: payload?.status,
-      hasOutput: !!payload?.output,
-      hasError: !!payload?.error,
-      payload: JSON.stringify(payload)
-    });
-    
-    // Extract data from the nested structure
-    const task_id = payload?.data?.task_id;
-    const status = payload?.data?.status;
-    const output = payload?.data?.output;
-    const error = payload?.data?.error;
-    
     // Log status update in a clear format
     console.log('\n#######################');
     console.log('# Status now:', status);
@@ -91,20 +73,16 @@ serve(async (req) => {
     
     // Log status update in a clear format
     console.log('\n##### Status now:', status, '#####\n');
-    const errorMessage = error?.message || payload?.error_message;
+    const errorMessage = taskError?.message || body?.error_message;
 
     // Log status for debugging
     console.log('Task status update:', {
       taskId: task_id,
       status,
       hasOutput: !!output,
-      hasError: !!error || !!errorMessage,
+      hasError: !!taskError || !!errorMessage,
       progress: output?.progress
     });
-
-    if (!task_id) {
-      throw new Error(`No task_id provided in webhook payload: ${JSON.stringify(payload)}`);
-    }
 
     console.log('Webhook received:', {
       taskId: task_id,
@@ -190,7 +168,7 @@ serve(async (req) => {
         });
       }
     }
-    else if (status === 'failed' || error) {
+    else if (status === 'failed' || taskError) {
       console.log('Task failed with error');
       
       let errorMsg = errorMessage || 'Music generation failed';

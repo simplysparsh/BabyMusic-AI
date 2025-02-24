@@ -147,30 +147,86 @@ export class SongService {
       .select()
       .single();
 
-    if (createError) throw createError;
+    if (createError) {
+      console.error('Failed to create song record:', {
+        error: createError,
+        params: {
+          name,
+          theme,
+          mood: determinedMood,
+          songType,
+          isPreset,
+          hasUserInput: !!userInput
+        }
+      });
+      throw createError;
+    }
+
+    console.log('Created song record:', {
+      id: song.id,
+      name: song.name,
+      songType,
+      isPreset,
+      hasUserInput: !!userInput
+    });
 
     // Start generation task
-    const taskId = await createMusicGenerationTask({
-      theme,
-      mood: determinedMood,
-      userInput,
-      name: babyName,
-      ageGroup: undefined, // Will be fetched from profile
-      tempo,
-      isInstrumental,
-      songType,
-      voice,
-      is_preset: isPreset,
-      preset_type: presetType
-    });
+    let taskId;
+    try {
+      taskId = await createMusicGenerationTask({
+        theme,
+        mood: determinedMood,
+        userInput,
+        name: babyName,
+        ageGroup: undefined, // Will be fetched from profile
+        tempo,
+        isInstrumental,
+        songType,
+        voice,
+        is_preset: isPreset,
+        preset_type: presetType
+      });
+
+      console.log('Music generation task created:', {
+        taskId,
+        songId: song.id
+      });
+    } catch (error) {
+      console.error('Failed to create music generation task:', {
+        error,
+        songId: song.id
+      });
+
+      // Update song with error state
+      const { error: updateError } = await supabase
+        .from('songs')
+        .update({ 
+          error: error instanceof Error ? error.message : 'Failed to start music generation',
+          status: 'failed'
+        })
+        .eq('id', song.id);
+
+      if (updateError) {
+        console.error('Failed to update song error state:', updateError);
+      }
+
+      throw error;
+    }
 
     // Update song with task ID
     const { error: updateError } = await supabase
       .from('songs')
-      .update({ task_id: taskId })
+      .update({ task_id: taskId, status: 'pending' })
       .eq('id', song.id);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error('Failed to update song with task ID:', {
+        error: updateError,
+        songId: song.id,
+        taskId
+      });
+      throw updateError;
+    }
 
     return song;
   }

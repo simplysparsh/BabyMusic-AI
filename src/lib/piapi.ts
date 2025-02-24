@@ -271,54 +271,88 @@ export const createMusicGenerationTask = async ({
     title,
     tags: description,
     isInstrumental,
-  });
-
-  const response = await fetch(`${API_URL}/task`, {
-    method: 'POST',
-    headers: {
-      ...headers,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestBody),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('API Error Response:', errorText);
-    let errorMessage = 'Failed to create music generation task';
-
-    try {
-      const errorData = JSON.parse(errorText);
-      errorMessage = errorData.message || errorData.error || errorMessage;
-    } catch {
-      // If parsing fails, use the raw error text if it exists
-      errorMessage = errorText || errorMessage;
+    requestBody: {
+      ...requestBody,
+      config: {
+        ...requestBody.config,
+        webhook_config: {
+          ...requestBody.config.webhook_config,
+          secret: '***' // Hide secret
+        }
+      }
     }
+  });
 
-    console.error('API Error Details:', {
-      status: response.status,
-      headers: Object.fromEntries(response.headers.entries()),
-      message: errorMessage,
+  try {
+    const response = await fetch(`${API_URL}/task`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
     });
 
-    // Provide user-friendly error messages based on status codes
-    if (response.status === 401) {
-      throw new Error('Authentication failed. Please check your API key.');
-    } else if (response.status === 429) {
-      throw new Error('Too many requests. Please try again later.');
-    } else if (response.status >= 500) {
-      throw new Error(
-        'Music generation service is temporarily unavailable. Please try again later.'
-      );
-    } else {
-      throw new Error(errorMessage);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText);
+      let errorMessage = 'Failed to create music generation task';
+
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch (parseError) {
+        // If parsing fails, use the raw error text if it exists
+        console.error('Failed to parse error response:', parseError);
+        errorMessage = errorText || errorMessage;
+      }
+
+      console.error('API Error Details:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        message: errorMessage,
+        url: API_URL,
+        requestBody: {
+          ...requestBody,
+          config: {
+            ...requestBody.config,
+            webhook_config: {
+              ...requestBody.config.webhook_config,
+              secret: '***'
+            }
+          }
+        }
+      });
+
+      // Provide user-friendly error messages based on status codes
+      if (response.status === 401) {
+        throw new Error('Authentication failed. Please check your API key.');
+      } else if (response.status === 429) {
+        throw new Error('Too many requests. Please try again later.');
+      } else if (response.status >= 500) {
+        throw new Error(
+          'Music generation service is temporarily unavailable. Please try again later.'
+        );
+      } else {
+        throw new Error(`Failed to create music: ${errorMessage}`);
+      }
     }
-  }
 
-  const data = await response.json();
+    const data = await response.json();
+    console.log('API Response:', {
+      data,
+      status: response.status,
+      headers: Object.fromEntries(response.headers.entries())
+    });
 
-  if (!data.data?.task_id) {
-    throw new Error('Failed to start music generation. Please try again.');
+    if (!data.data?.task_id) {
+      console.error('Missing task_id in response:', data);
+      throw new Error('Failed to start music generation: No task ID returned');
+    }
+    return data.data.task_id as string;
+  } catch (error) {
+    console.error('Music generation request failed:', error);
+    throw error;
   }
-  return data.data.task_id as string;
 };

@@ -44,8 +44,8 @@ const PresetSongs: FC = () => {
   const { playAudio, stopAllAudio } = useAudioStore();
   const [currentVariation, setCurrentVariation] = useState<Record<string, number>>({});
   
-  // Get preset songs from the list
-  const presetSongs = presetSongs;
+  // Get preset songs from usePresetSongs hook
+  const { presetSongs } = usePresetSongs();
   
   // Handle countdown timer
   useEffect(() => {

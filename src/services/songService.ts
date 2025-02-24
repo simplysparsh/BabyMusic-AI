@@ -80,6 +80,7 @@ export class SongService {
         theme,
         mood,
         hasUserInput: !!userInput,
+        userInput: userInput ? 'provided' : 'not provided',
         tempo,
         isInstrumental,
         voice,
@@ -123,6 +124,7 @@ export class SongService {
       is_preset: isPreset,
       preset_type: presetType || null,
       is_instrumental: isInstrumental || false,
+      user_lyric_input: userInput || null,
     });
 
     // Create initial song record

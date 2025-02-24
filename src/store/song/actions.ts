@@ -150,7 +150,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
           isInstrumental,
           songType,
           voice: undefined,
-          userInput
+          userInput: userInput
         }
       });
 

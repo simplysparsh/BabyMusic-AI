@@ -3,7 +3,7 @@
 // - Parent: src/store/songStore.ts
 // - Related: src/types/index.ts (base types)
 
-import type { Song, MusicMood, ThemeType, PresetType, Tempo } from '../../types';
+import type { Song, MusicMood, ThemeType, PresetType, Tempo, VoiceType } from '../../types';
 
 export type StateUpdater = (state: SongState) => Partial<SongState>;
 
@@ -38,5 +38,6 @@ export interface CreateSongParams {
   userInput?: string; // User's input text to help generate lyrics
   tempo?: Tempo;
   isInstrumental?: boolean;
+  voice?: VoiceType;
   songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
 } 

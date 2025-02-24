@@ -81,14 +81,15 @@ export const createSongActions = (set: SetState, get: GetState) => ({
     }
   },
 
-  createSong: async ({ name, mood, theme, userInput, tempo, isInstrumental, songType }: CreateSongParams): Promise<Song> => {
+  createSong: async ({ name, mood, theme, userInput, tempo, isInstrumental, voice, songType }: CreateSongParams): Promise<Song> => {
     console.log('songStore.createSong called with:', {
       name,
       mood,
       theme,
       userInput: userInput ? `"${userInput}"` : 'not provided',
       songType,
-      isInstrumental
+      isInstrumental,
+      voice
     });
 
     let currentPresetType: PresetType | null = null;
@@ -149,7 +150,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
           tempo,
           isInstrumental,
           songType,
-          voice: undefined,
+          voice,
           userInput: userInput
         }
       });

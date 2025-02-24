@@ -27,7 +27,7 @@ export default function MusicGenerator() {
     isInstrumental: false,
     voice: 'softFemale' as VoiceType
   });
-  const [customText, setCustomText] = useState('');
+  const [userInput, setUserInput] = useState('');
   const [timeLeft, setTimeLeft] = useState(GENERATION_TIME);
   const [error, setError] = useState<string | null>(null);
   const [songType, setSongType] = useState<'preset' | 'theme' | 'theme-with-input' | 'from-scratch'>('theme');
@@ -54,7 +54,7 @@ export default function MusicGenerator() {
 
   // Reset states when changing tabs
   useEffect(() => {
-    setCustomText('');
+    setUserInput('');
     setSongType(activeTab === 'themes' ? 'theme' : 'from-scratch');
     setError(null);
     setVoiceSettings({
@@ -84,7 +84,7 @@ export default function MusicGenerator() {
       activeTab, 
       theme, 
       mood, 
-      customText,
+      userInput,
       songType,
       voiceSettings
     });
@@ -107,20 +107,14 @@ export default function MusicGenerator() {
         console.log('Creating themed song:', {
           theme,
           songType,
-          customText: customText.trim()
+          userInput: userInput.trim()
         });
 
-        // For themed songs, we don't specify mood or tempo
-        // Let the API determine these based on the theme's characteristics
-        // For example:
-        // - sleepRegulation theme should naturally be calm and slow
-        // - pitchDevelopment theme should adapt to learning pace
-        // - socialEngagement theme should match interaction dynamics
         await createSong({
           ...baseParams,
           name: `${getThemeDisplayName(theme)} Theme`,
           theme,
-          userInput: customText.trim() || undefined
+          userInput: userInput.trim() || undefined
         });
       } else {
         // from-scratch mode
@@ -129,7 +123,7 @@ export default function MusicGenerator() {
           return;
         }
 
-        if (!customText.trim()) {
+        if (!userInput.trim()) {
           setError('Please enter your custom text');
           return;
         }
@@ -141,15 +135,15 @@ export default function MusicGenerator() {
 
         console.log('Creating custom song:', {
           mood,
-          customText: customText.trim()
+          userInput: userInput.trim()
         });
 
         await createSong({
           ...baseParams,
-          name: `${mood} Song: ${customText.slice(0, 30)}${customText.length > 30 ? '...' : ''}`,
+          name: `${mood} Song: ${userInput.slice(0, 30)}${userInput.length > 30 ? '...' : ''}`,
           tempo: tempo,
           mood: mood,
-          userInput: customText.trim()
+          userInput: userInput.trim()
         });
       }
     } catch (err) {
@@ -199,8 +193,8 @@ export default function MusicGenerator() {
               />
               <LyricsInput
                 key="theme-lyrics"
-                value={customText}
-                onChange={setCustomText}
+                value={userInput}
+                onChange={setUserInput}
                 onSongTypeChange={setSongType}
               />
             </>
@@ -208,8 +202,8 @@ export default function MusicGenerator() {
             <>
               <LyricsInput
                 key="scratch-lyrics"
-                value={customText}
-                onChange={setCustomText}
+                value={userInput}
+                onChange={setUserInput}
                 isFromScratch
                 onSongTypeChange={setSongType}
               />

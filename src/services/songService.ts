@@ -124,6 +124,7 @@ export class SongService {
       preset_type: presetType || null,
       is_instrumental: isInstrumental || false,
       user_lyric_input: userInput || null,
+      userInput_raw: userInput,
     });
 
     // Create initial song record

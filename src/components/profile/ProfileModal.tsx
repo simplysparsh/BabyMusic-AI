@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useErrorStore } from '../../store/errorStore';
-import { useEffect } from 'react';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -12,52 +11,51 @@ interface ProfileModalProps {
 export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { profile, updateProfile } = useAuthStore();
   const { error: globalError, clearError } = useErrorStore();
-  const [formState, setFormState] = useState({
-    babyName: ''
-  });
-  const [error, setError] = useState('');
-  const [babyNameError, setBabyNameError] = useState('');
+  const [formState, setFormState] = useState({ babyName: '' });
+  const [error, setError] = useState<{ global?: string; babyName?: string }>({});
   const [isUpdating, setIsUpdating] = useState(false);
-  
-  // Initialize form values when modal opens
+  const [showSuccess, setShowSuccess] = useState(false);
+
   useEffect(() => {
     if (isOpen && profile) {
-      setFormState({
-        babyName: profile.babyName ?? ''
-      });
-      setError('');
+      setFormState({ babyName: profile.babyName ?? '' });
+      setError({});
       setIsUpdating(false);
-      setBabyNameError('');
+      setShowSuccess(false);
       clearError();
     }
   }, [isOpen, profile]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showSuccess) {
+      timer = setTimeout(() => {
+        setShowSuccess(false);
+        onClose();
+      }, 2000);
+    }
+    return () => clearTimeout(timer);
+  }, [showSuccess, onClose]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setBabyNameError('');
-    const trimmedName = formState.babyName.trim();
-    
-    if (isUpdating) return;
+    setError({});
 
+    const trimmedName = formState.babyName.trim();
     if (!trimmedName) {
-      setBabyNameError('Please enter your baby\'s name');
+      setError({ babyName: "Please enter your baby's name" });
       return;
     }
 
     setIsUpdating(true);
     
     try {
-      // Update profile (preset songs will be generated in background)
-      await updateProfile({ 
-        babyName: trimmedName
-      });
-      
-      onClose();
+      await updateProfile({ babyName: trimmedName });
+      setShowSuccess(true);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to update profile');
+      setError({ global: error instanceof Error ? error.message : "Failed to update profile" });
       setIsUpdating(false);
     }
   };
@@ -65,10 +63,32 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-md z-50 flex items-center justify-center">
       <div className="card p-8 w-full max-w-md mx-4 relative border-white/[0.05] fade-in">
+        
+        {showSuccess && (
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-60 rounded-2xl">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <p className="text-white font-medium">Profile Updated Successfully!</p>
+            </div>
+          </div>
+        )}
+
+        {isUpdating && (
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-60">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-white/80">Updating Profile...</p>
+            </div>
+          </div>
+        )}
+
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-white/60 hover:text-white
-                   transition-all duration-300 hover:rotate-90"
+          className="absolute right-4 top-4 text-white/60 hover:text-white transition-all duration-300 hover:rotate-90"
         >
           <X className="w-5 h-5" />
         </button>
@@ -84,37 +104,23 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <input
               type="text"
               value={formState.babyName}
-              onChange={(e) => setFormState(prev => ({ ...prev, babyName: e.target.value }))}
-              className={`input w-full ${babyNameError ? 'border-red-400' : ''}`}
+              onChange={(e) => setFormState((prev) => ({ ...prev, babyName: e.target.value }))}
+              className={`input w-full ${error.babyName ? 'border-red-400' : ''}`}
               placeholder="Enter your baby's name"
               required
             />
-            {babyNameError && (
-              <p className="text-red-400 text-sm mt-1">{babyNameError}</p>
-            )}
-            {(error || globalError) && !babyNameError && (
-              <p className="text-red-400 text-sm mt-1">{error || globalError}</p>
+            {error.babyName && <p className="text-red-400 text-sm mt-1">{error.babyName}</p>}
+            {(error.global || globalError) && !error.babyName && (
+              <p className="text-red-400 text-sm mt-1">{error.global || globalError}</p>
             )}
           </div>
 
           <div className="flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isUpdating}
-              className="px-6 py-2 rounded-xl bg-white/10 text-white/80
-                       hover:bg-white/20 transition-all duration-300
-                       disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button type="button" onClick={onClose} disabled={isUpdating} className="px-6 py-2 rounded-xl bg-white/10 text-white/80 hover:bg-white/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={isUpdating}
-              className="px-6 py-2 rounded-xl bg-gradient-to-r from-primary to-secondary
-                       text-white hover:opacity-90 transition-all duration-300 disabled:opacity-50"
-            >
-              {isUpdating ? 'Updating...' : 'Save Changes'}
+            <button type="submit" disabled={isUpdating} className="px-6 py-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+              {isUpdating ? <><div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div><span>Updating...</span></> : "Save Changes"}
             </button>
           </div>
         </form>

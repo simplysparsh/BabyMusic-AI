@@ -27,15 +27,25 @@ export class ClaudeAPI {
   private static validateResponse(text: string, prompt: string): ValidatedResponse {
     const trimmedText = text.trim();
     
+    // Clean the response text
+    const cleanedText = trimmedText
+      // First remove any text before a colon at the start
+      .replace(/^[^:\n]+:\s*/m, '')
+      // Then clean up any remaining explanatory text
+      .replace(/^(Here are|Here's|These are|I've created|The lyrics for|This is a|This song)[^:\n]*\n/gim, '')
+      // Remove any empty lines at the start
+      .replace(/^\s*\n/, '')
+      .trim();
+    
     // Check if response contains the name from the prompt
     const nameMatch = prompt.match(/for\s+(\w+)/);
     const expectedName = nameMatch ? nameMatch[1] : null;
-    const hasName = expectedName ? trimmedText.includes(expectedName) : true;
+    const hasName = expectedName ? cleanedText.includes(expectedName) : true;
 
     return {
-      text: trimmedText.length > 3000 ? trimmedText.slice(0, 3000) : trimmedText,
+      text: cleanedText.length > 3000 ? cleanedText.slice(0, 3000) : cleanedText,
       quality: {
-        length: trimmedText.length,
+        length: cleanedText.length,
         hasName
       }
     };

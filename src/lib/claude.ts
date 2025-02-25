@@ -17,7 +17,8 @@ export class ClaudeAPI {
         throw new Error('Claude API key is not configured');
       }
       this.client = new Anthropic({
-        apiKey: import.meta.env.VITE_CLAUDE_API_KEY
+        apiKey: import.meta.env.VITE_CLAUDE_API_KEY,
+        dangerouslyAllowBrowser: true // Required for browser environments
       });
     }
     return this.client;

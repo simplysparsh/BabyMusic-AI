@@ -12,6 +12,7 @@
     "deploy:function": "supabase functions deploy piapi-webhook --project-ref ustflrmqamppbghixjyl"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.37.0",
     "@supabase/supabase-js": "^2.39.0",
     "esbuild": "^0.25.0",
     "lucide-react": "^0.344.0",

@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import Anthropic from '@anthropic-ai/sdk';
 
 interface ValidatedResponse {
   text: string;
@@ -9,6 +9,20 @@ interface ValidatedResponse {
 }
 
 export class ClaudeAPI {
+  private static client: Anthropic;
+
+  private static getClient(): Anthropic {
+    if (!this.client) {
+      if (!import.meta.env.VITE_CLAUDE_API_KEY) {
+        throw new Error('Claude API key is not configured');
+      }
+      this.client = new Anthropic({
+        apiKey: import.meta.env.VITE_CLAUDE_API_KEY
+      });
+    }
+    return this.client;
+  }
+
   private static validateResponse(text: string, prompt: string): ValidatedResponse {
     const trimmedText = text.trim();
     
@@ -31,59 +45,28 @@ export class ClaudeAPI {
       promptLength: fullPrompt.length
     });
 
-    if (!import.meta.env.VITE_CLAUDE_API_KEY) {
-      throw new Error('Claude API key is not configured');
-    }
-
     // Add timeout to the fetch request
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': import.meta.env.VITE_CLAUDE_API_KEY,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-3-haiku-20240307',
-          max_tokens: 1000,
-          messages: [
-            {
-              role: 'user',
-              content: fullPrompt,
-            },
-          ],
-          temperature: 0.7,
-        }),
-        signal: controller.signal
+      const client = this.getClient();
+      
+      const response = await client.messages.create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 1000,
+        messages: [
+          {
+            role: 'user',
+            content: fullPrompt,
+          },
+        ],
+        temperature: 0.7
       });
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Claude API error response:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText
-        });
-
-        throw new Error(
-          response.status === 401
-            ? 'Invalid API key'
-            : response.status === 429
-            ? 'Rate limit exceeded'
-            : response.status >= 500
-            ? 'Claude API service error'
-            : `Claude API error: ${errorText || response.statusText}`
-        );
-      }
-
-      const data = await response.json();
-      const rawResponse = data.content[0].text;
+      const rawResponse = response.content[0].text;
       
       // Validate and process the response
       const validatedResponse = this.validateResponse(rawResponse, fullPrompt);
@@ -103,6 +86,20 @@ export class ClaudeAPI {
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
         console.error('Claude API request timed out after 30 seconds');
         throw new Error('Claude API request timed out. Please try again.');
+      }
+      
+      // Handle Anthropic API errors
+      if (fetchError instanceof Anthropic.APIError) {
+        console.error('Claude API error:', fetchError);
+        throw new Error(
+          fetchError.status === 401
+            ? 'Invalid API key'
+            : fetchError.status === 429
+            ? 'Rate limit exceeded'
+            : fetchError.status >= 500
+            ? 'Claude API service error'
+            : `Claude API error: ${fetchError.message}`
+        );
       }
       
       // Rethrow the error to be handled by the caller

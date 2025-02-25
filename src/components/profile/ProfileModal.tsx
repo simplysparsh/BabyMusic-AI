@@ -55,7 +55,6 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         babyName: trimmedName
       });
       
-      // Only close on success
       onClose();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to update profile');

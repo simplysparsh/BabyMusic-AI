@@ -79,6 +79,8 @@ export class ProfileService {
         return createSong({
           name: config.title(trimmedBabyName),
           mood: config.mood,
+          songType: 'preset',
+          preset_type: type,
           lyrics: config.lyrics(trimmedBabyName)
         });
       });

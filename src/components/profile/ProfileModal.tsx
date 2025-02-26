@@ -13,14 +13,12 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { error: globalError, clearError } = useErrorStore();
   const [formState, setFormState] = useState({ babyName: '' });
   const [error, setError] = useState<{ global?: string; babyName?: string }>({});
-  const [isUpdating, setIsUpdating] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     if (isOpen && profile) {
       setFormState({ babyName: profile.babyName ?? '' });
       setError({});
-      setIsUpdating(false);
       setShowSuccess(false);
       clearError();
     }
@@ -42,21 +40,23 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError({});
+    clearError(); // Clear any global errors
 
     const trimmedName = formState.babyName.trim();
     if (!trimmedName) {
       setError({ babyName: "Please enter your baby's name" });
       return;
     }
-
-    setIsUpdating(true);
     
     try {
       await updateProfile({ babyName: trimmedName });
       setShowSuccess(true);
     } catch (error) {
-      setError({ global: error instanceof Error ? error.message : "Failed to update profile" });
-      setIsUpdating(false);
+      // Only show profile-specific errors
+      const errorMessage = error instanceof Error ? error.message : "Failed to update profile";
+      if (!errorMessage.includes('preset') && !errorMessage.includes('songs')) {
+        setError({ global: errorMessage });
+      }
     }
   };
 
@@ -73,15 +73,6 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 </svg>
               </div>
               <p className="text-white font-medium">Profile Updated Successfully!</p>
-            </div>
-          </div>
-        )}
-
-        {isUpdating && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-60">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-white/80">Updating Profile...</p>
             </div>
           </div>
         )}
@@ -116,11 +107,11 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           </div>
 
           <div className="flex justify-end gap-3">
-            <button type="button" onClick={onClose} disabled={isUpdating} className="px-6 py-2 rounded-xl bg-white/10 text-white/80 hover:bg-white/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button type="button" onClick={onClose} className="px-6 py-2 rounded-xl bg-white/10 text-white/80 hover:bg-white/20 transition-all duration-300">
               Cancel
             </button>
-            <button type="submit" disabled={isUpdating} className="px-6 py-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-              {isUpdating ? <><div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div><span>Updating...</span></> : "Save Changes"}
+            <button type="submit" className="px-6 py-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 transition-all duration-300 flex items-center justify-center gap-2">
+              Save Changes
             </button>
           </div>
         </form>

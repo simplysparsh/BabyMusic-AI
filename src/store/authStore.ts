@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { useSongStore } from './songStore';
 import { useErrorStore } from './errorStore';
-import { PRESET_CONFIGS } from '../data/lyrics';
 import { ProfileService } from '../services/profileService';
+import { SongService } from '../services/songService';
 import { type User } from '@supabase/supabase-js';
 import type { UserProfile } from '../types';
 
@@ -117,7 +117,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   updateProfile: async ({ babyName: newBabyName, preferredLanguage, birthMonth, birthYear, ageGroup }) => {
     const user = get().user;
     if (!user) throw new Error('Not authenticated');
-    const songStore = useSongStore.getState();
     const errorStore = useErrorStore.getState();
     const currentProfile = get().profile;
 
@@ -133,19 +132,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('Baby name is required');
       }
 
-      // Update local state first for immediate feedback
-      set(state => ({
-        profile: state.profile ? {
-          ...state.profile,
-          babyName: trimmedNewName
-        } : null
-      }));
-      
-      // Set all preset types as generating
-      songStore.setState(state => ({
-        presetSongTypes: new Set(['playing', 'eating', 'sleeping', 'pooping'])
-      }));
-
       const updatedProfile = await ProfileService.updateProfile({
         userId: user.id,
         babyName: trimmedNewName,
@@ -155,8 +141,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         ageGroup
       });
 
-      // Update profile state with server response
+      // Update profile state immediately
       set({ profile: updatedProfile });
+
+      // Start preset song regeneration in the background
+      SongService.regeneratePresetSongs(user.id, trimmedNewName)
+        .catch(error => {
+          console.error('Background preset song regeneration failed:', error);
+          // Don't surface this error to the user since profile update succeeded
+        });
 
       return updatedProfile;
     } catch (error) {
@@ -164,10 +157,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Revert local state on error
       if (currentProfile) {
         set({ profile: currentProfile });
-        // Clear preset types on error
-        songStore.setState(state => ({
-          presetSongTypes: new Set()
-        }));
       }
       errorStore.setError(error instanceof Error ? error.message : 'Failed to update profile');
       throw error;

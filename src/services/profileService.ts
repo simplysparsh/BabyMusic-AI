@@ -1,7 +1,5 @@
 import { supabase } from '../lib/supabase';
 import type { Language, UserProfile } from '../types';
-import { useSongStore } from '../store/songStore';
-import { PRESET_CONFIGS } from '../data/lyrics';
 
 interface ProfileUpdateParams {
   userId: string;
@@ -60,38 +58,8 @@ export class ProfileService {
       throw new Error('Failed to update profile - no data returned');
     }
 
-    // Always regenerate preset songs when updating profile
-    console.log('Regenerating preset songs with name:', trimmedBabyName);
-    try {
-      const { createSong } = useSongStore.getState();
-      
-      // Delete existing preset songs first
-      const { error: deleteError } = await supabase
-        .from('songs')
-        .delete()
-        .eq('user_id', userId)
-        .or('name.ilike.%playtime%,name.ilike.%mealtime%,name.ilike.%bedtime%,name.ilike.%potty%');
-
-      if (deleteError) throw deleteError;
-
-      // Create new preset songs in parallel
-      const presetPromises = Object.entries(PRESET_CONFIGS).map(([type, config]) => {
-        return createSong({
-          name: config.title(trimmedBabyName),
-          mood: config.mood,
-          songType: 'preset',
-          preset_type: type,
-          lyrics: config.lyrics(trimmedBabyName)
-        });
-      });
-
-      await Promise.all(presetPromises);
-    } catch (error) {
-      console.error('Failed to regenerate preset songs:', error);
-      throw new Error('Failed to update preset songs. Please try again.');
-    }
-
-    return {
+    // Return profile response immediately
+    const profileResponse = {
       id: profile.id,
       email: profile.email,
       isPremium: profile.is_premium,
@@ -100,5 +68,7 @@ export class ProfileService {
       babyName: profile.baby_name,
       preferredLanguage: profile.preferred_language || 'English'
     };
+
+    return profileResponse;
   }
 }

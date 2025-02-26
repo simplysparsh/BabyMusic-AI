@@ -10,8 +10,44 @@ import type {
   Tempo,
   VoiceType
 } from '../types';
+import { useAuthStore } from '../store/authStore';
 
 export class SongService {
+  static async regeneratePresetSongs(userId: string, babyName: string) {
+    console.log('Starting preset song regeneration:', { userId, babyName });
+
+    try {
+      // Delete existing preset songs first
+      const { error: deleteError } = await supabase
+        .from('songs')
+        .delete()
+        .eq('user_id', userId)
+        .or('name.ilike.%playtime%,name.ilike.%mealtime%,name.ilike.%bedtime%,name.ilike.%potty%');
+
+      if (deleteError) throw deleteError;
+
+      // Create new preset songs in parallel
+      const presetPromises = Object.entries(PRESET_CONFIGS).map(([type, config]) => 
+        this.createSong({
+          userId,
+          name: config.title(babyName),
+          babyName,
+          songParams: {
+            mood: config.mood,
+            songType: 'preset',
+            preset_type: type as PresetType
+          }
+        })
+      );
+
+      await Promise.all(presetPromises);
+      console.log('Preset song regeneration completed successfully');
+    } catch (error) {
+      console.error('Failed to regenerate preset songs:', error);
+      // Don't throw - let the error be handled by the UI layer if needed
+    }
+  }
+
   /**
    * Determines the appropriate mood for a song based on its type and parameters
    * @param params Parameters to determine the mood

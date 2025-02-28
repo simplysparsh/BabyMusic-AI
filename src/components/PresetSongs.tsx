@@ -1,7 +1,9 @@
 import React, { type FC } from 'react';
 import { Baby, UtensilsCrossed, Moon, Waves } from 'lucide-react';
-import { usePresetSongs } from '../hooks/usePresetSongs';
+import usePresetSongs from '../hooks/usePresetSongs';
 import { useAuthStore } from '../store/authStore';
+import { useAudioStore } from '../store/audioStore';
+import { SongStateService } from '../services/songStateService';
 import PresetSongCard from './preset/PresetSongCard';
 import type { PresetType } from '../types';
 
@@ -40,20 +42,19 @@ const PRESETS: {
 const PresetSongs: FC = () => {
   const { user, profile } = useAuthStore();
   const { 
-    isPlaying, 
-    songNames, 
-    presetSongTypes, 
-    generatingSongs,
-    processingTaskIds,
-    presetSongs,
+    songs,
     handlePresetClick,
     handlePlay,
     handleVariationChange,
-    currentVariation
+    currentVariation,
+    localGeneratingTypes
   } = usePresetSongs();
 
   // Show component only when we have a logged-in user
   if (!user) return null;
+
+  // Get current playing song from audio store
+  const { isPlaying, currentUrl: currentPlayingUrl } = useAudioStore();
 
   return (
     <div className="w-full max-w-2xl mx-auto mb-6 sm:mb-8 relative px-4">
@@ -68,7 +69,7 @@ const PresetSongs: FC = () => {
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 relative">
         {PRESETS.map(({ type, icon, title, description }) => {
-          const song = presetSongs.find(s => s.name === songNames[type]);
+          const currentSong = SongStateService.getSongForPresetType(songs, type);
           
           return (
             <PresetSongCard
@@ -77,15 +78,13 @@ const PresetSongs: FC = () => {
               title={title}
               description={description}
               iconComponent={icon}
-              song={song}
-              generatingSongs={generatingSongs}
-              processingTaskIds={processingTaskIds}
-              presetSongTypes={presetSongTypes}
-              isPlaying={isPlaying && song?.audioUrl === currentVariation}
+              songs={songs}
+              isPlaying={isPlaying && currentPlayingUrl === currentSong?.audioUrl}
               onPlayClick={handlePlay}
               onGenerateClick={handlePresetClick}
               onVariationChange={handleVariationChange}
               currentVariationIndex={currentVariation[type] || 0}
+              localGeneratingTypes={localGeneratingTypes}
             />
           );
         })}

@@ -212,35 +212,7 @@ export class SongService {
         songId: song.id
       });
 
-      // Update song with error state
-      const { error: updateError } = await supabase
-        .from('songs')
-        .update({ 
-          error: error instanceof Error ? error.message : 'Failed to start music generation',
-          status: 'failed'
-        })
-        .eq('id', song.id);
-
-      if (updateError) {
-        console.error('Failed to update song error state:', updateError);
-      }
-
       throw error;
-    }
-
-    // Update song with task ID
-    const { error: updateError } = await supabase
-      .from('songs')
-      .update({ task_id: taskId, status: 'pending' })
-      .eq('id', song.id);
-
-    if (updateError) {
-      console.error('Failed to update song with task ID:', {
-        error: updateError,
-        songId: song.id,
-        taskId
-      });
-      throw updateError;
     }
 
     return song;

@@ -12,7 +12,6 @@ export type Tempo = 'slow' | 'medium' | 'fast';
 
 export type AgeGroup = '0-6' | '7-12' | '13-24';
 export type PresetType = 'playing' | 'eating' | 'sleeping' | 'pooping';
-export type TaskStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'staged';
 
 export interface MusicGenerationParams {
   theme?: ThemeType;
@@ -38,11 +37,12 @@ export interface Song {
   audioUrl?: string;
   createdAt: Date;
   userId: string;
-  status?: TaskStatus;
   retryable?: boolean;
   variations?: SongVariation[];
   error?: string;
   task_id?: string;
+  song_type?: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
+  preset_type?: PresetType;
 }
 
 export interface SongVariation {

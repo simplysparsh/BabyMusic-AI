@@ -111,32 +111,7 @@ serve(async (req) => {
       taskId: songs.task_id
     });
 
-    // Handle all possible statuses
-    if (status === 'pending') {
-      // Task is queued, no action needed
-      console.log('Task is queued and waiting to start');
-    } 
-    else if (status === 'processing') {
-      // Task is being processed
-      console.log('Task is actively being processed');
-
-      // Update song status
-      const { error: updateError } = await supabase
-        .from('songs')
-        .update({ 
-          status: 'processing',
-          error: null
-        })
-        .eq('id', songs.id)
-        .eq('task_id', task_id.toString());
-
-      if (updateError) throw updateError;
-    } 
-    else if (status === 'staged') {
-      // Task is staged but not yet processing
-      console.log('Task is staged and ready for processing');
-    } 
-    else if (status === 'completed' && output?.clips) {
+    if (output?.clips) {
       console.log('Task completed successfully');
       
       // Handle completed status
@@ -153,7 +128,6 @@ serve(async (req) => {
           .from('songs')
           .update({ 
             audio_url: clip.audio_url,
-            status: 'completed',
             error: null
           })
           .eq('id', songs.id)
@@ -168,10 +142,10 @@ serve(async (req) => {
         });
       }
     }
-    else if (status === 'failed' || taskError) {
+    else if (taskError) {
       console.log('Task failed with error');
       
-      let errorMsg = errorMessage || 'Music generation failed';
+      let errorMsg = taskError.message || 'Music generation failed';
       let retryable = false;
 
       // Handle specific error cases
@@ -192,7 +166,6 @@ serve(async (req) => {
       const { error: updateError } = await supabase
         .from('songs')
         .update({ 
-          status: 'failed',
           error: errorMsg,
           retryable,
           audio_url: null 
@@ -204,7 +177,6 @@ serve(async (req) => {
       const { error: variationError } = await supabase
         .from('song_variations')
         .update({
-          status: 'failed',
           retryable
         })
         .eq('song_id', songs.id);

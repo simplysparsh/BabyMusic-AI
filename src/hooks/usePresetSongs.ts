@@ -1,137 +1,143 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuthStore } from '../store/authStore';
+import { useState, useEffect, useCallback, MouseEvent } from 'react';
+import { PresetType, Song } from '../types';
 import { useSongStore } from '../store/songStore';
-import { useAudioStore } from '../store/audioStore';
-import type { PresetType, Song } from '../types';
-import { PRESET_CONFIGS } from '../data/lyrics';
 import { SongStateService } from '../services/songStateService';
+import { useAudioStore } from '../store/audioStore';
+import { useAuthStore } from '../store/authStore';
+import { PRESET_CONFIGS } from '../data/lyrics';
 
-export function usePresetSongs() {
+export default function usePresetSongs() {
   const { user, profile } = useAuthStore();
-  const { songs, createSong, presetSongTypes, generatingSongs, processingTaskIds } = useSongStore();
-  const { isPlaying, currentUrl, playAudio, stopAllAudio } = useAudioStore();
+  const { songs, generatingSongs, createSong } = useSongStore();
+  const { isPlaying, playAudio } = useAudioStore();
+  
+  // Track local generating states for immediate UI feedback
+  const [localGeneratingTypes, setLocalGeneratingTypes] = useState<Set<PresetType>>(new Set());
+  
+  // Track current variation for each preset type
   const [currentVariation, setCurrentVariation] = useState<Record<string, number>>({});
-  const [timeLeft, setTimeLeft] = useState<number>(240); // 4 minutes in seconds
-
-  // Get preset songs from the list
-  const presetSongs = songs.filter(song => {
-    return song.song_type === 'preset' && song.preset_type;
-  });
-
+  
   // Generate song names based on baby name
   const songNames = profile?.babyName
     ? Object.fromEntries(
         Object.entries(PRESET_CONFIGS).map(([type, config]) => [
           type,
-          config.title(profile.babyName)
+          config.title(profile.babyName!)
         ])
       )
     : {};
 
-  // Handle countdown timer
+  // Update filtered songs when the songs state changes
   useEffect(() => {
-    let timer: number;
-    if (presetSongTypes.size > 0 || generatingSongs.size > 0) {
-      timer = window.setInterval(() => {
-        setTimeLeft((prev: number) => (prev > 0 ? prev - 1 : 0));
-      }, 1000);
+    // Clear local generating types for songs that are no longer generating
+    // or have completed/failed
+    setLocalGeneratingTypes(prev => {
+      const newSet = new Set(prev);
+      
+      // For each preset type in the local generating set
+      Array.from(prev).forEach(type => {
+        const songForType = SongStateService.getSongForPresetType(songs, type);
+        
+        // If the song exists and either has an audioUrl or error, it's no longer generating
+        if (songForType && (songForType.audioUrl || songForType.error)) {
+          newSet.delete(type);
+        }
+        
+        // If the song's ID is no longer in the generatingSongs set, it's no longer generating
+        if (songForType && !generatingSongs.has(songForType.id)) {
+          newSet.delete(type);
+        }
+      });
+      
+      return newSet;
+    });
+    
+    // Debug logging
+    console.log('usePresetSongs songs updated:', songs);
+    console.log('usePresetSongs generatingSongs:', Array.from(generatingSongs));
+  }, [songs, generatingSongs]);
+
+  // Handle preset card click
+  const handlePresetClick = useCallback((type: PresetType) => {
+    // If user or profile is missing, we can't proceed
+    if (!user?.id || !profile?.babyName) {
+      console.error('User or profile not loaded');
+      return;
+    }
+
+    console.log(`Preset clicked: ${type}`);
+    const currentSong = SongStateService.getSongForPresetType(songs, type);
+    const isGenerating = SongStateService.isPresetTypeGenerating(songs, type);
+    
+    console.log(`Current song for ${type}:`, currentSong);
+    console.log(`Is ${type} generating:`, isGenerating);
+    
+    // If the song is already generating, do nothing
+    if (isGenerating || localGeneratingTypes.has(type)) {
+      console.log(`${type} is already generating, ignoring click`);
+      return;
+    }
+    
+    // If the song is ready (has audio URL), play it
+    if (currentSong?.audioUrl) {
+      console.log(`Playing ${type} song:`, currentSong.audioUrl);
+      playAudio(currentSong.audioUrl);
     } else {
-      setTimeLeft(240);
+      // Otherwise generate a new song
+      console.log(`Generating new ${type} song`);
+      
+      // Set local generating state immediately for UI feedback
+      setLocalGeneratingTypes(prev => new Set(prev).add(type));
+      
+      // Create the song
+      createSong({
+        name: songNames[type as keyof typeof songNames],
+        mood: PRESET_CONFIGS[type].mood,
+        songType: 'preset',
+        preset_type: type,
+        lyrics: PRESET_CONFIGS[type].lyrics(profile.babyName)
+      });
     }
-    return () => {
-      clearInterval(timer);
-      setTimeLeft(240);
-    };
-  }, [presetSongTypes.size, generatingSongs.size]);
-
-  // Clean up audio on unmount
-  useEffect(() => {
-    return () => {
-      stopAllAudio();
-    };
-  }, [stopAllAudio]);
-
-  const handlePresetClick = useCallback(async (type: PresetType) => {
-    if (!user?.id || !profile?.babyName) return;
-
-    const songName = songNames[type];
-    const config = PRESET_CONFIGS[type];
-
-    if (!songName || !config) {
-      return;
-    }
-
-    // Find existing song
-    const existingSong = songs.find(s => s.name === songName);
-    
-    // Use SongStateService to determine song state
-    const isReady = SongStateService.isReady(existingSong);
-    const isGenerating = SongStateService.isGenerating(existingSong, generatingSongs, processingTaskIds) || 
-                         presetSongTypes.has(type);
-    
-    // If song exists and has audio, just play it
-    if (isReady && existingSong?.audioUrl) {
-      playAudio(existingSong.audioUrl);
-      return;
-    }
-
-    // If song is generating, don't start another generation
-    if (isGenerating) {
-      return;
-    }
-
-    // Only generate if we don't have a valid song
-    if (!existingSong || !isReady) {
-      try {
-        await createSong({
-          name: songName,
-          mood: config.mood,
-          songType: 'preset',
-          preset_type: type,
-          lyrics: config.lyrics(profile.babyName)
-        });
-      } catch (error) {
-        console.error('Failed to create preset song:', error);
-      }
-    }
-  }, [user?.id, profile?.babyName, songNames, songs, playAudio, presetSongTypes, generatingSongs, processingTaskIds, createSong]);
+  }, [songs, generatingSongs, createSong, playAudio, user, profile, localGeneratingTypes, songNames]);
 
   const handlePlay = useCallback((audioUrl: string, type: PresetType) => {
     playAudio(audioUrl);
   }, [playAudio]);
 
-  const handleVariationChange = useCallback((e: React.MouseEvent<HTMLDivElement>, type: PresetType, direction: 'next' | 'prev') => {
-    e.stopPropagation();
-    const song = presetSongs.find((s: Song) => s.name === songNames[type]);
+  const handleVariationChange = useCallback((
+    e: MouseEvent<HTMLDivElement>,
+    type: PresetType,
+    direction: 'next' | 'prev'
+  ) => {
+    e.stopPropagation(); // Prevent card click
     
-    // Use SongStateService to check if song has variations
-    const variationCount = SongStateService.getVariationCount(song);
-    if (variationCount === 0) return;
+    const { variationCount, song } = SongStateService.getPresetTypeStateMetadata(
+      songs,
+      type
+    );
     
-    const currentIndex = currentVariation[type] || 0;
-    const newIndex = direction === 'next' 
-      ? (currentIndex + 1) % variationCount
-      : (currentIndex - 1 + variationCount) % variationCount;
+    if (!variationCount || variationCount <= 1) return;
     
-    setCurrentVariation((prev: Record<string, number>) => ({ ...prev, [type]: newIndex }));
+    setCurrentVariation((prev: Record<string, number>) => {
+      const current = prev[type] || 0;
+      const newIndex = direction === 'next'
+        ? (current + 1) % variationCount
+        : (current - 1 + variationCount) % variationCount;
+      
+      return { ...prev, [type]: newIndex };
+    });
     
-    if (song?.variations?.[newIndex]?.audio_url) {
-      playAudio(song.variations[newIndex].audio_url);
+    if (song?.variations?.[currentVariation[type] || 0]?.audio_url) {
+      playAudio(song.variations[currentVariation[type] || 0].audio_url);
     }
-  }, [presetSongs, songNames, currentVariation, playAudio]);
+  }, [songs, currentVariation, playAudio]);
 
   return {
-    isPlaying,
-    currentSong: currentUrl,
-    presetSongs,
-    songNames,
-    presetSongTypes,
-    generatingSongs,
-    processingTaskIds,
+    songs,
     handlePresetClick,
     handlePlay,
     handleVariationChange,
     currentVariation,
-    timeLeft
+    localGeneratingTypes
   };
 }

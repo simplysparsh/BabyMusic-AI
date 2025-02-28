@@ -1,5 +1,5 @@
 // @breadcrumbs
-// - src/store/song/actions.ts: Actions for managing songs (create, delete, load)
+// - src/store/song/actions.ts: Actions for the song store
 // - Parent: src/store/songStore.ts
 // - Related: src/store/song/types.ts (types)
 // - Related: src/lib/supabase.ts (database)
@@ -11,88 +11,45 @@ import { SongService } from '../../services/songService';
 import type { Song, PresetType } from '../../types';
 import type { SongState, CreateSongParams } from './types';
 
+// Create a typed setter and getter for the zustand store
 type SetState = (state: Partial<SongState>) => void;
 type GetState = () => SongState;
 
 export const createSongActions = (set: SetState, get: GetState) => ({
   loadSongs: async () => {
-    set({ isLoading: true, error: null });
-
     try {
-      const user = useAuthStore.getState().user;
-      if (!user?.id) {
-        set({ songs: [], presetSongTypes: new Set() });
-        return;
-      }
-
-      let retryCount = 0;
-      const MAX_RETRIES = 3;
-      const RETRY_DELAY = 1000;
+      set({ isLoading: true, error: null });
       
-      while (retryCount < MAX_RETRIES) {
-        try {
-          const { data: songs, error } = await supabase
-            .from('songs')
-            .select(`
-              *,
-              variations:song_variations(
-                id,
-                audio_url,
-                title,
-                metadata,
-                created_at
-              )
-            `)
-            .order('created_at', { ascending: false });
+      const { data: songsData, error } = await supabase
+        .from('songs')
+        .select('*, variations:song_variations(*)')
+        .eq('user_id', useAuthStore.getState().user?.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
 
-          if (error) throw error;
-
-          // Update songs and clear preset types for completed songs
-          const completedPresetTypes = new Set<string>();
-          songs?.forEach((song: Song) => {
-            const presetType = getPresetType(song.name);
-            if (song.audioUrl && presetType) {
-              completedPresetTypes.add(presetType);
-            }
-          });
-
-          set({
-            songs: songs as Song[],
-            presetSongTypes: new Set(
-              Array.from(get().presetSongTypes)
-                .filter(type => !completedPresetTypes.has(type))
-            )
-          });
-          break;
-        } catch (error) {
-          retryCount++;
-          if (retryCount === MAX_RETRIES) throw error;
-          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retryCount));
-        }
-      }
+      set({ songs: songsData as Song[] || [] });
     } catch (error) {
-      set({ 
-        error: 'Unable to load songs. Please refresh the page or try signing in again.',
-        songs: [],
-        presetSongTypes: new Set()
-      });
+      console.error('Error loading songs:', error);
+      set({ error: 'Failed to load your songs.' });
     } finally {
       set({ isLoading: false });
     }
   },
 
-  createSong: async ({ name, mood, theme, userInput, tempo, isInstrumental, voice, songType }: CreateSongParams): Promise<Song> => {
+  createSong: async ({ name, mood, theme, userInput, tempo, isInstrumental, voice, songType, preset_type, lyrics }: CreateSongParams): Promise<Song> => {
     console.log('songStore.createSong called with:', {
       name,
       mood,
       theme,
       userInput: userInput ? `"${userInput}"` : 'not provided',
       songType,
+      preset_type,
       isInstrumental,
       voice
     });
 
-    let currentPresetType: PresetType | null = null;
+    let currentPresetType: PresetType | null = preset_type || null;
     let createdSong: Song | undefined;
     
     try {
@@ -107,18 +64,24 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         throw new Error('Baby name is required to create songs');
       }
 
-      // Determine if this is a preset song
-      currentPresetType = getPresetType(name);
+      // If this is a preset song, check if one is already generating
+      if (currentPresetType && songType === 'preset') {
+        // Find all songs of this preset type
+        const existingSongs = get().songs.filter(s => 
+          s.song_type === 'preset' && s.preset_type === currentPresetType
+        );
+        
+        // Check if any are currently generating
+        const isGenerating = existingSongs.some(song => 
+          !song.audioUrl && !song.error ||
+          get().generatingSongs.has(song.id)
+        );
+        
+        if (isGenerating) {
+          throw new Error(`${currentPresetType} song is already being generated`);
+        }
 
-      // If it's a preset and we're already generating it, don't create a new one
-      if (currentPresetType && get().presetSongTypes.has(currentPresetType)) {
-        throw new Error(`${currentPresetType} song is already being generated`);
-      }
-      
-      // If it's a preset song, delete any existing ones of the same type
-      if (currentPresetType) {
-        const existingSongs = get().songs.filter(s => getPresetType(s.name) === currentPresetType);
-
+        // Delete any existing songs of this preset type
         if (existingSongs.length > 0) {
           const { error: deleteError } = await supabase
             .from('songs')
@@ -132,11 +95,6 @@ export const createSongActions = (set: SetState, get: GetState) => ({
             songs: get().songs.filter(s => !existingSongs.find(es => es.id === s.id))
           });
         }
-
-        // Track preset type
-        set({
-          presetSongTypes: new Set([...get().presetSongTypes, currentPresetType])
-        });
       }
 
       // Create the song using SongService
@@ -151,7 +109,9 @@ export const createSongActions = (set: SetState, get: GetState) => ({
           isInstrumental,
           songType,
           voice,
-          userInput: userInput
+          userInput,
+          preset_type: currentPresetType || undefined,
+          lyrics
         }
       });
 
@@ -167,13 +127,6 @@ export const createSongActions = (set: SetState, get: GetState) => ({
 
       return createdSong;
     } catch (error) {
-      // Clear preset type if applicable
-      if (currentPresetType) {
-        set({
-          presetSongTypes: new Set([...get().presetSongTypes].filter(t => t !== currentPresetType))
-        });
-      }
-
       // Update song with error state if it was created
       if (createdSong?.id) {
         try {
@@ -202,17 +155,23 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       if (!user) {
         throw new Error('User must be logged in to delete songs');
       }
-
+      
       const { error } = await supabase
         .from('songs')
         .delete()
         .eq('user_id', user.id);
-
+      
       if (error) throw error;
-      set({ songs: [] });
+      
+      set({ 
+        songs: [], 
+        generatingSongs: new Set(),
+        processingTaskIds: new Set(),
+        stagedTaskIds: new Set()
+      });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to delete songs' });
-      throw error;
+      console.error('Error deleting songs:', error);
+      set({ error: 'Failed to delete your songs.' });
     } finally {
       set({ isDeleting: false });
     }

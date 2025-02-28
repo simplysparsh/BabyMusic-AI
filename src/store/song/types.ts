@@ -12,7 +12,6 @@ export interface SongState {
   songs: Song[];
   isLoading: boolean;
   generatingSongs: Set<string>;
-  presetSongTypes: Set<PresetType>;
   processingTaskIds: Set<string>;
   stagedTaskIds: Set<string>;
   isDeleting: boolean;
@@ -40,4 +39,6 @@ export interface CreateSongParams {
   isInstrumental?: boolean;
   voice?: VoiceType;
   songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
+  preset_type?: PresetType; // Type of preset song when songType is 'preset'
+  lyrics?: string; // The lyrics to use for the song
 } 

@@ -8,15 +8,13 @@ interface PresetCardProps {
   title: string;
   description: string;
   iconComponent: React.ComponentType<any>;
-  song: Song | undefined;
-  generatingSongs: Set<string>;
-  processingTaskIds: Set<string>;
-  presetSongTypes: Set<PresetType>;
+  songs: Song[];
   isPlaying: boolean;
   onPlayClick: (audioUrl: string, type: PresetType) => void;
   onGenerateClick: (type: PresetType) => void;
   onVariationChange: (e: MouseEvent<HTMLDivElement>, type: PresetType, direction: 'next' | 'prev') => void;
   currentVariationIndex: number;
+  localGeneratingTypes?: Set<PresetType>;
 }
 
 export default function PresetSongCard({
@@ -24,42 +22,50 @@ export default function PresetSongCard({
   title,
   description,
   iconComponent: Icon,
-  song,
-  generatingSongs,
-  processingTaskIds,
-  presetSongTypes,
+  songs,
   isPlaying,
   onPlayClick,
   onGenerateClick,
   onVariationChange,
-  currentVariationIndex
+  currentVariationIndex,
+  localGeneratingTypes = new Set()
 }: PresetCardProps) {
-  // Get song state metadata
+  // Get song state metadata using the comprehensive helper method for preset types
   const {
-    isGenerating,
+    isGenerating: serviceIsGenerating,
     hasFailed,
     isReady,
     hasVariations,
     variationCount,
-    statusLabel
-  } = SongStateService.getSongStateMetadata(
-    song,
-    generatingSongs,
-    processingTaskIds,
-    presetSongTypes,
+    statusLabel: serviceStatusLabel,
+    song: currentSong
+  } = SongStateService.getPresetTypeStateMetadata(
+    songs,
     type
   );
+  
+  // Check both the service and local state for generating status
+  const isGenerating = serviceIsGenerating || localGeneratingTypes.has(type);
+  
+  // Determine the status label based on combined generating state
+  const statusLabel = isGenerating && !serviceIsGenerating ? "Generating..." : serviceStatusLabel;
+
+  // Log songs prop changes
+  React.useEffect(() => {
+    console.log(`PresetSongCard songs prop changed for ${type}:`, songs);
+    console.log(`PresetSongCard isGenerating: serviceIsGenerating=${serviceIsGenerating}, localGenerating=${localGeneratingTypes.has(type)}, combined=${isGenerating}`);
+  }, [songs, type, serviceIsGenerating, localGeneratingTypes, isGenerating]);
 
   // Handle card click
   const handleCardClick = useCallback(() => {
     if (isGenerating) return;
     
-    if (isReady && song?.audioUrl) {
-      onPlayClick(song.audioUrl, type);
+    if (isReady && currentSong?.audioUrl) {
+      onPlayClick(currentSong.audioUrl, type);
     } else {
       onGenerateClick(type);
     }
-  }, [isGenerating, isReady, song, type, onPlayClick, onGenerateClick]);
+  }, [isGenerating, isReady, currentSong, type, onPlayClick, onGenerateClick]);
 
   // Get color scheme based on preset type
   const getColorScheme = () => {
@@ -126,7 +132,7 @@ export default function PresetSongCard({
                  aria-disabled:opacity-50 aria-disabled:cursor-not-allowed
                  aria-disabled:hover:scale-100 aria-disabled:hover:shadow-none
                  aria-disabled:hover:from-current aria-disabled:hover:to-current
-                 aria-disabled:hover:bg-white/5
+                 aria-disabled:hover:hover:bg-white/5
                  transition-all duration-500 group flex items-start gap-4 backdrop-blur-sm bg-black/60
                  bg-gradient-to-br hover:scale-[1.02]
                  ${colors.gradientFrom} ${colors.gradientTo} ${colors.hoverFrom} ${colors.hoverTo}
@@ -195,7 +201,7 @@ export default function PresetSongCard({
             <span className="text-primary animate-pulse">Creating your special song...</span>
           ) : description}
         </p>
-        {hasVariations && !isGenerating && song && (
+        {hasVariations && !isGenerating && currentSong && (
           <div className="flex items-center gap-1 mt-3 text-white/60">
             <div
               role="button"

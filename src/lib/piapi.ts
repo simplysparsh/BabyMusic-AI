@@ -19,35 +19,6 @@ const WEBHOOK_URL = `${
   import.meta.env.VITE_SUPABASE_URL
 }/functions/v1/piapi-webhook`;
 
-interface CreateTaskResponse {
-  task_id: string;
-}
-
-interface TaskStatus {
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  output?: {
-    progress?: number;
-    clips: {
-      [key: string]: {
-        id: string;
-        audio_url?: string;
-        image_url?: string;
-        title?: string;
-        metadata?: {
-          tags?: string;
-          prompt?: string;
-        };
-        error?: {
-          message: string;
-        };
-      };
-    };
-  };
-  error?: {
-    message: string;
-  };
-}
-
 const headers = {
   'Content-Type': 'application/json',
   'x-api-key': API_KEY,
@@ -208,7 +179,7 @@ export const createMusicGenerationTask = async ({
     }`;
   }
 
-  const description = `${baseDescription}${truncatedLyrics}`;
+  const description = `${baseDescription}`;
 
   const tags = theme 
     ? `${theme}, children's music` 

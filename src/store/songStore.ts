@@ -20,7 +20,6 @@ export const useSongStore = create<SongState>((set, get) => {
     songs: [],
     isLoading: false,
     generatingSongs: new Set<string>(),
-    presetSongTypes: new Set(),
     processingTaskIds: new Set<string>(),
     stagedTaskIds: new Set<string>(),
     isDeleting: false,

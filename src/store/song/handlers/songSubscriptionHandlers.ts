@@ -3,7 +3,6 @@
 // - Parent: src/store/song/subscriptions.ts
 // - Related: src/store/song/types.ts (types)
 
-import { getPresetType } from '../../../utils/presetUtils';
 import type { Song } from '../../../types';
 import type { SongState } from '../types';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -27,45 +26,17 @@ export async function handleSongUpdate(
   oldSong: SongPayload,
   set: SetState,
   get: GetState,
-  supabase: SupabaseClient,
-  presetSongsProcessing: Set<string>
+  supabase: SupabaseClient
 ) {
-  const presetType = newSong.song_type === 'preset' ? getPresetType(newSong.name) : null;
+  // Log for debugging
+  console.log(`Song update for ${newSong.name}:`, {
+    song_type: newSong.song_type,
+    status: newSong.status,
+    audioUrl: !!newSong.audioUrl,
+    error: !!newSong.error
+  });
 
-  // Track preset songs being processed
-  if (newSong.song_type === 'preset' && presetType && !presetSongsProcessing.has(newSong.id)) {
-    presetSongsProcessing.add(newSong.id);
-    set({
-      presetSongTypes: new Set([...get().presetSongTypes, presetType])
-    });
-  }
-
-  // Handle error state
-  if (newSong.error) {
-    // Clear preset type if applicable
-    if (newSong.song_type === 'preset' && presetType) {
-      presetSongsProcessing.delete(newSong.id);
-      const newPresetTypes = new Set(get().presetSongTypes);
-      newPresetTypes.delete(presetType);
-      set({ presetSongTypes: newPresetTypes });
-    }
-  }
-  
-  // Handle successful completion
-  if (newSong.audioUrl) {
-    // Clear preset type if applicable
-    if (newSong.song_type === 'preset' && presetType) {
-      presetSongsProcessing.delete(newSong.id);
-      const newPresetTypes = new Set(get().presetSongTypes);
-      newPresetTypes.delete(presetType);
-      set({ 
-        presetSongTypes: newPresetTypes,
-        error: null
-      });
-    }
-  }
-
-  // Track task_id for processing state
+  // Track task IDs for processing state
   if (newSong.task_id && !get().processingTaskIds.has(newSong.task_id)) {
     set({
       processingTaskIds: new Set([...get().processingTaskIds, newSong.task_id])
@@ -90,18 +61,37 @@ export async function handleSongUpdate(
     return;
   }
 
-  // Clear generating state when we have audio URL or an error
+  // Clear generating state when song is complete or has error
   if (updatedSong.audioUrl || updatedSong.error || 
-      updatedSong.status === 'failed') {
+      updatedSong.status === 'failed' || updatedSong.status === 'completed') {
     const newGenerating = new Set(get().generatingSongs);
     newGenerating.delete(updatedSong.id);
-    set({ generatingSongs: newGenerating });
+
+    // Clear from task processing queue if applicable
+    const newProcessingTaskIds = new Set(get().processingTaskIds);
+    if (updatedSong.task_id) {
+      newProcessingTaskIds.delete(updatedSong.task_id);
+    }
+    
+    set({ 
+      generatingSongs: newGenerating,
+      processingTaskIds: newProcessingTaskIds,
+      error: updatedSong.error || null
+    });
   }
 
+  // Update the song in the songs array
   set({
     songs: get().songs.map((song) =>
       song.id === oldSong.id ? updatedSong as Song : song
-    ),
-    error: updatedSong.error || null
+    )
   });
+
+  if (!newSong.audioUrl && !newSong.error && !get().generatingSongs.has(newSong.id)) {
+    // ... existing code ...
+  }
+
+  if (updatedSong.error || updatedSong.audioUrl) {
+    // ... existing code ...
+  }
 } 

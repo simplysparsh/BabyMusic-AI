@@ -1,14 +1,17 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useSongStore } from '../store/songStore';
 import { useAudioStore } from '../store/audioStore';
 import type { PresetType, Song } from '../types';
 import { PRESET_CONFIGS } from '../data/lyrics';
+import { SongStateService } from '../services/songStateService';
 
 export function usePresetSongs() {
   const { user, profile } = useAuthStore();
-  const { songs, createSong, presetSongTypes, generatingSongs } = useSongStore();
-  const { isPlaying, currentUrl, handlePlay } = useAudioStore();
+  const { songs, createSong, presetSongTypes, generatingSongs, processingTaskIds } = useSongStore();
+  const { isPlaying, currentUrl, playAudio, stopAllAudio } = useAudioStore();
+  const [currentVariation, setCurrentVariation] = useState<Record<string, number>>({});
+  const [timeLeft, setTimeLeft] = useState<number>(240); // 4 minutes in seconds
 
   // Get preset songs from the list
   const presetSongs = songs.filter(song => {
@@ -25,6 +28,29 @@ export function usePresetSongs() {
       )
     : {};
 
+  // Handle countdown timer
+  useEffect(() => {
+    let timer: number;
+    if (presetSongTypes.size > 0 || generatingSongs.size > 0) {
+      timer = window.setInterval(() => {
+        setTimeLeft((prev: number) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    } else {
+      setTimeLeft(240);
+    }
+    return () => {
+      clearInterval(timer);
+      setTimeLeft(240);
+    };
+  }, [presetSongTypes.size, generatingSongs.size]);
+
+  // Clean up audio on unmount
+  useEffect(() => {
+    return () => {
+      stopAllAudio();
+    };
+  }, [stopAllAudio]);
+
   const handlePresetClick = useCallback(async (type: PresetType) => {
     if (!user?.id || !profile?.babyName) return;
 
@@ -35,14 +61,17 @@ export function usePresetSongs() {
       return;
     }
 
+    // Find existing song
     const existingSong = songs.find(s => s.name === songName);
-    const isGenerating = presetSongTypes.has(type) || 
-                        (existingSong && !existingSong.audio_url && 
-                         ['staged', 'pending', 'processing'].includes(existingSong.status));
-
+    
+    // Use SongStateService to determine song state
+    const isReady = SongStateService.isReady(existingSong);
+    const isGenerating = SongStateService.isGenerating(existingSong, generatingSongs, processingTaskIds) || 
+                         presetSongTypes.has(type);
+    
     // If song exists and has audio, just play it
-    if (existingSong?.audio_url) {
-      handlePlay(existingSong.audio_url);
+    if (isReady && existingSong?.audioUrl) {
+      playAudio(existingSong.audioUrl);
       return;
     }
 
@@ -52,7 +81,7 @@ export function usePresetSongs() {
     }
 
     // Only generate if we don't have a valid song
-    if (!existingSong || !existingSong.audio_url) {
+    if (!existingSong || !isReady) {
       try {
         await createSong({
           name: songName,
@@ -62,11 +91,34 @@ export function usePresetSongs() {
           lyrics: config.lyrics(profile.babyName)
         });
       } catch (error) {
-        throw error;
+        console.error('Failed to create preset song:', error);
       }
     }
+  }, [user?.id, profile?.babyName, songNames, songs, playAudio, presetSongTypes, generatingSongs, processingTaskIds, createSong]);
 
-  }, [user?.id, profile?.babyName, songNames, songs, handlePlay, presetSongTypes, generatingSongs, createSong]);
+  const handlePlay = useCallback((audioUrl: string, type: PresetType) => {
+    playAudio(audioUrl);
+  }, [playAudio]);
+
+  const handleVariationChange = useCallback((e: React.MouseEvent<HTMLDivElement>, type: PresetType, direction: 'next' | 'prev') => {
+    e.stopPropagation();
+    const song = presetSongs.find((s: Song) => s.name === songNames[type]);
+    
+    // Use SongStateService to check if song has variations
+    const variationCount = SongStateService.getVariationCount(song);
+    if (variationCount === 0) return;
+    
+    const currentIndex = currentVariation[type] || 0;
+    const newIndex = direction === 'next' 
+      ? (currentIndex + 1) % variationCount
+      : (currentIndex - 1 + variationCount) % variationCount;
+    
+    setCurrentVariation((prev: Record<string, number>) => ({ ...prev, [type]: newIndex }));
+    
+    if (song?.variations?.[newIndex]?.audio_url) {
+      playAudio(song.variations[newIndex].audio_url);
+    }
+  }, [presetSongs, songNames, currentVariation, playAudio]);
 
   return {
     isPlaying,
@@ -75,6 +127,11 @@ export function usePresetSongs() {
     songNames,
     presetSongTypes,
     generatingSongs,
-    handlePresetClick
+    processingTaskIds,
+    handlePresetClick,
+    handlePlay,
+    handleVariationChange,
+    currentVariation,
+    timeLeft
   };
 }

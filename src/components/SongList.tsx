@@ -1,19 +1,17 @@
 import React, { useEffect } from 'react';
-import { Play, Pause, Download, Share2, ChevronDown, Trash2, Music2 } from 'lucide-react';
+import { Trash2, Music2 } from 'lucide-react';
 import { useSongStore } from '../store/songStore';
 import { useAuthStore } from '../store/authStore';
-import type { Song } from '../types';
+import { useAudioStore } from '../store/audioStore';
+import SongItem from './SongItem';
+import { SongStateService } from '../services/songStateService';
 
 export default function SongList() {
   const { songs, loadSongs, isLoading, isDeleting, deleteAllSongs, generatingSongs, processingTaskIds } = useSongStore();
   const { user } = useAuthStore();
+  const { isPlaying, currentUrl, playAudio } = useAudioStore();
   const [initialLoadComplete, setInitialLoadComplete] = React.useState(false);
-  const [currentSong, setCurrentSong] = React.useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = React.useState(false);
-  const [showPresetSongs, setShowPresetSongs] = React.useState(false);
-  const [expandedSong, setExpandedSong] = React.useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
   const handleDownload = async (audioUrl: string, title: string) => {
     try {
@@ -51,29 +49,7 @@ export default function SongList() {
   };
 
   const handlePlay = (audioUrl: string, songId: string) => {
-    if (!audioUrl) return;
-    
-    if (!audioRef.current) {
-      audioRef.current = new Audio(audioUrl);
-      audioRef.current.addEventListener('ended', () => setIsPlaying(false));
-    }
-
-    if (currentSong !== audioUrl) {
-      audioRef.current.src = audioUrl;
-      setCurrentSong(audioUrl);
-    }
-
-    if (isPlaying && currentSong === audioUrl) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.play();
-      setIsPlaying(true);
-    }
-  };
-
-  const toggleExpand = (songId: string) => {
-    setExpandedSong(expandedSong === songId ? null : songId);
+    playAudio(audioUrl);
   };
   
   // Only show loading state on initial load, not when refreshing
@@ -112,11 +88,10 @@ export default function SongList() {
     );
   }
 
-  // Filter out preset songs
-  const regularSongs = songs.filter(song => !song.name.toLowerCase().includes('playtime') &&
-    !song.name.toLowerCase().includes('mealtime') &&
-    !song.name.toLowerCase().includes('bedtime') &&
-    !song.name.toLowerCase().includes('potty'));
+  // Filter out preset songs using proper checks - use SongStateService
+  const regularSongs = songs.filter(song => 
+    song.song_type !== 'preset' || !song.preset_type
+  );
 
   return (
     <div>
@@ -162,120 +137,18 @@ export default function SongList() {
       </div>
       <div className="space-y-4">
         {regularSongs.map((song) => (
-        <div
-          key={song.id}
-          className="card p-6 group hover:bg-white/[0.09] transition-all duration-500 mb-4
-                   bg-black/40 backdrop-blur-sm border border-white/10 hover:border-white/20"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-white font-medium text-lg mb-1">{song.name}</h3>
-              <p className="text-sm text-white/60">
-                {`${song.mood} • ${song.instrument}`}
-              </p>
-            </div>
-            <div className="flex items-center space-x-3">
-              {song.variations && song.variations.length > 0 && (
-                <button
-                  onClick={() => toggleExpand(song.id)}
-                  className="text-white/60 hover:text-primary transition-all duration-300"
-                >
-                  <ChevronDown
-                    className={`w-5 h-5 transform transition-transform ${
-                      expandedSong === song.id ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-              )}
-              <button
-                onClick={() => handlePlay(song.audio_url!, song.id)}
-                disabled={!song.audio_url}
-                className="text-white/60 hover:text-primary disabled:opacity-50
-                         transition-all duration-300 group"
-              >
-                {isPlaying && currentSong === song.audio_url ? (
-                  <Pause className="w-5 h-5" />
-                ) : (
-                  <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                )}
-              </button>
-              <button
-                disabled={!song.audio_url}
-                onClick={() => handleDownload(song.audio_url!, song.name)}
-                className="text-white/60 hover:text-accent disabled:opacity-50
-                         transition-all duration-300 group"
-              >
-                <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              </button>
-              <button
-                disabled={!song.audio_url}
-                className="text-white/60 hover:text-secondary disabled:opacity-50
-                         transition-all duration-300 group"
-              >
-                <Share2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              </button>
-            </div>
-          </div>
-          {expandedSong === song.id && song.variations && (
-            <div className="mt-6 space-y-3 pl-6 border-l-2 border-primary/20">
-              {song.variations.map((variation, index) => (
-                <div
-                  key={variation.id}
-                  className="flex items-center justify-between py-3 px-4 bg-white/[0.05]
-                           rounded-xl backdrop-blur-sm group/variation hover:bg-white/[0.08]
-                           transition-all duration-300"
-                >
-                  <span className="text-white/80">
-                    Variation {index + 1}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handlePlay(variation.audioUrl, song.id)}
-                      className="text-white/60 hover:text-primary transition-all duration-300"
-                    >
-                      {isPlaying && currentSong === variation.audioUrl ? (
-                        <Pause className="w-4 h-4" />
-                      ) : (
-                        <Play className="w-4 h-4 group-hover/variation:scale-110 transition-transform" />
-                      )}
-                    </button>
-                    <button 
-                      onClick={() => handleDownload(variation.audio_url, `${song.name} - Variation ${index + 1}`)}
-                      className="text-white/60 hover:text-accent transition-all duration-300"
-                    >
-                      <Download className="w-4 h-4 group-hover/variation:scale-110 transition-transform" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {!song.audio_url && (
-            <div className="mt-2">
-              <div className="h-1 bg-primary/20 rounded-full overflow-hidden">
-                <div className={`h-full bg-primary animate-pulse ${
-                  song.error && !generatingSongs.has(song.id) && !processingTaskIds.has(song.task_id) 
-                  ? 'bg-red-400 !animate-none' 
-                  : ''
-                }`}></div>
-              </div>
-              <p className={`text-xs mt-1 text-baby-cream/60 ${
-                song.error && !generatingSongs.has(song.id) && !processingTaskIds.has(song.task_id) 
-                ? '!text-red-400' 
-                : ''
-              }`}>
-                {(() => {
-                  if (generatingSongs.has(song.id) || processingTaskIds.has(song.task_id)) {
-                    return generatingSongs.has(song.id) ? 'Generating...' : 'Processing...';
-                  }
-                  return song.error || 'Processing...';
-                })()}
-              </p>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
+          <SongItem
+            key={song.id}
+            song={song}
+            currentSong={currentUrl}
+            isPlaying={isPlaying && currentUrl === song.audio_url}
+            generatingSongs={generatingSongs}
+            processingTaskIds={processingTaskIds}
+            onPlayClick={handlePlay}
+            onDownloadClick={handleDownload}
+          />
+        ))}
+      </div>
     </div>
   );
 }

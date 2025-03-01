@@ -111,14 +111,6 @@ export const createMusicGenerationTask = async ({
   voice,
   preset_type,
 }: MusicGenerationParams): Promise<string> => {
-  console.log('Creating music generation task:', { 
-    theme, 
-    mood, 
-    name, 
-    songType,
-    preset_type 
-  });
-    
   const babyName = name || 'little one';
   
   // Get base description and title using SongPromptService
@@ -137,8 +129,6 @@ export const createMusicGenerationTask = async ({
     songType,
     presetType: preset_type
   });
-
-  console.log('Song configuration:', { title, baseDescription });
 
   // Generate lyrics if needed
   let generatedLyrics = '';
@@ -163,10 +153,8 @@ export const createMusicGenerationTask = async ({
         presetType: preset_type,
         songType
       });
-      console.log('Successfully applied fallback lyrics');
     }
   }
-
 
   const description = `${baseDescription}`;
 
@@ -185,15 +173,6 @@ export const createMusicGenerationTask = async ({
   
   const truncatedPrompt = truncateToLimit(finalPrompt, PIAPI_LIMITS.PROMPT_MAX_LENGTH);
   const truncatedTags = truncateToLimit(description, PIAPI_LIMITS.TAGS_MAX_LENGTH);
-
-  console.log('Final request configuration:', {
-    title,
-    description: truncatedTags.slice(0, 50) + '...',
-    tags,
-    isInstrumental,
-    hasPrompt: !!truncatedPrompt,
-    promptLength: truncatedPrompt.length,
-  });
 
   // ##### Calls API to generate music #####
   const requestBody = {
@@ -217,25 +196,6 @@ export const createMusicGenerationTask = async ({
       ...(tempo && { tempo })
     },
   };
-
-  console.log('Sending API request:', {
-    songType,
-    userInput: userInput ? 'provided' : 'not provided',
-    promptLength: finalPrompt.length,
-    title,
-    tags: description,
-    isInstrumental,
-    requestBody: {
-      ...requestBody,
-      config: {
-        ...requestBody.config,
-        webhook_config: {
-          ...requestBody.config.webhook_config,
-          secret: '***' // Hide secret
-        }
-      }
-    }
-  });
 
   try {
     const response = await fetch(`${API_URL}/task`, {

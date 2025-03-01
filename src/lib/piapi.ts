@@ -167,17 +167,6 @@ export const createMusicGenerationTask = async ({
     }
   }
 
-  const maxLyricsLength = 200 - baseDescription.length - 2;
-
-  // Handle lyrics truncation safely
-  let truncatedLyrics = '';
-  if (generatedLyrics) {
-    truncatedLyrics = `. ${
-      generatedLyrics.length > maxLyricsLength
-        ? generatedLyrics.slice(0, maxLyricsLength - 3) + '...'
-        : generatedLyrics
-    }`;
-  }
 
   const description = `${baseDescription}`;
 
@@ -189,15 +178,13 @@ export const createMusicGenerationTask = async ({
 
   // Use generated lyrics as the prompt for music generation
   const finalPrompt = generatedLyrics || '';
-  const truncatedPrompt =
-    finalPrompt.length > PIAPI_LIMITS.PROMPT_MAX_LENGTH
-      ? finalPrompt.slice(0, PIAPI_LIMITS.PROMPT_MAX_LENGTH)
-      : finalPrompt;
-
-  const truncatedTags =
-    description.length > PIAPI_LIMITS.TAGS_MAX_LENGTH
-      ? description.slice(0, PIAPI_LIMITS.TAGS_MAX_LENGTH)
-      : description;
+  
+  const truncateToLimit = (text: string, maxLength: number): string => {
+    return text.length > maxLength ? text.slice(0, maxLength) : text;
+  };
+  
+  const truncatedPrompt = truncateToLimit(finalPrompt, PIAPI_LIMITS.PROMPT_MAX_LENGTH);
+  const truncatedTags = truncateToLimit(description, PIAPI_LIMITS.TAGS_MAX_LENGTH);
 
   console.log('Final request configuration:', {
     title,

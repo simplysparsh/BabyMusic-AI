@@ -1,4 +1,5 @@
 import type { Song, PresetType } from '../types';
+import { songAdapter } from '../utils/songAdapter';
 
 /**
  * SongStateService handles all logic related to determining a song's state
@@ -14,8 +15,8 @@ export class SongStateService {
   static isGenerating(song: Song | undefined): boolean {
     if (!song) return false;
     
-    // A song is generating if it has no audioUrl and no error
-    return !song.audioUrl && !song.error;
+    // A song is generating if it has no audio_url and no error
+    return !song.audio_url && !song.error;
   }
 
   /**
@@ -69,8 +70,8 @@ export class SongStateService {
   static hasFailed(song: Song | undefined): boolean {
     if (!song) return false;
     
-    // A song has failed if it has no audioUrl and has an error
-    if (!song.audioUrl && song.error) {
+    // A song has failed if it has no audio_url and has an error
+    if (!song.audio_url && song.error) {
       // Handle error as object with code property
       if (typeof song.error === 'object' && song.error !== null) {
         // Use type assertion to handle runtime data structure that differs from interface
@@ -126,7 +127,7 @@ export class SongStateService {
    */
   static canRetry(song: Song | undefined): boolean {
     if (!song) return false;
-    return !!song.error && !!song.retryable && !song.audioUrl;
+    return !!song.error && !!song.retryable && !song.audio_url;
   }
 
   /**
@@ -134,7 +135,7 @@ export class SongStateService {
    */
   static isReady(song: Song | undefined): boolean {
     if (!song) return false;
-    return !!song.audioUrl;
+    return !!song.audio_url;
   }
 
   /**
@@ -174,7 +175,7 @@ export class SongStateService {
     
     if (isGenerating) return 'Generating...';
     if (song.error) return this.getFailureMessage(song) || 'Failed';
-    if (song.audioUrl) return 'Play';
+    if (song.audio_url) return 'Play';
     
     return 'Generate';
   }
@@ -186,7 +187,9 @@ export class SongStateService {
   static getSongStateMetadata(
     song: Song | undefined,
     generatingSongs: Set<string>,
-    processingTaskIds: Set<string>
+    processingTaskIds: Set<string>,
+    presetTypes?: Set<PresetType>,
+    presetType?: PresetType | null
   ): {
     isGenerating: boolean;
     hasFailed: boolean;
@@ -236,7 +239,7 @@ export class SongStateService {
     statusLabel: string;
     song: Song | undefined;
   } {
-    console.log(`getPresetTypeStateMetadata called for ${presetType} with songs:`, songs);
+    console.log(`getPresetTypeStateMetadata called for ${presetType} with songs:`, songs.length);
     
     // Find the most relevant song for this preset type
     const song = this.getSongForPresetType(songs, presetType);
@@ -255,6 +258,15 @@ export class SongStateService {
     const hasVariations = this.hasVariations(song);
     const variationCount = this.getVariationCount(song);
     const statusLabel = this.getStatusLabel(song, isGenerating);
+
+    if (song) {
+      console.log(`Song for ${presetType}:`, {
+        id: song.id,
+        hasAudio: !!song.audio_url,
+        audioUrl: song.audio_url,
+        isReady
+      });
+    }
 
     return {
       isGenerating,

@@ -6,13 +6,14 @@
 import type { Song } from '../../../types';
 import type { SongState } from '../types';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { songAdapter } from '../../../utils/songAdapter';
 
 interface SongPayload {
   id: string;
   name: string;
   song_type: string;
   error?: string | null;
-  audioUrl?: string | null;
+  audio_url?: string | null;
   task_id?: string;
   status?: string;
   user_id: string;
@@ -32,7 +33,7 @@ export async function handleSongUpdate(
   console.log(`Song update for ${newSong.name}:`, {
     song_type: newSong.song_type,
     status: newSong.status,
-    audioUrl: !!newSong.audioUrl,
+    audioUrl: !!newSong.audio_url,
     error: !!newSong.error
   });
 
@@ -62,7 +63,7 @@ export async function handleSongUpdate(
   }
 
   // Clear generating state when song is complete or has error
-  if (updatedSong.audioUrl || updatedSong.error || 
+  if (songAdapter.isAudioReady(updatedSong) || updatedSong.error || 
       updatedSong.status === 'failed' || updatedSong.status === 'completed') {
     const newGenerating = new Set(get().generatingSongs);
     newGenerating.delete(updatedSong.id);
@@ -86,12 +87,4 @@ export async function handleSongUpdate(
       song.id === oldSong.id ? updatedSong as Song : song
     )
   });
-
-  if (!newSong.audioUrl && !newSong.error && !get().generatingSongs.has(newSong.id)) {
-    // ... existing code ...
-  }
-
-  if (updatedSong.error || updatedSong.audioUrl) {
-    // ... existing code ...
-  }
-} 
+}

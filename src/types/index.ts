@@ -34,7 +34,7 @@ export interface Song {
   theme?: ThemeType;
   voice?: VoiceType;
   lyrics?: string;
-  audioUrl?: string;
+  audio_url?: string;  // Using snake_case to match database convention
   createdAt: Date;
   userId: string;
   retryable?: boolean;

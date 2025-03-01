@@ -6,6 +6,7 @@ import { useAudioStore } from '../store/audioStore';
 import { SongStateService } from '../services/songStateService';
 import PresetSongCard from './preset/PresetSongCard';
 import type { PresetType } from '../types';
+import { songAdapter } from '../utils/songAdapter';
 
 const PRESETS: {
   type: PresetType;
@@ -56,6 +57,46 @@ const PresetSongs: FC = () => {
   // Get current playing song from audio store
   const { isPlaying, currentUrl: currentPlayingUrl } = useAudioStore();
 
+  // Debug function to inspect preset songs
+  const debugPresetSongs = () => {
+    console.group('Debug Preset Songs');
+    PRESETS.forEach(preset => {
+      const presetSongs = songs.filter(s => s.preset_type === preset.type);
+      const currentSong = SongStateService.getSongForPresetType(songs, preset.type);
+      console.log(`${preset.title} (${preset.type}):`, { 
+        songsCount: presetSongs.length,
+        currentSong: currentSong ? {
+          id: currentSong.id,
+          hasAudio: !!currentSong.audio_url,
+          audioUrl: currentSong.audio_url,
+          error: currentSong.error,
+          isGenerating: SongStateService.isGenerating(currentSong),
+          isReady: SongStateService.isReady(currentSong)
+        } : 'No song found'
+      });
+    });
+    console.groupEnd();
+  };
+
+  // Call debug function when songs change
+  React.useEffect(() => {
+    debugPresetSongs();
+  }, [songs]);
+
+  // Special debug for Flush Time song
+  React.useEffect(() => {
+    const flushTimeSongs = songs.filter(s => s.preset_type === 'pooping');
+    console.log('[FlushTime Debug] All Flush Time songs:', flushTimeSongs.length > 0 ? 
+      flushTimeSongs.map(s => ({
+        id: s.id,
+        audioUrl: s.audio_url,
+        hasAudio: !!s.audio_url,
+        status: s.status,
+        error: s.error
+      })) : 
+      'None found');
+  }, [songs]);
+
   return (
     <div className="w-full max-w-2xl mx-auto mb-6 sm:mb-8 relative px-4">
       <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 
@@ -70,6 +111,7 @@ const PresetSongs: FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 relative">
         {PRESETS.map(({ type, icon, title, description }) => {
           const currentSong = SongStateService.getSongForPresetType(songs, type);
+          const audioUrl = currentSong ? songAdapter.getAudioUrl(currentSong) : undefined;
           
           return (
             <PresetSongCard
@@ -79,7 +121,7 @@ const PresetSongs: FC = () => {
               description={description}
               iconComponent={icon}
               songs={songs}
-              isPlaying={isPlaying && currentPlayingUrl === currentSong?.audioUrl}
+              isPlaying={isPlaying && currentPlayingUrl === audioUrl}
               onPlayClick={handlePlay}
               onGenerateClick={handlePresetClick}
               onVariationChange={handleVariationChange}

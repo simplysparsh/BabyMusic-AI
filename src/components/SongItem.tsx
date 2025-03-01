@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Play, Pause, Download, Share2, ChevronDown } from 'lucide-react';
 import { SongStateService } from '../services/songStateService';
 import type { Song } from '../types';
+import { useSongAdapter } from '../utils/songAdapter';
 
 interface SongItemProps {
   song: Song;
@@ -23,6 +24,7 @@ export default function SongItem({
   onDownloadClick
 }: SongItemProps) {
   const [expandedVariations, setExpandedVariations] = useState(false);
+  const { getAudioUrl } = useSongAdapter();
 
   // Get song state information using SongStateService
   const { 
@@ -34,7 +36,7 @@ export default function SongItem({
     song,
     generatingSongs,
     processingTaskIds,
-    new Set(), // Not relevant for regular songs
+    undefined, // Not relevant for regular songs
     null       // Not a preset song
   );
 
@@ -44,6 +46,8 @@ export default function SongItem({
       setExpandedVariations(!expandedVariations);
     }
   };
+
+  const audioUrl = getAudioUrl(song);
 
   return (
     <div className="card p-6 group hover:bg-white/[0.09] transition-all duration-500 mb-4
@@ -69,27 +73,27 @@ export default function SongItem({
             </button>
           )}
           <button
-            onClick={() => song.audio_url && onPlayClick(song.audio_url, song.id)}
-            disabled={!song.audio_url}
+            onClick={() => audioUrl && onPlayClick(audioUrl, song.id)}
+            disabled={!audioUrl}
             className="text-white/60 hover:text-primary disabled:opacity-50
                      transition-all duration-300 group"
           >
-            {isPlaying && currentSong === song.audio_url ? (
+            {isPlaying && currentSong === audioUrl ? (
               <Pause className="w-5 h-5" />
             ) : (
               <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
             )}
           </button>
           <button
-            disabled={!song.audio_url}
-            onClick={() => song.audio_url && onDownloadClick(song.audio_url, song.name)}
+            disabled={!audioUrl}
+            onClick={() => audioUrl && onDownloadClick(audioUrl, song.name)}
             className="text-white/60 hover:text-accent disabled:opacity-50
                      transition-all duration-300 group"
           >
             <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
           </button>
           <button
-            disabled={!song.audio_url}
+            disabled={!audioUrl}
             className="text-white/60 hover:text-secondary disabled:opacity-50
                      transition-all duration-300 group"
           >
@@ -135,7 +139,7 @@ export default function SongItem({
       )}
 
       {/* Generation progress */}
-      {!song.audio_url && (
+      {!audioUrl && (
         <div className="mt-2">
           <div className="h-1 bg-primary/20 rounded-full overflow-hidden">
             <div className={`h-full bg-primary animate-pulse ${

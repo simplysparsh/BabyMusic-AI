@@ -10,6 +10,7 @@ import { getPresetType } from '../../utils/presetUtils';
 import { SongService } from '../../services/songService';
 import type { Song, PresetType } from '../../types';
 import type { SongState, CreateSongParams } from './types';
+import { songAdapter } from '../../utils/songAdapter';
 
 // Create a typed setter and getter for the zustand store
 type SetState = (state: Partial<SongState>) => void;
@@ -66,34 +67,48 @@ export const createSongActions = (set: SetState, get: GetState) => ({
 
       // If this is a preset song, check if one is already generating
       if (currentPresetType && songType === 'preset') {
+        console.log('Processing preset song of type:', currentPresetType);
+        
         // Find all songs of this preset type
         const existingSongs = get().songs.filter(s => 
           s.song_type === 'preset' && s.preset_type === currentPresetType
         );
         
+        console.log(`Found ${existingSongs.length} existing songs for preset type ${currentPresetType}`);
+        
         // Check if any are currently generating
+        // Use songAdapter for consistent property access
         const isGenerating = existingSongs.some(song => 
-          !song.audioUrl && !song.error ||
+          !songAdapter.getAudioUrl(song) && !song.error ||
           get().generatingSongs.has(song.id)
         );
         
         if (isGenerating) {
+          console.log(`A song of type ${currentPresetType} is already generating, skipping`);
           throw new Error(`${currentPresetType} song is already being generated`);
         }
 
         // Delete any existing songs of this preset type
         if (existingSongs.length > 0) {
+          console.log(`Deleting ${existingSongs.length} existing songs for preset type ${currentPresetType}:`, 
+            existingSongs.map(s => ({ id: s.id, name: s.name })));
+          
           const { error: deleteError } = await supabase
             .from('songs')
             .delete()
             .in('id', existingSongs.map(s => s.id));
 
-          if (deleteError) throw deleteError;
+          if (deleteError) {
+            console.error(`Failed to delete existing ${currentPresetType} songs:`, deleteError);
+            throw deleteError;
+          }
 
           // Update local state to remove deleted songs
           set({
             songs: get().songs.filter(s => !existingSongs.find(es => es.id === s.id))
           });
+          
+          console.log(`Successfully deleted existing ${currentPresetType} songs`);
         }
       }
 
@@ -118,6 +133,12 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       if (!createdSong) {
         throw new Error('Failed to create song record');
       }
+
+      console.log('Song created successfully:', {
+        id: createdSong.id,
+        name: createdSong.name,
+        preset_type: createdSong.preset_type
+      });
 
       // Update UI state
       set({
@@ -176,4 +197,4 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       set({ isDeleting: false });
     }
   }
-}); 
+});

@@ -5,6 +5,7 @@ import { SongStateService } from '../services/songStateService';
 import { useAudioStore } from '../store/audioStore';
 import { useAuthStore } from '../store/authStore';
 import { PRESET_CONFIGS } from '../data/lyrics';
+import { songAdapter } from '../utils/songAdapter';
 
 export default function usePresetSongs() {
   const { user, profile } = useAuthStore();
@@ -38,13 +39,18 @@ export default function usePresetSongs() {
       Array.from(prev).forEach(type => {
         const songForType = SongStateService.getSongForPresetType(songs, type);
         
-        // If the song exists and either has an audioUrl or error, it's no longer generating
-        if (songForType && (songForType.audioUrl || songForType.error)) {
+        // If the song exists and either has an audio_url or error, it's no longer generating
+        if (songForType && (songForType.audio_url || songForType.error)) {
+          console.log(`Removing ${type} from localGeneratingTypes because it's complete or has error:`, {
+            hasAudio: !!songForType.audio_url,
+            hasError: !!songForType.error
+          });
           newSet.delete(type);
         }
         
         // If the song's ID is no longer in the generatingSongs set, it's no longer generating
         if (songForType && !generatingSongs.has(songForType.id)) {
+          console.log(`Removing ${type} from localGeneratingTypes because it's no longer in generatingSongs`);
           newSet.delete(type);
         }
       });
@@ -55,6 +61,7 @@ export default function usePresetSongs() {
     // Debug logging
     console.log('usePresetSongs songs updated:', songs);
     console.log('usePresetSongs generatingSongs:', Array.from(generatingSongs));
+    console.log('usePresetSongs localGeneratingTypes:', Array.from(localGeneratingTypes));
   }, [songs, generatingSongs]);
 
   // Handle preset card click
@@ -79,9 +86,9 @@ export default function usePresetSongs() {
     }
     
     // If the song is ready (has audio URL), play it
-    if (currentSong?.audioUrl) {
-      console.log(`Playing ${type} song:`, currentSong.audioUrl);
-      playAudio(currentSong.audioUrl);
+    if (currentSong && currentSong.audio_url) {
+      console.log(`Playing ${type} song:`, currentSong.audio_url);
+      playAudio(currentSong.audio_url);
     } else {
       // Otherwise generate a new song
       console.log(`Generating new ${type} song`);
@@ -101,6 +108,7 @@ export default function usePresetSongs() {
   }, [songs, generatingSongs, createSong, playAudio, user, profile, localGeneratingTypes, songNames]);
 
   const handlePlay = useCallback((audioUrl: string, type: PresetType) => {
+    console.log(`Playing song for ${type}:`, { audioUrl });
     playAudio(audioUrl);
   }, [playAudio]);
 

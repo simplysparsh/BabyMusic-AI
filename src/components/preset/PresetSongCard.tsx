@@ -2,6 +2,7 @@ import React, { useCallback, MouseEvent, KeyboardEvent } from 'react';
 import { Play, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService } from '../../services/songStateService';
+import { songAdapter } from '../../utils/songAdapter';
 
 interface PresetCardProps {
   type: PresetType;
@@ -50,22 +51,37 @@ export default function PresetSongCard({
   // Determine the status label based on combined generating state
   const statusLabel = isGenerating && !serviceIsGenerating ? "Generating..." : serviceStatusLabel;
 
+  // Get the audio URL using the adapter
+  const audioUrl = currentSong ? songAdapter.getAudioUrl(currentSong) : undefined;
+
   // Log songs prop changes
   React.useEffect(() => {
     console.log(`PresetSongCard songs prop changed for ${type}:`, songs);
     console.log(`PresetSongCard isGenerating: serviceIsGenerating=${serviceIsGenerating}, localGenerating=${localGeneratingTypes.has(type)}, combined=${isGenerating}`);
-  }, [songs, type, serviceIsGenerating, localGeneratingTypes, isGenerating]);
+    // Also debug any issues with audio URL
+    if (currentSong) {
+      console.log(`PresetSongCard currentSong for ${type}:`, {
+        id: currentSong.id,
+        hasAudio: !!currentSong.audio_url,
+        audioUrl: currentSong.audio_url,
+        error: currentSong.error,
+        isReady
+      });
+    }
+  }, [songs, type, serviceIsGenerating, localGeneratingTypes, isGenerating, currentSong, isReady]);
 
   // Handle card click
   const handleCardClick = useCallback(() => {
     if (isGenerating) return;
     
-    if (isReady && currentSong?.audioUrl) {
-      onPlayClick(currentSong.audioUrl, type);
+    if (isReady && audioUrl) {
+      console.log(`Playing song for ${type}:`, { audioUrl });
+      onPlayClick(audioUrl, type);
     } else {
+      console.log(`Generating song for ${type}`);
       onGenerateClick(type);
     }
-  }, [isGenerating, isReady, currentSong, type, onPlayClick, onGenerateClick]);
+  }, [isGenerating, isReady, audioUrl, type, onPlayClick, onGenerateClick]);
 
   // Get color scheme based on preset type
   const getColorScheme = () => {
@@ -122,6 +138,20 @@ export default function PresetSongCard({
   };
 
   const colors = getColorScheme();
+
+  // Additional debugging for pooping type
+  React.useEffect(() => {
+    if (type === 'pooping') {
+      console.log(`[FlushTime Debug] Card state:`, {
+        isReady,
+        hasAudio: !!audioUrl,
+        audioUrl,
+        isGenerating,
+        hasFailed,
+        statusLabel
+      });
+    }
+  }, [type, isReady, audioUrl, isGenerating, hasFailed, statusLabel]);
 
   return (
     <div

@@ -20,6 +20,7 @@ Baby Music AI is an innovative web application that creates personalized lullabi
 - **State Management**: Zustand
 - **Database**: Supabase
 - **Music Generation**: PIAPI.ai
+- **Lyric Generation**: Anthropic Claude API
 - **Icons**: Lucide React
 - **Deployment**: Netlify
 
@@ -31,6 +32,7 @@ Baby Music AI is an innovative web application that creates personalized lullabi
 - npm
 - Supabase account
 - PIAPI.ai API key
+- Anthropic Claude API key
 
 ### Environment Setup
 
@@ -42,6 +44,7 @@ Create a `.env.local` file in the root directory with your development environme
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_PIAPI_KEY=your_piapi_key
+VITE_CLAUDE_API_KEY=your_anthropic_api_key
 VITE_WEBHOOK_URL=your_webhook_url  # Only needed for testing with webhook.site
 VITE_WEBHOOK_SECRET=your_webhook_secret
 ```
@@ -57,7 +60,8 @@ For production deployment, configure the following variables in Netlify's dashbo
 1. `VITE_SUPABASE_URL` - Your Supabase project URL
 2. `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
 3. `VITE_PIAPI_KEY` - Your PIAPI.ai API key
-4. `VITE_WEBHOOK_SECRET` - Your webhook secret key
+4. `VITE_CLAUDE_API_KEY` - Your Anthropic Claude API key
+5. `VITE_WEBHOOK_SECRET` - Your webhook secret key
 
 To set up environment variables in Netlify:
 
@@ -86,6 +90,9 @@ src/
 ├── components/        # React components
 ├── hooks/            # Custom React hooks
 ├── lib/              # Utility libraries
+│   ├── claude.ts     # Anthropic Claude API integration
+│   ├── piapi.ts      # PIAPI.ai music generation
+│   └── supabase.ts   # Supabase client configuration
 ├── services/         # Business logic services
 ├── store/            # Zustand state management
 └── types/            # TypeScript type definitions
@@ -143,6 +150,13 @@ The application uses Zustand for state management with the following stores:
 - Supports custom music generation
 - Webhook integration for status updates
 
+### Anthropic Claude API Integration
+
+- Uses `@anthropic-ai/sdk` for AI-powered lyric generation
+- Generates personalized song lyrics based on themes, moods, and user input
+- Handles rate limiting and error fallbacks to ensure reliable content generation
+- Secured with API key authentication
+
 ### Supabase Integration
 
 - Real-time database updates
@@ -184,5 +198,6 @@ If you require a **custom commercial license** or an exemption from revenue-shar
 ## 🙏 Acknowledgments
 
 - [PIAPI.ai](https://piapi.ai) for music generation
+- [Anthropic Claude](https://anthropic.com) for AI-powered lyric generation
 - [Supabase](https://supabase.com) for backend services
 - [Unsplash](https://unsplash.com) for beautiful images

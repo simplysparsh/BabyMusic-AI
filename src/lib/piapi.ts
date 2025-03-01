@@ -1,13 +1,9 @@
-import { MusicMood, ThemeType, PresetType, MusicGenerationParams, Tempo, AgeGroup, VoiceType } from '../types';
-import { supabase } from './supabase';
-import { PRESET_CONFIGS } from '../data/lyrics/presets';
-import { THEME_CONFIGS } from '../data/lyrics/themes';
+import { MusicMood, ThemeType, MusicGenerationParams } from '../types';
 import { LyricGenerationService } from '../services/lyricGenerationService';
 import { SongPromptService } from '../services/songPromptService';
 
 const API_URL = 'https://api.piapi.ai/api/v1';
 const API_KEY = import.meta.env.VITE_PIAPI_KEY;
-const WEBHOOK_SECRET = import.meta.env.VITE_WEBHOOK_SECRET;
 
 const PIAPI_LIMITS = {
   PROMPT_MAX_LENGTH: 3000,
@@ -22,81 +18,6 @@ const WEBHOOK_URL = `${
 const headers = {
   'Content-Type': 'application/json',
   'x-api-key': API_KEY,
-};
-
-const getThemeDescription = (theme: ThemeType) => {
-  const prompts = {
-    pitchDevelopment: 'Melodic patterns for pitch recognition training',
-    cognitiveSpeech: 'Clear rhythmic patterns for speech development',
-    sleepRegulation: 'Gentle lullaby with soothing patterns',
-    socialEngagement: 'Interactive melody for social bonding',
-    indianClassical:
-      'Peaceful Indian classical melody with gentle ragas and traditional elements',
-    westernClassical: 'Adapted classical melodies for babies',
-  };
-
-  if (!theme || !prompts[theme]) {
-    throw new Error(`Invalid theme: ${theme}`);
-  }
-
-  return prompts[theme];
-};
-
-/**
- * Get the base prompt for a given mood
- */
-const getMoodPrompt = (mood: MusicMood): string => {
-  return `Create a ${mood} children's song that is engaging and age-appropriate`;
-};
-
-/**
- * Get the base prompt for a given theme
- */
-const getThemePrompt = (theme: ThemeType): string => {
-  switch (theme) {
-    case 'pitchDevelopment':
-      return 'Create a children\'s song focused on pitch recognition and vocal development';
-    case 'cognitiveSpeech':
-      return 'Create a children\'s song that encourages speech development and cognitive learning';
-    case 'sleepRegulation':
-      return 'Create a gentle lullaby to help with sleep regulation';
-    case 'socialEngagement':
-      return 'Create a children\'s song that promotes social interaction and emotional development';
-    case 'indianClassical':
-      return 'Create a children\'s song incorporating Indian classical music elements';
-    case 'westernClassical':
-      return 'Create a children\'s song incorporating Western classical music elements';
-    default:
-      return 'Create an engaging children\'s song';
-  }
-};
-
-const getThemeTitle = (theme: ThemeType, babyName: string): string => {
-  const themeNames = {
-    pitchDevelopment: "Musical Journey",
-    cognitiveSpeech: "Speaking Adventure",
-    sleepRegulation: "Sleepy Time",
-    socialEngagement: "Friendship Song",
-    indianClassical: "Indian Melody",
-    westernClassical: "Classical Journey"
-  };
-  const now = new Date();
-  const version = now.getTime();
-  return `${babyName}'s ${themeNames[theme]} (v${Math.floor((version % 1000000) / 100000)})`;
-};
-
-const getCustomTitle = (mood: MusicMood, babyName: string, isInstrumental: boolean): string => {
-  const moodNames = {
-    calm: "Peaceful",
-    playful: "Playful",
-    learning: "Learning",
-    energetic: "Energetic"
-  };
-  const now = new Date();
-  const version = now.getTime();
-  return isInstrumental 
-    ? `${babyName}'s ${moodNames[mood]} Melody (v${Math.floor((version % 1000000) / 100000)})`
-    : `${babyName}'s ${moodNames[mood]} Song (v${Math.floor((version % 1000000) / 100000)})`;
 };
 
 export const createMusicGenerationTask = async ({
@@ -254,11 +175,6 @@ export const createMusicGenerationTask = async ({
     }
 
     const data = await response.json();
-    console.log('API Response:', {
-      data,
-      status: response.status,
-      headers: Object.fromEntries(response.headers.entries())
-    });
 
     if (!data.data?.task_id) {
       console.error('Missing task_id in response:', data);

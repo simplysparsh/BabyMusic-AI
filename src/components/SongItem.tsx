@@ -47,7 +47,9 @@ export default function SongItem({
     }
   };
 
+  // Get the audio URL and check if it's actually available
   const audioUrl = getAudioUrl(song);
+  const isPlayable = !!audioUrl; // A song is playable if it has an audio URL
 
   return (
     <div className="card p-6 group hover:bg-white/[0.09] transition-all duration-500 mb-4
@@ -73,8 +75,8 @@ export default function SongItem({
             </button>
           )}
           <button
-            onClick={() => audioUrl && onPlayClick(audioUrl, song.id)}
-            disabled={!audioUrl}
+            onClick={() => isPlayable && audioUrl && onPlayClick(audioUrl, song.id)}
+            disabled={!isPlayable}
             className="text-white/60 hover:text-primary disabled:opacity-50
                      transition-all duration-300 group"
           >
@@ -85,15 +87,15 @@ export default function SongItem({
             )}
           </button>
           <button
-            disabled={!audioUrl}
-            onClick={() => audioUrl && onDownloadClick(audioUrl, song.name)}
+            disabled={!isPlayable}
+            onClick={() => isPlayable && audioUrl && onDownloadClick(audioUrl, song.name)}
             className="text-white/60 hover:text-accent disabled:opacity-50
                      transition-all duration-300 group"
           >
             <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
           </button>
           <button
-            disabled={!audioUrl}
+            disabled={!isPlayable}
             className="text-white/60 hover:text-secondary disabled:opacity-50
                      transition-all duration-300 group"
           >
@@ -139,7 +141,7 @@ export default function SongItem({
       )}
 
       {/* Generation progress */}
-      {!audioUrl && (
+      {!isPlayable && (
         <div className="mt-2">
           <div className="h-1 bg-primary/20 rounded-full overflow-hidden">
             <div className={`h-full bg-primary animate-pulse ${

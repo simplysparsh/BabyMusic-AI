@@ -33,6 +33,8 @@ export const createMusicGenerationTask = async ({
   preset_type,
 }: MusicGenerationParams): Promise<string> => {
   const babyName = name || 'little one';
+  // Set default voice for non-instrumental songs
+  const finalVoice = isInstrumental ? undefined : (voice || 'softFemale');
   
   // Get base description and title using SongPromptService
   const baseDescription = SongPromptService.getBaseDescription({
@@ -106,10 +108,7 @@ export const createMusicGenerationTask = async ({
       tags: truncatedTags,
       make_instrumental: isInstrumental || false,
       negative_tags: 'rock, metal, aggressive, harsh',
-      // Use mood and tempo as provided by SongService
-      ...(mood && { mood }),
-      ...(tempo && { tempo }),
-      ...(voice && { voice })
+     // ...(finalVoice ? { voice: finalVoice } : {}),
     },
   };
 

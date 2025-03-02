@@ -60,8 +60,7 @@ export default function usePresetSongs() {
     // Debug logging
     console.log('usePresetSongs songs updated:', songs);
     console.log('usePresetSongs generatingSongs:', Array.from(generatingSongs));
-    console.log('usePresetSongs localGeneratingTypes:', Array.from(localGeneratingTypes));
-  }, [songs, generatingSongs, localGeneratingTypes]);
+  }, [songs, generatingSongs]);
 
   // Handle preset card click
   const handlePresetClick = useCallback((type: PresetType) => {

@@ -1,4 +1,4 @@
-import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect } from 'react';
+import { ComponentType, KeyboardEvent, MouseEvent, useCallback } from 'react';
 import { Play, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService } from '../../services/songStateService';
@@ -53,10 +53,6 @@ export default function PresetSongCard({
 
   // Get the audio URL using the adapter
   const audioUrl = currentSong ? songAdapter.getAudioUrl(currentSong) : undefined;
-
-  // Log songs prop changes
-  useEffect(() => {
-  }, [songs, type, serviceIsGenerating, localGeneratingTypes, isGenerating, currentSong, isReady]);
 
   // Handle card click
   const handleCardClick = useCallback(() => {
@@ -124,10 +120,6 @@ export default function PresetSongCard({
   };
 
   const colors = getColorScheme();
-
-  // Additional debugging for pooping type
-  useEffect(() => {
-  }, [type, isReady, audioUrl, isGenerating, hasFailed, statusLabel]);
 
   return (
     <div

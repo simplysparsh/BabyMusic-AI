@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, MouseEvent } from 'react';
-import type { PresetType } from '../types';
+import type { PresetType, Song } from '../types';
 import { useSongStore } from '../store/songStore';
 import { SongStateService } from '../services/songStateService';
 import { useAudioStore } from '../store/audioStore';
@@ -17,6 +17,9 @@ export default function usePresetSongs() {
   // Track current variation for each preset type
   const [currentVariation, setCurrentVariation] = useState<Record<string, number>>({});
   
+  // Filter only preset songs
+  const [presetSongs, setPresetSongs] = useState<Song[]>([]);
+  
   // Generate song names based on baby name
   const songNames = profile?.babyName
     ? Object.fromEntries(
@@ -29,6 +32,13 @@ export default function usePresetSongs() {
 
   // Update filtered songs when the songs state changes
   useEffect(() => {
+    // Filter only preset songs
+    const filteredPresetSongs = songs.filter(song => 
+      song.song_type === 'preset' && song.preset_type !== undefined
+    );
+    
+    setPresetSongs(filteredPresetSongs);
+    
     // Clear local generating types for songs that are no longer generating
     // or have completed/failed
     setLocalGeneratingTypes(prev => {
@@ -40,16 +50,11 @@ export default function usePresetSongs() {
         
         // If the song exists and either has an audio_url or error, it's no longer generating
         if (songForType && (songForType.audio_url || songForType.error)) {
-          console.log(`Removing ${type} from localGeneratingTypes because it's complete or has error:`, {
-            hasAudio: !!songForType.audio_url,
-            hasError: !!songForType.error
-          });
           newSet.delete(type);
         }
         
         // If the song's ID is no longer in the generatingSongs set, it's no longer generating
         if (songForType && !generatingSongs.has(songForType.id)) {
-          console.log(`Removing ${type} from localGeneratingTypes because it's no longer in generatingSongs`);
           newSet.delete(type);
         }
       });
@@ -57,9 +62,12 @@ export default function usePresetSongs() {
       return newSet;
     });
     
-    // Debug logging
-    console.log('usePresetSongs songs updated:', songs);
-    console.log('usePresetSongs generatingSongs:', Array.from(generatingSongs));
+    // Only log preset songs updates
+    if (filteredPresetSongs.length > 0) {
+      // Debug logging can be re-enabled if needed
+      // console.log('usePresetSongs preset songs updated:', filteredPresetSongs);
+      // console.log('usePresetSongs generatingSongs:', Array.from(generatingSongs));
+    }
   }, [songs, generatingSongs]);
 
   // Handle preset card click
@@ -70,26 +78,19 @@ export default function usePresetSongs() {
       return;
     }
 
-    console.log(`Preset clicked: ${type}`);
     const currentSong = SongStateService.getSongForPresetType(songs, type);
     const isGenerating = SongStateService.isPresetTypeGenerating(songs, type);
     
-    console.log(`Current song for ${type}:`, currentSong);
-    console.log(`Is ${type} generating:`, isGenerating);
-    
     // If the song is already generating, do nothing
     if (isGenerating || localGeneratingTypes.has(type)) {
-      console.log(`${type} is already generating, ignoring click`);
       return;
     }
     
     // If the song is ready (has audio URL), play it
     if (currentSong && currentSong.audio_url) {
-      console.log(`Playing ${type} song:`, currentSong.audio_url);
       playAudio(currentSong.audio_url);
     } else {
       // Otherwise generate a new song
-      console.log(`Generating new ${type} song`);
       
       // Set local generating state immediately for UI feedback
       setLocalGeneratingTypes(prev => new Set(prev).add(type));
@@ -106,7 +107,6 @@ export default function usePresetSongs() {
   }, [songs, createSong, playAudio, user, profile, localGeneratingTypes, songNames]);
 
   const handlePlay = useCallback((audioUrl: string, type: PresetType) => {
-    console.log(`Playing song for ${type}:`, { audioUrl });
     playAudio(audioUrl);
   }, [playAudio]);
 
@@ -139,7 +139,7 @@ export default function usePresetSongs() {
   }, [songs, currentVariation, playAudio]);
 
   return {
-    songs,
+    songs: presetSongs, // Return only preset songs
     handlePresetClick,
     handlePlay,
     handleVariationChange,

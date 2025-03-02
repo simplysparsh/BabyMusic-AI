@@ -1,4 +1,4 @@
-import { type FC, useEffect, useCallback } from 'react';
+import { type FC } from 'react';
 import { Baby, UtensilsCrossed, Moon, Waves } from 'lucide-react';
 import usePresetSongs from '../hooks/usePresetSongs';
 import { useAuthStore } from '../store/authStore';
@@ -51,22 +51,8 @@ const PresetSongs: FC = () => {
     localGeneratingTypes
   } = usePresetSongs();
   
-  // Get current playing song from audio store - moved above conditional return
+  // Get current playing song from audio store
   const { isPlaying, currentUrl: currentPlayingUrl } = useAudioStore();
-
-  // Debug function to inspect preset songs - wrapped in useCallback
-  const debugPresetSongs = useCallback(() => {
-    if (!user) return; // Skip if no user
-  }, [songs, user]);
-
-  // Call debug function when songs change - moved above conditional return
-  useEffect(() => {
-  }, [songs, user, debugPresetSongs]);
-
-  // Special debug for Flush Time song - moved above conditional return
-  useEffect(() => {
-    if (!user) return; // Skip if no user
-  }, [songs, user]);
 
   // Show component only when we have a logged-in user
   if (!user) return null;

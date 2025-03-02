@@ -23,8 +23,11 @@ export class SongStateService {
   static isGenerating(song: Song | undefined): boolean {
     if (!song) return false;
     
+    // If the song has an audio URL, it's not generating regardless of other factors
+    if (song.audio_url) return false;
+    
     // A song is generating if it has no audio_url and no error
-    return !song.audio_url && !song.error;
+    return !song.error;
   }
 
   /**

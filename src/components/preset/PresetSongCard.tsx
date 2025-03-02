@@ -56,18 +56,6 @@ export default function PresetSongCard({
 
   // Log songs prop changes
   useEffect(() => {
-    console.log(`PresetSongCard songs prop changed for ${type}:`, songs);
-    console.log(`PresetSongCard isGenerating: serviceIsGenerating=${serviceIsGenerating}, localGenerating=${localGeneratingTypes.has(type)}, combined=${isGenerating}`);
-    // Also debug any issues with audio URL
-    if (currentSong) {
-      console.log(`PresetSongCard currentSong for ${type}:`, {
-        id: currentSong.id,
-        hasAudio: !!currentSong.audio_url,
-        audioUrl: currentSong.audio_url,
-        error: currentSong.error,
-        isReady
-      });
-    }
   }, [songs, type, serviceIsGenerating, localGeneratingTypes, isGenerating, currentSong, isReady]);
 
   // Handle card click
@@ -75,10 +63,8 @@ export default function PresetSongCard({
     if (isGenerating) return;
     
     if (isReady && audioUrl) {
-      console.log(`Playing song for ${type}:`, { audioUrl });
       onPlayClick(audioUrl, type);
     } else {
-      console.log(`Generating song for ${type}`);
       onGenerateClick(type);
     }
   }, [isGenerating, isReady, audioUrl, type, onPlayClick, onGenerateClick]);
@@ -141,16 +127,6 @@ export default function PresetSongCard({
 
   // Additional debugging for pooping type
   useEffect(() => {
-    if (type === 'pooping') {
-      console.log(`[FlushTime Debug] Card state:`, {
-        isReady,
-        hasAudio: !!audioUrl,
-        audioUrl,
-        isGenerating,
-        hasFailed,
-        statusLabel
-      });
-    }
   }, [type, isReady, audioUrl, isGenerating, hasFailed, statusLabel]);
 
   return (

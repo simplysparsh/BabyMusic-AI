@@ -253,8 +253,6 @@ export class SongStateService {
     statusLabel: string;
     song: Song | undefined;
   } {
-    console.log(`getPresetTypeStateMetadata called for ${presetType} with songs:`, songs.length);
-    
     // Find the most relevant song for this preset type
     const song = this.getSongForPresetType(songs, presetType);
     
@@ -263,8 +261,6 @@ export class SongStateService {
       ? song.preset_type === presetType && this.isGenerating(song)
       : false;
     
-    console.log(`getPresetTypeStateMetadata for ${presetType} returning isGenerating: ${isGenerating}`);
-    
     // Other states
     const hasFailed = this.hasFailed(song);
     const canRetry = this.canRetry(song);
@@ -272,15 +268,6 @@ export class SongStateService {
     const hasVariations = this.hasVariations(song);
     const variationCount = this.getVariationCount(song);
     const statusLabel = this.getStatusLabel(song, isGenerating);
-
-    if (song) {
-      console.log(`Song for ${presetType}:`, {
-        id: song.id,
-        hasAudio: !!song.audio_url,
-        audioUrl: song.audio_url,
-        isReady
-      });
-    }
 
     return {
       isGenerating,

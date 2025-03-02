@@ -57,46 +57,15 @@ const PresetSongs: FC = () => {
   // Debug function to inspect preset songs - wrapped in useCallback
   const debugPresetSongs = useCallback(() => {
     if (!user) return; // Skip if no user
-    
-    console.group('Debug Preset Songs');
-    PRESETS.forEach(preset => {
-      const presetSongs = songs.filter(s => s.preset_type === preset.type);
-      const currentSong = SongStateService.getSongForPresetType(songs, preset.type);
-      console.log(`${preset.title} (${preset.type}):`, { 
-        songsCount: presetSongs.length,
-        currentSong: currentSong ? {
-          id: currentSong.id,
-          hasAudio: !!currentSong.audio_url,
-          audioUrl: currentSong.audio_url,
-          error: currentSong.error,
-          isGenerating: SongStateService.isGenerating(currentSong),
-          isReady: SongStateService.isReady(currentSong)
-        } : 'No song found'
-      });
-    });
-    console.groupEnd();
   }, [songs, user]);
 
   // Call debug function when songs change - moved above conditional return
   useEffect(() => {
-    if (user) {
-      debugPresetSongs();
-    }
   }, [songs, user, debugPresetSongs]);
 
   // Special debug for Flush Time song - moved above conditional return
   useEffect(() => {
     if (!user) return; // Skip if no user
-    
-    const flushTimeSongs = songs.filter(s => s.preset_type === 'pooping');
-    console.log('[FlushTime Debug] All Flush Time songs:', flushTimeSongs.length > 0 ? 
-      flushTimeSongs.map(s => ({
-        id: s.id,
-        hasAudio: !!s.audio_url,
-        audioUrl: s.audio_url,
-        error: s.error
-      })) : 'No Flush Time songs'
-    );
   }, [songs, user]);
 
   // Show component only when we have a logged-in user

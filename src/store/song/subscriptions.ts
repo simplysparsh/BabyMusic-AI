@@ -20,6 +20,7 @@ type GetState = () => SongState;
 interface SongPayload {
   id: string;
   name: string;
+  song_type: string;
   error?: string | null;
   audioUrl?: string | null;
   task_id?: string;
@@ -31,20 +32,19 @@ interface VariationPayload {
   song_id: string;
 }
 
-type RealtimePayload<T> = RealtimePostgresChangesPayload<T>;
+// Update the type with the correct constraint
+type RealtimePayload<T extends object> = RealtimePostgresChangesPayload<T>;
 
 export const createSongSubscriptions = (set: SetState, get: GetState) => {
   const setupSubscription = () => {
     const user = useAuthStore.getState().user;
     if (!user) return;
-    const presetSongsProcessing = new Set<string>();
-
     supabase.getChannels().forEach(channel => channel.unsubscribe());
     
     // Subscribe to both songs and variations changes
     const songsSubscription = supabase
       .channel('songs-channel')
-      .on<RealtimePayload<SongPayload>>(
+      .on(
         'postgres_changes',
         {
           event: '*',
@@ -52,19 +52,23 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
           table: 'songs',
           filter: `user_id=eq.${user.id}`,
         },
-        async (payload: RealtimePayload<SongPayload>) => {
-          const { new: newSong, old: oldSong } = payload;          
-          if (!oldSong?.id || !newSong?.id) {
+        async (payload) => {
+          // Use type assertion to ensure TypeScript knows the structure
+          const typedPayload = payload as RealtimePayload<SongPayload>;
+          const { new: newSong, old: oldSong } = typedPayload;
+          
+          // Add null checks and type assertions
+          if (!oldSong || !newSong || !('id' in oldSong) || !('id' in newSong)) {
             return;
           }
           
+          // Remove the presetSongsProcessing parameter or update the handler function
           await handleSongUpdate(
             newSong as SongPayload,
             oldSong as SongPayload,
             set,
             get,
-            supabase,
-            presetSongsProcessing
+            supabase
           );
         }
       )
@@ -72,16 +76,20 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
       
     const variationsSubscription = supabase
       .channel('variations-channel')
-      .on<RealtimePayload<VariationPayload>>(
+      .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public', 
           table: 'song_variations'
         },
-        async (payload: RealtimePayload<VariationPayload>) => {
-          const { new: variation } = payload;
-          if (!variation?.song_id) {
+        async (payload) => {
+          // Use type assertion to ensure TypeScript knows the structure
+          const typedPayload = payload as RealtimePayload<VariationPayload>;
+          const { new: variation } = typedPayload;
+          
+          // Add null check and type assertion
+          if (!variation || !('song_id' in variation)) {
             return;
           }
           

@@ -79,12 +79,6 @@ export const createMusicGenerationTask = async ({
 
   const description = `${baseDescription}`;
 
-  const _tags = theme 
-    ? `${theme}, children's music` 
-    : songType === 'from-scratch' && mood
-      ? `${mood}, children's music${voice ? `, ${voice}` : ''}`
-      : `children's music${voice ? `, ${voice}` : ''}`;
-
   // Use generated lyrics as the prompt for music generation
   const finalPrompt = generatedLyrics || '';
   
@@ -114,7 +108,8 @@ export const createMusicGenerationTask = async ({
       negative_tags: 'rock, metal, aggressive, harsh',
       // Use mood and tempo as provided by SongService
       ...(mood && { mood }),
-      ...(tempo && { tempo })
+      ...(tempo && { tempo }),
+      ...(voice && { voice })
     },
   };
 

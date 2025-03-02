@@ -4,12 +4,14 @@ import { useAuthStore } from '../store/authStore';
 import AuthModal from './auth/AuthModal';
 import ProfileModal from './profile/ProfileModal';
 import { useEffect } from 'react';
+import { useErrorStore } from '../store/errorStore';
 
 export default function Header() {
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [authMode, setAuthMode] = React.useState<'signin' | 'signup'>('signup');
   const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
-  const { user, signOut, error: authError } = useAuthStore();
+  const { user, signOut } = useAuthStore();
+  const { error: authError } = useErrorStore();
 
   useEffect(() => {
     if (authError) {
@@ -52,7 +54,6 @@ export default function Header() {
                     <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                   <button
-                    onClick={() => signOut()}
                     className="text-white/80 hover:text-white transition-all duration-300 px-3 py-1.5 sm:px-4 sm:py-2 
                              hover:bg-white/5 rounded-lg text-sm sm:text-base active:scale-95"
                     onClick={async () => {

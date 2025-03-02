@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Wand2 } from 'lucide-react';
 import type { ThemeType, VoiceType, Tempo, MusicMood } from '../types';
 import { useSongStore } from '../store/songStore';
@@ -8,16 +8,10 @@ import VoiceSelector from './music-generator/VoiceSelector';
 import CustomOptions from './music-generator/CustomOptions';
 import LyricsInput from './music-generator/LyricsInput';
 import GenerationProgress from './music-generator/GenerationProgress';
-import { THEMES } from './music-generator/ThemeSelector';
 import { SongPromptService } from '../services/songPromptService';
 
 type TabType = 'themes' | 'fromScratch';
 const GENERATION_TIME = 240; // 4 minutes in seconds
-
-const getThemeDisplayName = (themeType: ThemeType): string => {
-  const theme = THEMES.find((t: { type: ThemeType }) => t.type === themeType);
-  return theme ? theme.title : themeType;
-};
 
 export default function MusicGenerator() {
   const [activeTab, setActiveTab] = useState<TabType>('themes');
@@ -38,11 +32,11 @@ export default function MusicGenerator() {
   const isGenerating = generatingSongs.size > 0;
 
   useEffect(() => {
-    let timer: number;
+    let timer: ReturnType<typeof setInterval>;
     if (isGenerating) {
       // Reset timer when starting generation
       setTimeLeft(GENERATION_TIME);
-      timer = window.setInterval(() => {
+      timer = setInterval(() => {
         setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
       }, 1000);
     }
@@ -76,9 +70,27 @@ export default function MusicGenerator() {
       return;
     }
     
-    if (songType === 'from-scratch' && !mood) {
-      setError('Please select a mood');
+    // Add validation for theme-with-input to require user input
+    if (songType === 'theme-with-input' && !userInput.trim()) {
+      setError('Please enter your custom text');
       return;
+    }
+    
+    if (songType === 'from-scratch') {
+      if (!mood) {
+        setError('Please select a mood');
+        return;
+      }
+      
+      if (!tempo) {
+        setError('Please select a tempo');
+        return;
+      }
+      
+      if (!userInput.trim()) {
+        setError('Please enter your custom text');
+        return;
+      }
     }
 
     console.log('Generate clicked:', { 
@@ -100,44 +112,28 @@ export default function MusicGenerator() {
       };
 
       if (songType === 'theme' || songType === 'theme-with-input') {
-        if (!theme) {
-          setError('Please select a theme');
-          return;
-        }
-
         console.log('Creating themed song:', {
           theme,
           songType,
           userInput: userInput.trim()
         });
 
+        // Safely access user metadata
+        const babyName = user?.user_metadata?.babyName || 'Baby';
+
         await createSong({
           ...baseParams,
           name: SongPromptService.generateTitle({
             theme,
-            babyName: user.user_metadata.babyName || 'Baby',
-            isInstrumental: voiceSettings.isInstrumental
+            babyName,
+            isInstrumental: voiceSettings.isInstrumental,
+            songType
           }),
           theme,
           userInput: userInput.trim() || undefined
         });
       } else {
         // from-scratch mode
-        if (!mood) {
-          setError('Please select a mood for your song');
-          return;
-        }
-
-        if (!userInput.trim()) {
-          setError('Please enter your custom text');
-          return;
-        }
-
-        if (!tempo) {
-          setError('Please select a tempo for your song');
-          return;
-        }
-
         console.log('Creating custom song:', {
           mood,
           userInput: userInput.trim()
@@ -146,8 +142,8 @@ export default function MusicGenerator() {
         await createSong({
           ...baseParams,
           name: `${mood} Song: ${userInput.slice(0, 30)}${userInput.length > 30 ? '...' : ''}`,
-          tempo: tempo,
-          mood: mood,
+          tempo,
+          mood,
           userInput: userInput.trim()
         });
       }

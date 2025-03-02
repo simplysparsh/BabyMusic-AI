@@ -3,6 +3,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
 // Get current directory
 const __filename = fileURLToPath(import.meta.url);
@@ -12,7 +13,7 @@ const __dirname = path.dirname(__filename);
 const srcDir = path.join(process.cwd(), 'src');
 const extensions = ['.tsx', '.ts', '.jsx', '.js'];
 
-console.log('🔍 Scanning for files with React imports to optimize...');
+console.log('🔍 Scanning files to optimize imports...');
 
 // Helper function to get all files recursively
 function findFiles(dir, fileList = []) {
@@ -54,12 +55,16 @@ const reactNamespaceMap = {
   // Add more as needed
 };
 
-// Get all files
+// Process files
 const files = findFiles(srcDir);
 let modifiedCount = 0;
+let scannedCount = 0;
+
+console.log(`Found ${files.length} files to scan`);
 
 // Process each file
 files.forEach(filePath => {
+  scannedCount++;
   const relativePath = path.relative(process.cwd(), filePath);
   let content = fs.readFileSync(filePath, 'utf8');
   let modified = false;
@@ -84,7 +89,7 @@ files.forEach(filePath => {
   // Track needed named imports
   let neededImports = new Set();
   
-  // Handle Case 3: React namespace usage conversion
+  // Handle React namespace usage conversion
   if (hasReactNamespaceUsage) {
     console.log(`Converting React namespace usage in: ${relativePath}`);
     console.log(`Namespace usages: ${reactUsages.join(', ')}`);
@@ -158,25 +163,37 @@ files.forEach(filePath => {
       modified = true;
     }
   }
-  // Handle Case 1: Standalone React import with no namespace usage
-  else if (hasStandaloneImport && !hasReactNamespaceUsage) {
-    console.log(`Found unused standalone React import in: ${relativePath}`);
-    // Remove the React import
-    content = content.replace(standaloneImportPattern, '');
-    modified = true;
-  }
-  // Handle Case 2: Combined import with no namespace usage
-  else if (combinedImportMatch && !hasReactNamespaceUsage) {
-    console.log(`Found unused React in combined import in: ${relativePath}`);
-    const namedImports = combinedImportMatch[1].trim();
+  // Handle unused React imports
+  else if ((hasStandaloneImport || combinedImportMatch) && !hasReactNamespaceUsage) {
+    // Case 1: Standalone React import with no namespace usage
+    if (hasStandaloneImport) {
+      console.log(`Found unused standalone React import in: ${relativePath}`);
+      // Remove the React import
+      content = content.replace(standaloneImportPattern, '');
+      modified = true;
+    }
     
-    // Replace with just the named imports
-    content = content.replace(
-      combinedImportPattern, 
-      `import { ${namedImports} } from 'react';`
-    );
-    modified = true;
+    // Case 2: Combined import with no namespace usage
+    if (combinedImportMatch) {
+      console.log(`Found unused React in combined import in: ${relativePath}`);
+      const namedImports = combinedImportMatch[1].trim();
+      
+      if (namedImports) {
+        // Replace with just the named imports
+        content = content.replace(
+          combinedImportPattern, 
+          `import { ${namedImports} } from 'react';`
+        );
+      } else {
+        // No named imports either, remove the entire import
+        content = content.replace(combinedImportPattern, '');
+      }
+      modified = true;
+    }
   }
+  
+  // Cleanup empty lines to ensure file is tidy
+  content = content.replace(/\n\s*\n\s*\n/g, '\n\n');
   
   // Write changes if modified
   if (modified) {
@@ -184,7 +201,12 @@ files.forEach(filePath => {
     modifiedCount++;
     console.log(`✅ Fixed: ${relativePath}`);
   }
+  
+  // Show progress every 10 files
+  if (scannedCount % 20 === 0) {
+    console.log(`Progress: Scanned ${scannedCount}/${files.length} files...`);
+  }
 });
 
-console.log(`\n✨ Complete! Modified ${modifiedCount} files.`);
+console.log(`\n✨ Complete! Scanned ${scannedCount} files, modified ${modifiedCount} files.`);
 console.log('Run your application to ensure everything works correctly.'); 

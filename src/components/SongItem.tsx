@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Play, Pause, Download, Share2, ChevronDown } from 'lucide-react';
 import { SongStateService } from '../services/songStateService';
 import type { Song } from '../types';
@@ -31,7 +31,7 @@ export default function SongItem({
     isGenerating, 
     hasFailed,
     hasVariations,
-    variationCount
+    variationCount: _variationCount
   } = SongStateService.getSongStateMetadata(
     song,
     generatingSongs,

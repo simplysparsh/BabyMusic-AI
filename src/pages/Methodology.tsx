@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Brain, ArrowLeft, ArrowRight, Zap, Music2, Heart, Star, Sparkles, BookOpen } from 'lucide-react';
 import Footer from '../components/Footer';
 import AuthModal from '../components/auth/AuthModal';

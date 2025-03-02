@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { songAdapter } from '../utils/songAdapter';
 
 interface AudioState {
   currentAudio: HTMLAudioElement | null;

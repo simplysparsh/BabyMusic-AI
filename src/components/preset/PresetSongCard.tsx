@@ -1,4 +1,4 @@
-import React, { useCallback, MouseEvent, KeyboardEvent } from 'react';
+import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect } from 'react';
 import { Play, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService } from '../../services/songStateService';
@@ -8,7 +8,7 @@ interface PresetCardProps {
   type: PresetType;
   title: string;
   description: string;
-  iconComponent: React.ComponentType<any>;
+  iconComponent: ComponentType<React.SVGProps<SVGSVGElement>>;
   songs: Song[];
   isPlaying: boolean;
   onPlayClick: (audioUrl: string, type: PresetType) => void;
@@ -24,7 +24,7 @@ export default function PresetSongCard({
   description,
   iconComponent: Icon,
   songs,
-  isPlaying,
+  isPlaying: _isPlaying,
   onPlayClick,
   onGenerateClick,
   onVariationChange,
@@ -55,7 +55,7 @@ export default function PresetSongCard({
   const audioUrl = currentSong ? songAdapter.getAudioUrl(currentSong) : undefined;
 
   // Log songs prop changes
-  React.useEffect(() => {
+  useEffect(() => {
     console.log(`PresetSongCard songs prop changed for ${type}:`, songs);
     console.log(`PresetSongCard isGenerating: serviceIsGenerating=${serviceIsGenerating}, localGenerating=${localGeneratingTypes.has(type)}, combined=${isGenerating}`);
     // Also debug any issues with audio URL
@@ -140,7 +140,7 @@ export default function PresetSongCard({
   const colors = getColorScheme();
 
   // Additional debugging for pooping type
-  React.useEffect(() => {
+  useEffect(() => {
     if (type === 'pooping') {
       console.log(`[FlushTime Debug] Card state:`, {
         isReady,

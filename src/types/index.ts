@@ -12,6 +12,10 @@ export type Tempo = 'slow' | 'medium' | 'fast';
 
 export type AgeGroup = '0-6' | '7-12' | '13-24';
 export type PresetType = 'playing' | 'eating' | 'sleeping' | 'pooping';
+export type Language = 'en' | 'hi';
+
+// Default language for the application - single source of truth
+export const DEFAULT_LANGUAGE: Language = 'en';
 
 export interface MusicGenerationParams {
   theme?: ThemeType;
@@ -64,8 +68,18 @@ export interface UserProfile {
   dailyGenerations: number;
   lastGenerationDate: Date;
   babyName: string;
-  preferredLanguage: string;
+  preferredLanguage: Language;
   birthMonth?: number;
   birthYear?: number;
   ageGroup?: AgeGroup;
 }
+
+// Define BabyProfile type that contains the baby-related subset of profile data
+// This keeps related data clearly structured while avoiding duplication
+export type BabyProfile = {
+  babyName: string;
+  birthMonth?: number;
+  birthYear?: number;
+  ageGroup?: AgeGroup;
+  preferredLanguage?: Language;
+};

@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
-import type { Language, UserProfile } from '../types';
+import { DEFAULT_LANGUAGE } from '../types';
+import type { Language, UserProfile, AgeGroup } from '../types';
 
 interface ProfileUpdateParams {
   userId: string;
@@ -66,7 +67,7 @@ export class ProfileService {
       dailyGenerations: profile.daily_generations,
       lastGenerationDate: profile.last_generation_date,
       babyName: profile.baby_name,
-      preferredLanguage: profile.preferred_language || 'English'
+      preferredLanguage: profile.preferred_language || DEFAULT_LANGUAGE
     };
 
     return profileResponse;

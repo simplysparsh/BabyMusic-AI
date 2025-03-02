@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Music2, Heart, Star, ArrowRight } from 'lucide-react';
 
 interface CTASectionProps {

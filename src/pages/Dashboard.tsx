@@ -1,11 +1,9 @@
-import React from 'react';
 import PresetSongs from '../components/PresetSongs';
 import MusicGenerator from '../components/MusicGenerator';
 import SongList from '../components/SongList';
 import { useErrorStore } from '../store/errorStore';
 import { useRealtime } from '../hooks/useRealtime';
 import Footer from '../components/Footer';
-import { Sparkles } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import MiniStreak from '../components/dashboard/MiniStreak';
 import DetailedStreak from '../components/dashboard/DetailedStreak';

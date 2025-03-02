@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { ArrowRight, Star, Brain, Heart } from 'lucide-react';
 
 const INSTITUTIONS = [

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Baby, Music2, Brain, ArrowRight, Calendar } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import type { AgeGroup, BabyProfile } from '../../types';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -30,7 +31,8 @@ const getAgeGroup = (month: number, year: number): AgeGroup => {
   return '13-24';
 };
 
-const getAgeRecommendations = (ageGroup: AgeGroup) => {
+// This function is defined for future use but currently unused
+const _getAgeRecommendations = (ageGroup: AgeGroup) => {
   const recommendations = {
     '0-6': [
       'Simple, soothing melodies for sleep and comfort',
@@ -88,7 +90,7 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
       
       // Call onComplete with profile data
       onComplete({
-        name: babyName,
+        babyName,
         birthMonth,
         birthYear,
         ageGroup: getAgeGroup(birthMonth, birthYear)
@@ -198,7 +200,7 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
                 </div>
 
                 <p className="text-sm text-white/80 leading-relaxed">
-                  We're creating special songs tailored to {babyName}'s age group ({ageGroup} months).
+                  We're creating special songs tailored to {babyName}'s age group ({ageGroup}).
                   These melodies are scientifically designed to support cognitive development and emotional well-being.
                 </p>
               </div>

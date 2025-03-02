@@ -8,9 +8,10 @@ import type {
   ThemeType,
   PresetType,
   Tempo,
-  VoiceType
+  VoiceType,
+  AgeGroup,
+  MusicGenerationParams
 } from '../types';
-import { useAuthStore } from '../store/authStore';
 
 export class SongService {
   static async regeneratePresetSongs(userId: string, babyName: string) {
@@ -71,7 +72,7 @@ export class SongService {
     }
 
     // For custom songs: use user-selected mood
-    return mood;
+    return mood || undefined;
   }
 
   // Core song operations
@@ -87,10 +88,11 @@ export class SongService {
       userInput?: string;
       isInstrumental?: boolean;
       songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
+      preset_type?: PresetType;
     };
   }): Promise<Song> {
     const { userId, name, babyName, songParams } = params;
-    const { theme, mood, userInput, tempo, songType, isInstrumental, voice } = songParams;
+    const { theme, mood, userInput, tempo, songType, isInstrumental, voice, preset_type: presetTypeParam } = songParams;
 
     console.log('Creating song with params:', {
       userId,
@@ -102,7 +104,8 @@ export class SongService {
         tempo,
         isInstrumental,
         voice,
-        songType
+        songType,
+        preset_type: presetTypeParam
       },
     });
 
@@ -111,7 +114,7 @@ export class SongService {
     }
 
     // Get preset type if applicable
-    const presetType = songType === 'preset' ? getPresetType(name) : undefined;
+    const presetType = songType === 'preset' ? (presetTypeParam || getPresetType(name)) : undefined;
 
     console.log('Preset detection:', {
       name,
@@ -185,22 +188,38 @@ export class SongService {
       hasUserInput: !!userInput
     });
 
+    // Get the user's profile to access ageGroup
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('age_group')
+      .eq('id', userId)
+      .single();
+    
+    const ageGroup = profile?.age_group as AgeGroup | undefined;
+    
+    console.log('Retrieved profile data for music generation:', {
+      userId,
+      hasAgeGroup: !!ageGroup,
+      ageGroup
+    });
+
     // Start generation task
     let taskId;
     try {
-      taskId = await createMusicGenerationTask({
+      const generationParams: MusicGenerationParams = {
         theme,
         mood: determinedMood,
         userInput,
         name: babyName,
-        ageGroup: undefined, // Will be fetched from profile
+        ageGroup, // Use the retrieved ageGroup from profile
         tempo,
         isInstrumental,
         songType,
         voice,
-        is_preset: songType === 'preset',
-        preset_type: presetType
-      });
+        preset_type: presetType || undefined
+      };
+      
+      taskId = await createMusicGenerationTask(generationParams);
 
       console.log('Music generation task created:', {
         taskId,

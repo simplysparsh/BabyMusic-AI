@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 

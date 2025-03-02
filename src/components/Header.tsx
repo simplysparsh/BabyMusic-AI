@@ -1,15 +1,14 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Music2, Settings } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import AuthModal from './auth/AuthModal';
 import ProfileModal from './profile/ProfileModal';
-import { useEffect } from 'react';
 import { useErrorStore } from '../store/errorStore';
 
 export default function Header() {
-  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
-  const [authMode, setAuthMode] = React.useState<'signin' | 'signup'>('signup');
-  const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signup');
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const { user, signOut } = useAuthStore();
   const { error: authError } = useErrorStore();
 

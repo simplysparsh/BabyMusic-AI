@@ -1,16 +1,15 @@
 import { useState, useEffect, useCallback, MouseEvent } from 'react';
-import { PresetType, Song } from '../types';
+import type { PresetType } from '../types';
 import { useSongStore } from '../store/songStore';
 import { SongStateService } from '../services/songStateService';
 import { useAudioStore } from '../store/audioStore';
 import { useAuthStore } from '../store/authStore';
 import { PRESET_CONFIGS } from '../data/lyrics';
-import { songAdapter } from '../utils/songAdapter';
 
 export default function usePresetSongs() {
   const { user, profile } = useAuthStore();
   const { songs, generatingSongs, createSong } = useSongStore();
-  const { isPlaying, playAudio } = useAudioStore();
+  const { isPlaying: _isPlaying, playAudio } = useAudioStore();
   
   // Track local generating states for immediate UI feedback
   const [localGeneratingTypes, setLocalGeneratingTypes] = useState<Set<PresetType>>(new Set());
@@ -62,7 +61,7 @@ export default function usePresetSongs() {
     console.log('usePresetSongs songs updated:', songs);
     console.log('usePresetSongs generatingSongs:', Array.from(generatingSongs));
     console.log('usePresetSongs localGeneratingTypes:', Array.from(localGeneratingTypes));
-  }, [songs, generatingSongs]);
+  }, [songs, generatingSongs, localGeneratingTypes]);
 
   // Handle preset card click
   const handlePresetClick = useCallback((type: PresetType) => {
@@ -105,7 +104,7 @@ export default function usePresetSongs() {
         lyrics: PRESET_CONFIGS[type].lyrics(profile.babyName)
       });
     }
-  }, [songs, generatingSongs, createSong, playAudio, user, profile, localGeneratingTypes, songNames]);
+  }, [songs, createSong, playAudio, user, profile, localGeneratingTypes, songNames]);
 
   const handlePlay = useCallback((audioUrl: string, type: PresetType) => {
     console.log(`Playing song for ${type}:`, { audioUrl });

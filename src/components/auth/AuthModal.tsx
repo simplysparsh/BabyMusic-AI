@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { X } from 'lucide-react';
 import OnboardingModal from './OnboardingModal';
@@ -36,7 +36,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
 
   if (!isOpen) return null;
 
-  const handleCredentialsSubmit = async (e: React.FormEvent) => {
+  const handleCredentialsSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (isSignIn) {
       setError('');
@@ -56,7 +56,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
@@ -102,7 +102,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
     }
   };
 
-  const handleOnboardingComplete = (babyProfile: BabyProfile) => {
+  const handleOnboardingComplete = (_babyProfile: BabyProfile) => {
     setShowOnboarding(false);
     onClose();
   };

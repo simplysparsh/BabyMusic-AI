@@ -1,17 +1,17 @@
-import React, { useEffect } from 'react';
+import { useState } from 'react';
+import { useEffect } from 'react';
 import { Trash2, Music2 } from 'lucide-react';
 import { useSongStore } from '../store/songStore';
 import { useAuthStore } from '../store/authStore';
 import { useAudioStore } from '../store/audioStore';
 import SongItem from './SongItem';
-import { SongStateService } from '../services/songStateService';
 
 export default function SongList() {
   const { songs, loadSongs, isLoading, isDeleting, deleteAllSongs, generatingSongs, processingTaskIds } = useSongStore();
   const { user } = useAuthStore();
   const { isPlaying, currentUrl, playAudio } = useAudioStore();
-  const [initialLoadComplete, setInitialLoadComplete] = React.useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleDownload = async (audioUrl: string, title: string) => {
     try {
@@ -48,7 +48,7 @@ export default function SongList() {
     }
   };
 
-  const handlePlay = (audioUrl: string, songId: string) => {
+  const handlePlay = (audioUrl: string, _songId: string) => {
     playAudio(audioUrl);
   };
   

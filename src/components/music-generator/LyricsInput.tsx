@@ -1,4 +1,5 @@
-import React from 'react';
+import { ChangeEvent, useState } from 'react';
+
 
 interface LyricsInputProps {
   value: string;
@@ -10,15 +11,15 @@ interface LyricsInputProps {
 const MAX_INPUT_LENGTH = 180;
 
 export default function LyricsInput({ value, onChange, isFromScratch = false, onSongTypeChange }: LyricsInputProps) {
-  const [showCustomInput, setShowCustomInput] = React.useState(false);
-  const [isOverLimit, setIsOverLimit] = React.useState(false);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [isOverLimit, setIsOverLimit] = useState(false);
 
   const handleCustomInputChange = (wantsCustomInput: boolean) => {
     setShowCustomInput(wantsCustomInput);
     onSongTypeChange(wantsCustomInput ? 'theme-with-input' : 'theme');
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     setIsOverLimit(newValue.length > MAX_INPUT_LENGTH);
     onChange(newValue.slice(0, MAX_INPUT_LENGTH));

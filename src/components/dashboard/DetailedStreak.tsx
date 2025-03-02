@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Flame, Star, Music2, Sparkles, Heart, Zap } from 'lucide-react';
 
 interface DetailedStreakProps {

@@ -1,6 +1,5 @@
-import React from 'react';
 import type { VoiceType } from '../../types';
-import { Mic, Music as MusicOff, Volume2, VolumeX } from 'lucide-react';
+import { Mic, Music as MusicOff, Volume2 } from 'lucide-react';
 
 const VOICE_OPTIONS: { 
   type: VoiceType; 

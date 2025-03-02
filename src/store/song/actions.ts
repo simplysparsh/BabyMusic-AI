@@ -6,7 +6,6 @@
 
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../authStore';
-import { getPresetType } from '../../utils/presetUtils';
 import { SongService } from '../../services/songService';
 import type { Song, PresetType } from '../../types';
 import type { SongState, CreateSongParams } from './types';
@@ -38,7 +37,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
     }
   },
 
-  createSong: async ({ name, mood, theme, userInput, tempo, isInstrumental, voice, songType, preset_type, lyrics }: CreateSongParams): Promise<Song> => {
+  createSong: async ({ name, mood, theme, userInput, tempo, isInstrumental, voice, songType, preset_type }: CreateSongParams): Promise<Song> => {
     console.log('songStore.createSong called with:', {
       name,
       mood,
@@ -50,7 +49,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       voice
     });
 
-    let currentPresetType: PresetType | null = preset_type || null;
+    const currentPresetType: PresetType | null = preset_type || null;
     let createdSong: Song | undefined;
     
     try {
@@ -125,8 +124,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
           songType,
           voice,
           userInput,
-          preset_type: currentPresetType || undefined,
-          lyrics
+          preset_type: currentPresetType || undefined
         }
       });
 
@@ -154,10 +152,10 @@ export const createSongActions = (set: SetState, get: GetState) => ({
           await supabase
             .from('songs')
             .update({ error: 'Failed to start music generation' })
-            .eq('id', createdSong.id);
+            .eq('id', createdSong!.id);
 
           set({
-            generatingSongs: new Set([...get().generatingSongs].filter(id => id !== createdSong.id))
+            generatingSongs: new Set([...get().generatingSongs].filter(id => id !== createdSong!.id))
           });
         } catch (updateError) {
           console.error('Failed to update song error state:', updateError);

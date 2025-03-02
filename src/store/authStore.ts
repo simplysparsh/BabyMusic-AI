@@ -5,29 +5,38 @@ import { useErrorStore } from './errorStore';
 import { ProfileService } from '../services/profileService';
 import { SongService } from '../services/songService';
 import { type User } from '@supabase/supabase-js';
-import type { UserProfile } from '../types';
+import { DEFAULT_LANGUAGE } from '../types';
+import type { UserProfile, Language, AgeGroup, PresetType } from '../types';
+import { PRESET_CONFIGS } from '../data/lyrics';
 
 interface AuthState {
   user: User | null;
   profile: UserProfile | null;
   initialized: boolean;
+  isLoading: boolean;
+  
+  // Add loadProfile to the interface
+  loadProfile: () => Promise<void>;
+  
   updateProfile: (updates: { 
     babyName: string; 
     preferredLanguage?: Language;
     birthMonth?: number;
     birthYear?: number;
     ageGroup?: AgeGroup;
-  }) => Promise<void>;
+  }) => Promise<UserProfile>; // Change return type to match implementation
+  
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, babyName: string) => Promise<void>;
   signOut: () => Promise<void>;
-  loadUser: () => Promise<void>;
+  loadUser: () => Promise<void | (() => void)>; // Fix return type to match implementation
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
   initialized: false,
+  isLoading: false,
   loadProfile: async () => {
     const user = get().user;
     if (!user) return;
@@ -93,7 +102,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           dailyGenerations: profile.daily_generations,
           lastGenerationDate: profile.last_generation_date,
           babyName: profile.baby_name,
-          preferredLanguage: profile.preferred_language || 'English'
+          preferredLanguage: profile.preferred_language || DEFAULT_LANGUAGE
         };
       
         set({ profile: userProfile });
@@ -201,7 +210,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       options: {
         data: {
           babyName: babyName.trim(),
-          preferredLanguage: 'English'
+          preferredLanguage: DEFAULT_LANGUAGE
         }
       }
     });
@@ -225,7 +234,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       .update({ 
         baby_name: babyName,
         preset_songs_generated: false,
-        preferred_language: 'English'
+        preferred_language: DEFAULT_LANGUAGE
       })
       .eq('id', data.user.id);
 
@@ -240,7 +249,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         dailyGenerations: 0,
         lastGenerationDate: new Date(),
         babyName: babyName.trim(),
-        preferredLanguage: 'English'
+        preferredLanguage: DEFAULT_LANGUAGE
       }
     });
 
@@ -250,7 +259,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return createSong({
         name: config.title(babyName.trim()),
         mood: config.mood,
-        lyrics: config.lyrics(babyName.trim())
+        lyrics: config.lyrics(babyName.trim()),
+        songType: 'preset',
+        preset_type: type as PresetType
       });
     });
 
@@ -273,7 +284,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
   
       // Clear other stores
-      useSongStore.getState().setState(state => ({
+      useSongStore.getState().setState(_state => ({
         songs: [],
         generatingSongs: new Set(),
         presetSongTypes: new Set(),
@@ -320,7 +331,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Set up auth state change listener
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         
-        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        if (event === 'SIGNED_OUT') {
           set({ user: null, profile: null });
           return;
         }
@@ -336,7 +347,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (newUser) {
           try {
             await get().loadProfile();
-          } catch (error) {
+          } catch {
             // If profile load fails, sign out and reset state
             await supabase.auth.signOut();
             set({ user: null, profile: null });
@@ -346,7 +357,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       return () => subscription.unsubscribe();
 
-    } catch (error) {
+    } catch {
       await supabase.auth.signOut();
       set({ 
         user: null, 

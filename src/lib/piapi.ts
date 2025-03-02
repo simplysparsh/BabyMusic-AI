@@ -1,4 +1,4 @@
-import { MusicMood, ThemeType, MusicGenerationParams } from '../types';
+import { MusicGenerationParams } from '../types';
 import { LyricGenerationService } from '../services/lyricGenerationService';
 import { SongPromptService } from '../services/songPromptService';
 
@@ -79,7 +79,7 @@ export const createMusicGenerationTask = async ({
 
   const description = `${baseDescription}`;
 
-  const tags = theme 
+  const _tags = theme 
     ? `${theme}, children's music` 
     : songType === 'from-scratch' && mood
       ? `${mood}, children's music${voice ? `, ${voice}` : ''}`

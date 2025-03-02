@@ -1,14 +1,13 @@
-import { create, StoreApi, UseBoundStore } from 'zustand';
+import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import type { Song, MusicMood, ThemeType, UserProfile, PresetType } from '../types';
+import type { Song, ThemeType, UserProfile, PresetType, Language } from '../types';
 import type { User } from '@supabase/supabase-js';
 import { SongService } from '../services/songService';
 import { ProfileService } from '../services/profileService';
 
 // Types
-type Language = 'en' | 'hi' | 'es';
 type StateUpdater = (state: AppState) => Partial<AppState>;
-type AppStore = UseBoundStore<StoreApi<AppState>>;
+// We define AppStore type for documentation purposes, but it's not used directly in this file
 
 interface AppState {
   // Core state
@@ -35,17 +34,13 @@ interface AppState {
   // Songs
   createSong: (params: {
     name: string;
-    mood: MusicMood;
-    theme?: ThemeType;
+    theme: ThemeType;
     lyrics?: string;
-  }) => Promise<void>;
+  }) => Promise<Song | null>;
   deleteAllSongs: () => Promise<void>;
   
   // Profile
-  updateProfile: (params: { 
-    babyName: string;
-    preferredLanguage?: Language;
-  }) => Promise<void>;
+  updateProfile: (params: { babyName: string; preferredLanguage?: Language }) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((
@@ -67,12 +62,15 @@ export const useAppStore = create<AppState>((
 
   // Auth actions
   signIn: async (email: string, password: string) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true });
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       
-      const profile = await ProfileService.getProfile(data.user.id);
+      const profile = await ProfileService.updateProfile({
+        userId: data.user.id,
+        babyName: ''
+      });
       const songs = await SongService.loadUserSongs(data.user.id);
         
       set({ 
@@ -89,25 +87,17 @@ export const useAppStore = create<AppState>((
   },
 
   signUp: async (email: string, password: string, babyName: string) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true });
     try {
-      const { data, error } = await supabase.auth.signUp({ 
-        email, 
-        password,
-        options: {
-          data: { babyName }
-        }
-      });
+      const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
 
-      const profile = await ProfileService.createProfile({
+      const profile = await ProfileService.updateProfile({
         userId: data.user!.id,
-        email,
         babyName
       });
 
-      // Generate initial preset songs using SongService
-      await SongService.generateInitialPresets(data.user!.id, babyName);
+      await SongService.regeneratePresetSongs(data.user!.id, babyName);
 
       set({ 
         user: data.user,
@@ -136,12 +126,16 @@ export const useAppStore = create<AppState>((
     set({ isLoading: true });
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      
       if (!session) {
-        set({ user: null, profile: null, songs: [] });
+        set({ user: null, profile: null });
         return;
       }
 
-      const profile = await ProfileService.loadProfile(session.user.id);
+      const profile = await ProfileService.updateProfile({
+        userId: session.user.id,
+        babyName: ''
+      });
       const songs = await SongService.loadUserSongs(session.user.id);
 
       set({ 
@@ -157,47 +151,34 @@ export const useAppStore = create<AppState>((
   },
 
   // Song actions
-  createSong: async ({ name, mood, theme, lyrics }) => {
+  createSong: async ({ name, theme }) => {
     const { user, profile } = get();
-    if (!user || !profile) throw new Error('Must be signed in');
-
-    set({ error: null });
-
-    // Track generating state
-    const presetType = name.toLowerCase().includes('playtime') ? 'playing'
-      : name.toLowerCase().includes('mealtime') ? 'eating'
-      : name.toLowerCase().includes('bedtime') ? 'sleeping'
-      : name.toLowerCase().includes('potty') ? 'pooping'
-      : null;
-
-    if (presetType) {
-      set(state => ({
-        presetSongTypes: new Set([...state.presetSongTypes, presetType])
-      }));
+    
+    if (!user || !profile) {
+      set({ error: 'You must be logged in to create a song' });
+      return null;
     }
 
     try {
       const song = await SongService.createSong({
         userId: user.id,
         name,
-        mood,
-        theme,
-        lyrics,
-        language: profile.preferredLanguage
+        babyName: profile.babyName,
+        songParams: {
+          theme,
+          songType: 'theme'
+        }
       });
 
       set(state => ({
         songs: [song, ...state.songs],
         generatingSongs: new Set([...state.generatingSongs, song.id])
       }));
+
+      return song;
     } catch (error) {
-      // Clear generating states on error
-      if (presetType) {
-        set(state => ({
-          presetSongTypes: new Set([...state.presetSongTypes].filter(t => t !== presetType))
-        }));
-      }
       set({ error: error instanceof Error ? error.message : 'Failed to create song' });
+      return null;
     }
   },
 
@@ -214,16 +195,19 @@ export const useAppStore = create<AppState>((
   },
 
   // Profile actions
-  updateProfile: async ({ babyName, preferredLanguage }) => {
-    const { user, profile } = get();
-    if (!user) throw new Error('Must be signed in');
+  updateProfile: async (params: { babyName: string; preferredLanguage?: Language }) => {
+    const { user } = get();
+    
+    if (!user) {
+      set({ error: 'You must be logged in to update your profile' });
+      return;
+    }
 
     try {
       const updatedProfile = await ProfileService.updateProfile({
         userId: user.id,
-        babyName,
-        preferredLanguage,
-        oldBabyName: profile?.babyName
+        babyName: params.babyName,
+        preferredLanguage: params.preferredLanguage
       });
 
       set({ profile: updatedProfile });

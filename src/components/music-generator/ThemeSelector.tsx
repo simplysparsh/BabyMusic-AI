@@ -1,8 +1,7 @@
-import React from 'react';
 import type { ThemeType } from '../../types';
-import { Music2, Brain, Heart, Star, Wand2 } from 'lucide-react';
+import { Music2, Brain, Heart, Star } from 'lucide-react';
 
-export const THEMES: { type: ThemeType; title: string; description: string; icon: any }[] = [
+export const THEMES: { type: ThemeType; title: string; description: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>> }[] = [
   {
     type: 'pitchDevelopment',
     title: 'Musical Intelligence',

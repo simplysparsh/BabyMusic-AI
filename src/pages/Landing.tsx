@@ -1,4 +1,3 @@
-import React from 'react';
 import Hero from '../components/landing/Hero';
 import Features from '../components/landing/Features';
 import ProblemSolution from '../components/landing/ProblemSolution';
@@ -12,7 +11,7 @@ import { useAuthStore } from '../store/authStore';
 import { useAuthModal } from '../hooks/useAuthModal';
 
 export default function Landing() {
-  const { user } = useAuthStore();
+  const { user: _user } = useAuthStore();
   const { isAuthModalOpen, authMode, handleOpenAuth, handleCloseAuth } = useAuthModal();
   
   return (

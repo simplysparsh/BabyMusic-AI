@@ -1,4 +1,4 @@
-import React from 'react';
+
 import type { MusicMood, Tempo } from '../../types';
 
 const TEMPO_OPTIONS: { type: Tempo; label: string }[] = [

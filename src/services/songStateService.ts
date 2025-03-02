@@ -1,5 +1,13 @@
-import type { Song, PresetType } from '../types';
-import { songAdapter } from '../utils/songAdapter';
+import type {
+  Song,
+  PresetType
+} from '../types';
+
+// Define a type for the error object structure
+interface SongErrorObject {
+  code: number;
+  raw_message?: string;
+}
 
 /**
  * SongStateService handles all logic related to determining a song's state
@@ -74,9 +82,12 @@ export class SongStateService {
     if (!song.audio_url && song.error) {
       // Handle error as object with code property
       if (typeof song.error === 'object' && song.error !== null) {
-        // Use type assertion to handle runtime data structure that differs from interface
-        const errorObj = song.error as any;
-        return 'code' in errorObj && errorObj.code !== 0;
+        // Type guard to check if errorObj has a code property
+        if ('code' in song.error) {
+          const errorObj = song.error as SongErrorObject;
+          return errorObj.code !== 0;
+        }
+        return false;
       }
       // Handle error as string
       return !!song.error;
@@ -93,21 +104,24 @@ export class SongStateService {
     
     // Handle error as object with raw_message property
     if (typeof song.error === 'object' && song.error !== null) {
-      // Use type assertion to handle runtime data structure that differs from interface
-      const errorObj = song.error as any;
-      
-      // Check for specific error codes and messages
-      if ('code' in errorObj && errorObj.code === 10000) {
-        if ('raw_message' in errorObj && typeof errorObj.raw_message === 'string') {
-          if (errorObj.raw_message.includes('failed to generate clip')) {
-            return 'The song generation service encountered an issue. Please try again later.';
+      // Type guard and casting for specific error properties
+      if ('code' in song.error) {
+        const errorObj = song.error as SongErrorObject;
+        
+        // Check for specific error codes and messages
+        if (errorObj.code === 10000) {
+          if (errorObj.raw_message && typeof errorObj.raw_message === 'string') {
+            if (errorObj.raw_message.includes('failed to generate clip')) {
+              return 'The song generation service encountered an issue. Please try again later.';
+            }
           }
         }
-      }
-      
-      if ('raw_message' in errorObj && typeof errorObj.raw_message === 'string') {
-        if (errorObj.raw_message.includes('Tags contained artist name:')) {
-          return 'The song failed to generate because the tags contained an artist name. Please provide an alternative spelling for the artist name.';
+        
+        // Check for artist name error in raw_message
+        if (errorObj.raw_message && typeof errorObj.raw_message === 'string') {
+          if (errorObj.raw_message.includes('Tags contained artist name:')) {
+            return 'The song failed to generate because the tags contained an artist name. Please provide an alternative spelling for the artist name.';
+          }
         }
       }
     }
@@ -186,10 +200,10 @@ export class SongStateService {
    */
   static getSongStateMetadata(
     song: Song | undefined,
-    generatingSongs: Set<string>,
-    processingTaskIds: Set<string>,
-    presetTypes?: Set<PresetType>,
-    presetType?: PresetType | null
+    _generatingSongs: Set<string>,
+    _processingTaskIds: Set<string>,
+    _presetTypes?: Set<PresetType>,
+    _presetType?: PresetType | null
   ): {
     isGenerating: boolean;
     hasFailed: boolean;

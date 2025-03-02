@@ -1,4 +1,4 @@
-import React, { type FC } from 'react';
+import { type FC, useEffect, useCallback } from 'react';
 import { Baby, UtensilsCrossed, Moon, Waves } from 'lucide-react';
 import usePresetSongs from '../hooks/usePresetSongs';
 import { useAuthStore } from '../store/authStore';
@@ -50,15 +50,14 @@ const PresetSongs: FC = () => {
     currentVariation,
     localGeneratingTypes
   } = usePresetSongs();
-
-  // Show component only when we have a logged-in user
-  if (!user) return null;
-
-  // Get current playing song from audio store
+  
+  // Get current playing song from audio store - moved above conditional return
   const { isPlaying, currentUrl: currentPlayingUrl } = useAudioStore();
 
-  // Debug function to inspect preset songs
-  const debugPresetSongs = () => {
+  // Debug function to inspect preset songs - wrapped in useCallback
+  const debugPresetSongs = useCallback(() => {
+    if (!user) return; // Skip if no user
+    
     console.group('Debug Preset Songs');
     PRESETS.forEach(preset => {
       const presetSongs = songs.filter(s => s.preset_type === preset.type);
@@ -76,26 +75,32 @@ const PresetSongs: FC = () => {
       });
     });
     console.groupEnd();
-  };
+  }, [songs, user]);
 
-  // Call debug function when songs change
-  React.useEffect(() => {
-    debugPresetSongs();
-  }, [songs]);
+  // Call debug function when songs change - moved above conditional return
+  useEffect(() => {
+    if (user) {
+      debugPresetSongs();
+    }
+  }, [songs, user, debugPresetSongs]);
 
-  // Special debug for Flush Time song
-  React.useEffect(() => {
+  // Special debug for Flush Time song - moved above conditional return
+  useEffect(() => {
+    if (!user) return; // Skip if no user
+    
     const flushTimeSongs = songs.filter(s => s.preset_type === 'pooping');
     console.log('[FlushTime Debug] All Flush Time songs:', flushTimeSongs.length > 0 ? 
       flushTimeSongs.map(s => ({
         id: s.id,
-        audioUrl: s.audio_url,
         hasAudio: !!s.audio_url,
-        status: s.status,
+        audioUrl: s.audio_url,
         error: s.error
-      })) : 
-      'None found');
-  }, [songs]);
+      })) : 'No Flush Time songs'
+    );
+  }, [songs, user]);
+
+  // Show component only when we have a logged-in user
+  if (!user) return null;
 
   return (
     <div className="w-full max-w-2xl mx-auto mb-6 sm:mb-8 relative px-4">

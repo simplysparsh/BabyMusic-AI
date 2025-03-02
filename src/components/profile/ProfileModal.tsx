@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useErrorStore } from '../../store/errorStore';
@@ -22,7 +22,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       setShowSuccess(false);
       clearError();
     }
-  }, [isOpen, profile]);
+  }, [isOpen, profile, clearError]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -37,7 +37,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError({});
     clearError(); // Clear any global errors

@@ -37,7 +37,7 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
   const setupSubscription = () => {
     const user = useAuthStore.getState().user;
     if (!user) return;
-    let presetSongsProcessing = new Set<string>();
+    const presetSongsProcessing = new Set<string>();
 
     supabase.getChannels().forEach(channel => channel.unsubscribe());
     

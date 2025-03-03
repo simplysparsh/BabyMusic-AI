@@ -13,7 +13,62 @@ import type {
   MusicGenerationParams
 } from '../types';
 
+// Define the timeout duration for song generation (4 minutes in milliseconds)
+const SONG_GENERATION_TIMEOUT = 4 * 60 * 1000; // 4 minutes
+
 export class SongService {
+  // Map to store timeout IDs for each song
+  private static timeoutIds: Map<string, NodeJS.Timeout> = new Map();
+
+  /**
+   * Sets a timeout for song generation
+   * @param songId The ID of the song to set a timeout for
+   */
+  private static setSongGenerationTimeout(songId: string): void {
+    // Clear any existing timeout for this song
+    this.clearSongGenerationTimeout(songId);
+    
+    // Set a new timeout
+    const timeoutId = setTimeout(async () => {
+      console.log(`Song generation timeout reached for song ${songId}`);
+      
+      try {
+        // Update the song with a timeout error
+        const { error } = await supabase
+          .from('songs')
+          .update({
+            error: 'Song generation timed out after 4 minutes. Please try again.',
+            retryable: true
+          })
+          .eq('id', songId);
+          
+        if (error) {
+          console.error('Failed to update song with timeout error:', error);
+        }
+      } catch (err) {
+        console.error('Error handling song generation timeout:', err);
+      } finally {
+        // Clean up the timeout reference
+        this.timeoutIds.delete(songId);
+      }
+    }, SONG_GENERATION_TIMEOUT);
+    
+    // Store the timeout ID
+    this.timeoutIds.set(songId, timeoutId);
+  }
+
+  /**
+   * Clears a song generation timeout
+   * @param songId The ID of the song to clear the timeout for
+   */
+  private static clearSongGenerationTimeout(songId: string): void {
+    const timeoutId = this.timeoutIds.get(songId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      this.timeoutIds.delete(songId);
+    }
+  }
+
   static async regeneratePresetSongs(userId: string, babyName: string) {
     console.log('Starting preset song regeneration:', { userId, babyName });
 
@@ -163,6 +218,7 @@ export class SongService {
         preset_type: presetType || null,
         is_instrumental: isInstrumental || false,
         user_id: userId,
+        retryable: true, // Mark all songs as retryable by default
       }])
       .select()
       .single();
@@ -225,6 +281,9 @@ export class SongService {
         taskId,
         songId: song.id
       });
+      
+      // Set a timeout for this song generation
+      this.setSongGenerationTimeout(song.id);
     } catch (error) {
       console.error('Failed to create music generation task:', {
         error,
@@ -268,5 +327,95 @@ export class SongService {
       .eq('user_id', userId);
 
     if (error) throw error;
+  }
+
+  /**
+   * Retry a failed song generation
+   * @param songId The ID of the song to retry
+   * @param userId The user ID
+   * @param babyName The baby's name
+   */
+  static async retrySongGeneration(songId: string, userId: string, babyName: string): Promise<Song> {
+    // Get the song to retry
+    const { data: song, error: fetchError } = await supabase
+      .from('songs')
+      .select('*')
+      .eq('id', songId)
+      .single();
+      
+    if (fetchError || !song) {
+      console.error('Failed to fetch song for retry:', fetchError);
+      throw fetchError || new Error('Song not found');
+    }
+    
+    // Clear any error and audio URL
+    const { error: updateError } = await supabase
+      .from('songs')
+      .update({
+        error: null,
+        audio_url: null,
+        task_id: null
+      })
+      .eq('id', songId);
+      
+    if (updateError) {
+      console.error('Failed to update song for retry:', updateError);
+      throw updateError;
+    }
+    
+    // Get the user's profile to access ageGroup
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('age_group')
+      .eq('id', userId)
+      .single();
+    
+    const ageGroup = profile?.age_group as AgeGroup | undefined;
+    
+    // Create a new generation task
+    try {
+      const generationParams: MusicGenerationParams = {
+        theme: song.theme,
+        mood: song.mood,
+        userInput: song.user_lyric_input,
+        name: babyName,
+        ageGroup,
+        tempo: song.tempo,
+        isInstrumental: song.is_instrumental,
+        songType: song.song_type,
+        voice: song.voice_type,
+        preset_type: song.preset_type
+      };
+      
+      const taskId = await createMusicGenerationTask(generationParams);
+      
+      console.log('Retry music generation task created:', {
+        taskId,
+        songId: song.id
+      });
+      
+      // Update the song with the new task ID
+      await supabase
+        .from('songs')
+        .update({ task_id: taskId })
+        .eq('id', songId);
+      
+      // Set a timeout for this song generation
+      this.setSongGenerationTimeout(songId);
+      
+      return song;
+    } catch (error) {
+      console.error('Failed to create retry music generation task:', error);
+      
+      // Update the song with the error
+      await supabase
+        .from('songs')
+        .update({
+          error: error instanceof Error ? error.message : 'Failed to retry song generation'
+        })
+        .eq('id', songId);
+        
+      throw error;
+    }
   }
 }

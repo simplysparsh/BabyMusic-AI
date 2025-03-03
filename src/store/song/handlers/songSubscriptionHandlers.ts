@@ -74,9 +74,14 @@ export async function handleSongUpdate(
       newProcessingTaskIds.delete(updatedSong.task_id);
     }
     
+    // Clear retrying state if applicable
+    const newRetrying = new Set(get().retryingSongs);
+    newRetrying.delete(updatedSong.id);
+    
     set({ 
       generatingSongs: newGenerating,
       processingTaskIds: newProcessingTaskIds,
+      retryingSongs: newRetrying,
       error: updatedSong.error || null
     });
   }

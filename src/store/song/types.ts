@@ -12,6 +12,7 @@ export interface SongState {
   songs: Song[];
   isLoading: boolean;
   generatingSongs: Set<string>;
+  retryingSongs: Set<string>;
   processingTaskIds: Set<string>;
   stagedTaskIds: Set<string>;
   isDeleting: boolean;
@@ -20,6 +21,7 @@ export interface SongState {
   // Actions
   setState: (updater: StateUpdater) => void;
   clearGeneratingState: (songId: string) => void;
+  setRetrying: (songId: string, isRetrying: boolean) => void;
   loadSongs: () => Promise<void>;
   createSong: (params: CreateSongParams) => Promise<Song>;
   deleteAllSongs: () => Promise<void>;

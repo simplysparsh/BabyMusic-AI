@@ -283,4 +283,14 @@ export class SongStateService {
       song
     };
   }
+
+  /**
+   * Determines if a song is retryable
+   */
+  static isRetryable(song: Song | undefined): boolean {
+    if (!song) return false;
+    
+    // A song is retryable if it has failed and has the retryable flag set
+    return this.hasFailed(song) && !!song.retryable;
+  }
 }

@@ -10,6 +10,7 @@ import { SongService } from '../../services/songService';
 import type { Song, PresetType } from '../../types';
 import type { SongState, CreateSongParams } from './types';
 import { songAdapter } from '../../utils/songAdapter';
+import { getPresetType } from '../../utils/presetUtils';
 
 // Create a typed setter and getter for the zustand store
 type SetState = (state: Partial<SongState>) => void;
@@ -193,6 +194,40 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       set({ error: 'Failed to delete your songs.' });
     } finally {
       set({ isDeleting: false });
+    }
+  },
+
+  retrySong: async (songId: string) => {
+    const { user } = useAuthStore.getState();
+    
+    if (!user) {
+      console.error('User not authenticated');
+      return;
+    }
+    
+    const userId = user.id;
+    const profile = useAuthStore.getState().profile;
+    const babyName = profile?.babyName || 'Baby';
+    
+    try {
+      set({ error: null });
+      
+      // Mark the song as retrying
+      const songStore = get();
+      songStore.setRetrying(songId, true);
+      
+      // Call the SongService to retry the song generation
+      await SongService.retrySongGeneration(songId, userId, babyName);
+      
+      // The song update will be handled by the subscription handler
+    } catch (error) {
+      console.error('Failed to retry song generation:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to retry song generation';
+      set({ error: errorMessage });
+      
+      // Clear the retrying state
+      const songStore = get();
+      songStore.setRetrying(songId, false);
     }
   }
 });

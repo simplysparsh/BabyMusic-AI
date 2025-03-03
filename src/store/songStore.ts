@@ -20,6 +20,7 @@ export const useSongStore = create<SongState>((set, get) => {
     songs: [],
     isLoading: false,
     generatingSongs: new Set<string>(),
+    retryingSongs: new Set<string>(),
     processingTaskIds: new Set<string>(),
     stagedTaskIds: new Set<string>(),
     isDeleting: false,
@@ -32,6 +33,18 @@ export const useSongStore = create<SongState>((set, get) => {
         const newGenerating = new Set(state.generatingSongs);
         newGenerating.delete(songId);
         return { generatingSongs: newGenerating };
+      });
+    },
+
+    setRetrying: (songId: string, isRetrying: boolean) => {
+      set(state => {
+        const newRetrying = new Set(state.retryingSongs);
+        if (isRetrying) {
+          newRetrying.add(songId);
+        } else {
+          newRetrying.delete(songId);
+        }
+        return { retryingSongs: newRetrying };
       });
     },
 

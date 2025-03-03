@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { Play, Pause, Download, Share2, ChevronDown } from 'lucide-react';
+import { Play, Pause, Download, Share2, ChevronDown, RefreshCw } from 'lucide-react';
 import { SongStateService } from '../services/songStateService';
 import type { Song } from '../types';
 import { useSongAdapter } from '../utils/songAdapter';
+import { useSongStore } from '../store/songStore';
+import { SongService } from '../services/songService';
+import { useAuthStore } from '../store/authStore';
 
 interface SongItemProps {
   song: Song;
@@ -25,6 +28,8 @@ export default function SongItem({
 }: SongItemProps) {
   const [expandedVariations, setExpandedVariations] = useState(false);
   const { getAudioUrl } = useSongAdapter();
+  const { retryingSongs, setRetrying } = useSongStore();
+  const { user, profile } = useAuthStore();
 
   // Get song state information using SongStateService
   const { 
@@ -40,6 +45,12 @@ export default function SongItem({
     null       // Not a preset song
   );
 
+  // Check if the song is currently being retried
+  const isRetrying = retryingSongs.has(song.id);
+
+  // Check if the song is retryable
+  const isRetryable = SongStateService.isRetryable(song);
+
   // Handle toggling variations display
   const toggleExpand = () => {
     if (hasVariations) {
@@ -50,6 +61,20 @@ export default function SongItem({
   // Get the audio URL and check if it's actually available
   const audioUrl = getAudioUrl(song);
   const isPlayable = !!audioUrl; // A song is playable if it has an audio URL
+
+  // Handle retry button click
+  const handleRetry = async () => {
+    if (song.id && !isRetrying && user) {
+      try {
+        setRetrying(song.id, true);
+        const babyName = profile?.babyName || 'Baby';
+        await SongService.retrySongGeneration(song.id, user.id, babyName);
+      } catch (error) {
+        console.error('Failed to retry song:', error);
+        setRetrying(song.id, false);
+      }
+    }
+  };
 
   return (
     <div className="card p-6 group hover:bg-white/[0.09] transition-all duration-500 mb-4
@@ -148,9 +173,22 @@ export default function SongItem({
               hasFailed ? 'bg-red-400 !animate-none' : ''
             }`}></div>
           </div>
-          <p className={`text-xs mt-1 text-white/60 ${hasFailed ? '!text-red-400' : ''}`}>
-            {isGenerating ? 'Generating...' : song.error || 'Processing...'}
-          </p>
+          <div className="flex items-center justify-between mt-1">
+            <p className={`text-xs text-white/60 ${hasFailed ? '!text-red-400' : ''}`}>
+              {isGenerating ? 'Generating...' : song.error || 'Processing...'}
+            </p>
+            {isRetryable && (
+              <button
+                onClick={handleRetry}
+                disabled={isRetrying}
+                className={`text-xs flex items-center text-white bg-primary/20 hover:bg-primary/30 
+                          px-2 py-1 rounded transition-all ${isRetrying ? 'opacity-50' : ''}`}
+              >
+                <RefreshCw className={`w-3 h-3 mr-1 ${isRetrying ? 'animate-spin' : ''}`} />
+                {isRetrying ? 'Retrying...' : 'Retry'}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

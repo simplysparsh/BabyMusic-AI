@@ -128,7 +128,9 @@ serve(async (req) => {
           .from('songs')
           .update({ 
             audio_url: clip.audio_url,
-            error: null
+            error: null,
+            status: 'completed',
+            task_id: null
           })
           .eq('id', songs.id)
           .eq('task_id', task_id.toString());
@@ -138,7 +140,9 @@ serve(async (req) => {
         }
         
         console.log('Successfully processed song and variations:', {
-          songId: songs.id
+          songId: songs.id,
+          taskId: task_id,
+          status: 'completed'
         });
       }
     }
@@ -168,7 +172,9 @@ serve(async (req) => {
         .update({ 
           error: errorMsg,
           retryable,
-          audio_url: null 
+          audio_url: null,
+          status: 'failed',
+          task_id: null
         })
         .eq('id', songs.id)
         .eq('task_id', task_id.toString());

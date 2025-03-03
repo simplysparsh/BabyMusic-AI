@@ -34,56 +34,60 @@ Baby Music AI is an innovative web application that creates personalized lullabi
 - PIAPI.ai API key
 - Anthropic Claude API key
 
-### Environment Setup
+## Environment Setup
 
-#### Development
+This application requires several environment variables to function properly. You can set these up manually or use our setup script.
 
-Create a `.env.local` file in the root directory with your development environment variables:
+### Option 1: Using the Setup Script
 
-```env
+Run the following command to use our interactive setup script:
+
+```bash
+npx tsx scripts/setup-env.ts
+```
+
+The script will guide you through setting up all required environment variables and create a `.env.local` file for you.
+
+### Option 2: Manual Setup
+
+Create a `.env.local` file in the root directory with the following variables:
+
+```
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_PIAPI_KEY=your_piapi_key
-VITE_CLAUDE_API_KEY=your_anthropic_api_key
-VITE_WEBHOOK_URL=your_webhook_url  # Only needed for testing with webhook.site
+VITE_CLAUDE_API_KEY=your_claude_api_key
 VITE_WEBHOOK_SECRET=your_webhook_secret
 ```
 
-Note: `.env.local` is gitignored and should not be committed to version control.
+## Utility Scripts
 
-Note: The `VITE_WEBHOOK_URL` variable is only required when testing with webhook.site. In production, the webhook endpoint is automatically handled by the Supabase Edge Function.
+The project includes several utility scripts to help manage song generation, environment setup, and security checks. For detailed information about these scripts, see the [scripts README](./scripts/README.md).
 
-#### Production
+## Development
 
-For production deployment, configure the following variables in Netlify's dashboard:
+To start the development server:
 
-1. `VITE_SUPABASE_URL` - Your Supabase project URL
-2. `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
-3. `VITE_PIAPI_KEY` - Your PIAPI.ai API key
-4. `VITE_CLAUDE_API_KEY` - Your Anthropic Claude API key
-5. `VITE_WEBHOOK_SECRET` - Your webhook secret key
+```bash
+npm run dev
+```
 
-To set up environment variables in Netlify:
+## Building for Production
 
-1. Go to your site's dashboard in Netlify
-2. Navigate to Site settings > Build & deploy > Environment
-3. Click "Edit variables"
-4. Add each environment variable with its corresponding value
-5. Make sure to mark sensitive variables as "Sensitive" for added security
+To build the application for production:
 
-### Installation
+```bash
+npm run build
+```
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
+## Security Best Practices
 
-## 🏗️ Project Structure.
+- Never hardcode API keys or secrets in your code
+- Always use environment variables for sensitive information
+- Regularly check for hardcoded secrets using the provided script
+- Keep your `.env.local` file secure and never commit it to version control
+
+## 🏗️ Project Structure
 
 ```
 src/

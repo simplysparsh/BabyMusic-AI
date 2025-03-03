@@ -106,7 +106,7 @@ export default function usePresetSongs() {
     }
   }, [songs, createSong, playAudio, user, profile, localGeneratingTypes, songNames]);
 
-  const handlePlay = useCallback((audioUrl: string, type: PresetType) => {
+  const handlePlay = useCallback((audioUrl: string) => {
     playAudio(audioUrl);
   }, [playAudio]);
 

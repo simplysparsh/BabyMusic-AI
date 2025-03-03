@@ -52,13 +52,38 @@ export async function handleSongUpdate(
   }
 
   // Fetch the complete song with variations
-  const { data: updatedSong } = await supabase
+  const { data: updatedSong, error: fetchError } = await supabase
     .from('songs')
     .select('*, variations:song_variations(*)')
     .eq('id', oldSong.id)
     .single();
   
-  if (!updatedSong) {
+  // Handle case where song might have been deleted
+  if (fetchError || !updatedSong) {
+    console.log(`Song ${oldSong.id} not found in database, cleaning up UI state`);
+    
+    // Clean up UI state for this song
+    const newGenerating = new Set(get().generatingSongs);
+    newGenerating.delete(oldSong.id);
+    
+    // Clean up task IDs if applicable
+    const newProcessingTaskIds = new Set(get().processingTaskIds);
+    if (oldSong.task_id) {
+      newProcessingTaskIds.delete(oldSong.task_id);
+    }
+    
+    // Clean up retrying state if applicable
+    const newRetrying = new Set(get().retryingSongs);
+    newRetrying.delete(oldSong.id);
+    
+    // Remove song from songs array
+    set({
+      songs: get().songs.filter(song => song.id !== oldSong.id),
+      generatingSongs: newGenerating,
+      processingTaskIds: newProcessingTaskIds,
+      retryingSongs: newRetrying
+    });
+    
     return;
   }
 

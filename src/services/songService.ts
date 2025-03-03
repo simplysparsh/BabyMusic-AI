@@ -55,6 +55,40 @@ export class SongService {
     
     // Store the timeout ID
     this.timeoutIds.set(songId, timeoutId);
+    
+    // Set up a subscription to clear the timeout if the song gets an audio URL
+    this.setupAudioUrlListener(songId);
+  }
+  
+  /**
+   * Sets up a listener to clear the timeout when a song gets an audio URL
+   * @param songId The ID of the song to listen for
+   */
+  private static setupAudioUrlListener(songId: string): void {
+    const subscription = supabase
+      .channel(`song-audio-url-${songId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'songs',
+          filter: `id=eq.${songId}`
+        },
+        (payload) => {
+          const updatedSong = payload.new as Song;
+          
+          // If the song now has an audio URL, clear the timeout
+          if (updatedSong.audio_url) {
+            console.log(`Song ${songId} received audio URL, clearing timeout`);
+            this.clearSongGenerationTimeout(songId);
+            
+            // Unsubscribe from further updates
+            subscription.unsubscribe();
+          }
+        }
+      )
+      .subscribe();
   }
 
   /**

@@ -26,6 +26,7 @@ export interface SongState {
   createSong: (params: CreateSongParams) => Promise<Song>;
   deleteAllSongs: () => Promise<void>;
   setupSubscription: () => void;
+  resetGeneratingState: () => Promise<void>;
 }
 
 export interface CreateSongParams {

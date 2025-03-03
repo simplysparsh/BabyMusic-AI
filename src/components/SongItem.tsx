@@ -45,6 +45,9 @@ export default function SongItem({
     null       // Not a preset song
   );
 
+  // Additional check for completed status
+  const isCompleted = song.status === 'completed' || !!song.audio_url;
+
   // Check if the song is currently being retried
   const isRetrying = retryingSongs.has(song.id);
 
@@ -67,7 +70,7 @@ export default function SongItem({
     if (song.id && !isRetrying && user) {
       try {
         setRetrying(song.id, true);
-        const babyName = profile?.babyName || 'Baby';
+        const babyName = user.user_metadata?.babyName || 'Baby';
         await SongService.retrySongGeneration(song.id, user.id, babyName);
       } catch (error) {
         console.error('Failed to retry song:', error);
@@ -175,7 +178,7 @@ export default function SongItem({
           </div>
           <div className="flex items-center justify-between mt-1">
             <p className={`text-xs text-white/60 ${hasFailed ? '!text-red-400' : ''}`}>
-              {isGenerating ? 'Generating...' : song.error || 'Processing...'}
+              {isGenerating ? 'Generating...' : (isCompleted ? 'Ready to play' : (song.error || 'Processing...'))}
             </p>
             {isRetryable && (
               <button

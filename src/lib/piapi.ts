@@ -33,6 +33,7 @@ export const createMusicGenerationTask = async ({
   preset_type,
 }: MusicGenerationParams): Promise<string> => {
   const babyName = name || 'little one';
+  
   // Set default voice for non-instrumental songs
   const finalVoice = isInstrumental ? undefined : (voice || 'softFemale');
   
@@ -80,16 +81,13 @@ export const createMusicGenerationTask = async ({
   }
 
   const description = `${baseDescription}`;
-
-  // Use generated lyrics as the prompt for music generation
-  const finalPrompt = generatedLyrics || '';
   
   const truncateToLimit = (text: string, maxLength: number): string => {
     return text.length > maxLength ? text.slice(0, maxLength) : text;
   };
   
-  const truncatedPrompt = truncateToLimit(finalPrompt, PIAPI_LIMITS.PROMPT_MAX_LENGTH);
-  const truncatedTags = truncateToLimit(description, PIAPI_LIMITS.TAGS_MAX_LENGTH);
+  // Use generated lyrics as the prompt for music generation
+  const promptWithLyrics = generatedLyrics || '';
 
   // ##### Calls API to generate music #####
   const requestBody = {
@@ -104,11 +102,10 @@ export const createMusicGenerationTask = async ({
     },
     input: {
       title: title,
-      prompt: truncatedPrompt,
-      tags: truncatedTags,
+      prompt: truncateToLimit(promptWithLyrics, PIAPI_LIMITS.PROMPT_MAX_LENGTH),
+      tags: truncateToLimit(description, PIAPI_LIMITS.TAGS_MAX_LENGTH),
       make_instrumental: isInstrumental || false,
       negative_tags: 'rock, metal, aggressive, harsh',
-     // ...(finalVoice ? { voice: finalVoice } : {}),
     },
   };
 

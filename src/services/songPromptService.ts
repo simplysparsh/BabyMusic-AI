@@ -55,35 +55,47 @@ export class SongPromptService {
     const now = new Date();
     const version = Math.floor((now.getTime() % 1000000) / 100000);
 
-    if (songType === 'preset' && presetType && PRESET_CONFIGS[presetType]) {
-      return `${PRESET_CONFIGS[presetType].title(babyName)} (v${version})`;
-    }
+    // First, consistently check songType
+    switch (songType) {
+      case 'preset':
+        if (!presetType || !PRESET_CONFIGS[presetType]) {
+          throw new Error(`Invalid preset type: ${presetType}`);
+        }
+        return `${PRESET_CONFIGS[presetType].title(babyName)} (v${version})`;
 
-    if (theme) {
-      const themeNames = {
-        pitchDevelopment: "Musical Journey",
-        cognitiveSpeech: "Speaking Adventure",
-        sleepRegulation: "Sleepy Time",
-        socialEngagement: "Friendship Song",
-        indianClassical: "Indian Melody",
-        westernClassical: "Classical Journey"
-      };
-      return `${babyName}'s ${themeNames[theme]} (v${version})`;
-    }
+      case 'theme':
+      case 'theme-with-input':
+        if (!theme) {
+          throw new Error('Theme is required for theme-based songs');
+        }
+        const themeNames = {
+          pitchDevelopment: "Musical Journey",
+          cognitiveSpeech: "Speaking Adventure",
+          sleepRegulation: "Sleepy Time",
+          socialEngagement: "Friendship Song",
+          indianClassical: "Indian Melody",
+          westernClassical: "Classical Journey"
+        };
+        return `${babyName}'s ${themeNames[theme]} (v${version})`;
 
-    if (mood) {
-      const moodNames = {
-        calm: "Peaceful",
-        playful: "Playful",
-        learning: "Learning",
-        energetic: "Energetic"
-      };
-      return isInstrumental 
-        ? `${babyName}'s ${moodNames[mood]} Melody (v${version})`
-        : `${babyName}'s ${moodNames[mood]} Song (v${version})`;
-    }
+      case 'from-scratch':
+        if (!mood) {
+          throw new Error('Mood is required for from-scratch songs');
+        }
+        const moodNames = {
+          calm: "Peaceful",
+          playful: "Playful",
+          learning: "Learning",
+          energetic: "Energetic"
+        };
+        return isInstrumental 
+          ? `${babyName}'s ${moodNames[mood]} Melody (v${version})`
+          : `${babyName}'s ${moodNames[mood]} Song (v${version})`;
 
-    return `${babyName}'s Song (v${version})`;
+      default:
+        // Fallback for any unexpected cases
+        return `${babyName}'s Song (v${version})`;
+    }
   }
 
   static getBaseDescription(params: {
@@ -94,18 +106,29 @@ export class SongPromptService {
   }): string {
     const { theme, mood, songType, presetType } = params;
 
-    if (songType === 'preset' && presetType && PRESET_CONFIGS[presetType]) {
-      return PRESET_CONFIGS[presetType].description;
-    }
+    // First, consistently check songType
+    switch (songType) {
+      case 'preset':
+        if (!presetType || !PRESET_CONFIGS[presetType]) {
+          throw new Error(`Invalid preset type: ${presetType}`);
+        }
+        return PRESET_CONFIGS[presetType].description;
 
-    if (theme && THEME_CONFIGS[theme]) {
-      return THEME_CONFIGS[theme].description;
-    }
+      case 'theme':
+      case 'theme-with-input':
+        if (!theme || !THEME_CONFIGS[theme]) {
+          throw new Error(`Invalid theme: ${theme}`);
+        }
+        return THEME_CONFIGS[theme].description;
 
-    if (mood) {
-      return this.getMoodPrompt(mood);
-    }
+      case 'from-scratch':
+        if (!mood) {
+          throw new Error('Mood is required for from-scratch songs');
+        }
+        return this.getMoodPrompt(mood);
 
-    throw new Error('Invalid song configuration');
+      default:
+        throw new Error('Invalid song configuration');
+    }
   }
 } 

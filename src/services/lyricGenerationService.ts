@@ -99,9 +99,10 @@ export class LyricGenerationService {
       // Ensure clean baby name
       const name = babyName.trim();
 
-      // Base prompt based on context
+      // Build the user prompt
       let lyricsBasePrompt = '';
 
+      // Determine the base song description
       if (songType === 'preset' && presetType && PRESET_CONFIGS[presetType]) {
         lyricsBasePrompt = `Create a ${PRESET_CONFIGS[presetType].description} for ${name}`;
       } else if (songType === 'theme' && theme && THEME_CONFIGS[theme]) {
@@ -133,14 +134,13 @@ export class LyricGenerationService {
       }
 
       // Add gender-specific guidance if provided
-      let genderGuidance = '';
       if (gender) {
         if (gender === 'boy') {
-          genderGuidance = `Use male pronouns (he/him) and boy-appropriate language for ${name}.`;
+          lyricsBasePrompt += ` Use male pronouns (he/him) and boy-appropriate language for ${name}.`;
         } else if (gender === 'girl') {
-          genderGuidance = `Use female pronouns (she/her) and girl-appropriate language for ${name}.`;
+          lyricsBasePrompt += ` Use female pronouns (she/her) and girl-appropriate language for ${name}.`;
         } else {
-          genderGuidance = `Use gender-neutral pronouns (they/them) for ${name}.`;
+          lyricsBasePrompt += ` Use gender-neutral pronouns (they/them) for ${name}.`;
         }
       }
 
@@ -149,35 +149,24 @@ export class LyricGenerationService {
         lyricsBasePrompt += `\n\nIncorporate these ideas: ${userInput}`;
       }
 
-      // Construct the final prompt with all parameters
-      const finalPrompt = `
-        Create lyrics for a children's song with the following requirements:
-        
-        Child's name: ${name}
-        ${ageGroup ? `Age group: ${ageGroup} months (${AGE_MODIFIERS[ageGroup]})` : ''}
-        ${mood ? `Mood: ${mood} (${MOOD_STYLES[mood]})` : ''}
-        ${tempo ? `Tempo: ${tempo} (${TEMPO_MODIFIERS[tempo]})` : ''}
-        ${genderGuidance ? `Gender guidance: ${genderGuidance}` : ''}
-        
-        ${lyricsBasePrompt}
-        
-        ${userInput ? `Incorporate these ideas: "${userInput}"` : ''}
-      `;
+      // Construct the complete prompt with system instructions and user request
+      const completePrompt = `${SYSTEM_PROMPT}\n\n${lyricsBasePrompt}`;
 
       try {
-        if (!finalPrompt?.trim()) {
+        if (!completePrompt?.trim()) {
           throw new Error('Prompt is required for lyrics generation');
         }
 
         console.log('Sending lyrics prompt to Claude:', {
-          promptStart: finalPrompt.slice(0, 150) + '...\n',
-          hasName: finalPrompt.includes('for') && /for\s+\w+/.test(finalPrompt),
-          promptLength: finalPrompt.length
+          systemPrompt: SYSTEM_PROMPT.slice(0, 100) + '...\n',
+          lyricsBasePromptStart: lyricsBasePrompt.slice(0, 150) + '...\n',
+          hasName: lyricsBasePrompt.includes(name),
+          promptLength: completePrompt.length
         });
 
         // Race between the API call and the timeout
         const lyrics = await Promise.race([
-          ClaudeAPI.makeRequest(finalPrompt),
+          ClaudeAPI.makeRequest(completePrompt),
           timeoutPromise
         ]);
         

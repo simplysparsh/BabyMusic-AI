@@ -51,9 +51,10 @@ export class ClaudeAPI {
     };
   }
 
-  static async makeRequest(fullPrompt: string): Promise<ValidatedResponse> {
+  static async makeRequest(userPrompt: string, systemPrompt?: string): Promise<ValidatedResponse> {
     console.log('Making Claude API request:', {
-      promptLength: fullPrompt.length
+      userPromptLength: userPrompt.length,
+      hasSystemPrompt: !!systemPrompt
     });
 
     // Add timeout to the fetch request
@@ -63,24 +64,39 @@ export class ClaudeAPI {
     try {
       const client = this.getClient();
       
+      // Construct the messages array for the API request
+      const messagesParams = [];
+      
+      // Add system prompt if provided
+      if (systemPrompt) {
+        messagesParams.push({
+          role: 'system' as const, // Type assertion to satisfy Anthropic SDK types
+          content: systemPrompt
+        });
+      }
+      
+      // Add user prompt
+      messagesParams.push({
+        role: 'user' as const, // Type assertion to satisfy Anthropic SDK types
+        content: userPrompt
+      });
+      
       const response = await client.messages.create({
         model: 'claude-3-haiku-20240307',
         max_tokens: 1000,
-        messages: [
-          {
-            role: 'user',
-            content: fullPrompt,
-          },
-        ],
+        messages: messagesParams,
         temperature: 0.7
       });
 
       clearTimeout(timeoutId);
 
-      const rawResponse = response.content[0].text;
+      // Extract the text content from the response
+      const rawResponse = typeof response.content[0].text === 'string' 
+        ? response.content[0].text 
+        : '';
       
       // Validate and process the response
-      const validatedResponse = this.validateResponse(rawResponse, fullPrompt);
+      const validatedResponse = this.validateResponse(rawResponse, userPrompt);
       
       // Log validation results
       console.log('Claude response validation:', {

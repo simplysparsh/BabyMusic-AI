@@ -1,18 +1,18 @@
+/// <reference lib="deno.ns" />
+
 // This Supabase Edge Function cleans up abandoned sign-ups
 // It should be scheduled to run every hour
 // Note: The Deno types are resolved when this is deployed to Supabase Edge Functions environment
 
-// @ts-ignore - Deno types are available in Supabase Edge Functions environment
-import { createClient } from '@supabase/supabase-js';
+// Run this command to add the package: deno add npm:@supabase/supabase-js
+import { createClient } from 'npm:@supabase/supabase-js';
 
 // These will be set in the Supabase dashboard
-// @ts-ignore - Deno is available in Supabase Edge Functions environment
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-// @ts-ignore - Deno is available in Supabase Edge Functions environment
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 // @ts-ignore - Deno.serve is available in Supabase Edge Functions environment
-Deno.serve(async (req) => {
+Deno.serve(async (_req) => {
   // Create Supabase client with admin privileges
   const supabase = createClient(supabaseUrl, supabaseKey);
   
@@ -80,11 +80,12 @@ Deno.serve(async (req) => {
       { headers: { 'Content-Type': 'application/json' } }
     );
     
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error cleaning up abandoned sign-ups:', error);
     
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return new Response(
-      JSON.stringify({ status: 'error', message: error.message }),
+      JSON.stringify({ status: 'error', message: errorMessage }),
       { headers: { 'Content-Type': 'application/json' }, status: 500 }
     );
   }

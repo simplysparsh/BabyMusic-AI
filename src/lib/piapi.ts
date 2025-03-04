@@ -33,16 +33,15 @@ export const createMusicGenerationTask = async ({
   preset_type,
 }: MusicGenerationParams): Promise<string> => {
   const babyName = name || 'little one';
-  
-  // Set default voice for non-instrumental songs
-  const finalVoice = isInstrumental ? undefined : (voice || 'softFemale');
-  
+
   // Get base description and title using SongPromptService
   const baseDescription = SongPromptService.getBaseDescription({
     theme,
     mood,
     songType,
-    presetType: preset_type
+    presetType: preset_type,
+    voice,
+    isInstrumental
   });
 
   const title = SongPromptService.generateTitle({
@@ -108,6 +107,23 @@ export const createMusicGenerationTask = async ({
       negative_tags: 'rock, metal, aggressive, harsh',
     },
   };
+
+  // Log the complete input being sent to PIAPI
+  console.log('================ PIAPI REQUEST ================');
+  console.log('Song Type:', songType);
+  console.log('Theme:', theme);
+  console.log('Mood:', mood);
+  console.log('Preset Type:', preset_type);
+  console.log('Voice:', voice);
+  console.log('Is Instrumental:', isInstrumental);
+  console.log('Base Description:', baseDescription);
+  console.log('Title:', title);
+  console.log('Prompt (Lyrics):', promptWithLyrics.substring(0, 200) + (promptWithLyrics.length > 200 ? '...' : ''));
+  console.log('Tags:', requestBody.input.tags);
+  console.log('Make Instrumental:', requestBody.input.make_instrumental);
+  console.log('Full Request Body:', JSON.stringify(requestBody, (key, value) => 
+    key === 'secret' ? '***' : value, 2));
+  console.log('===============================================');
 
   try {
     const response = await fetch(`${API_URL}/task`, {

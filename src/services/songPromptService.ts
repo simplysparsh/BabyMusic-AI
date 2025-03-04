@@ -1,4 +1,4 @@
-import { MusicMood, ThemeType, PresetType } from '../types';
+import { MusicMood, ThemeType, PresetType, VoiceType } from '../types';
 import { PRESET_CONFIGS } from '../data/lyrics/presets';
 import { THEME_CONFIGS } from '../data/lyrics/themes';
 
@@ -103,32 +103,46 @@ export class SongPromptService {
     mood?: MusicMood;
     songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
     presetType?: PresetType;
+    voice?: VoiceType;
+    isInstrumental?: boolean;
   }): string {
-    const { theme, mood, songType, presetType } = params;
+    const { theme, mood, songType, presetType, voice, isInstrumental } = params;
 
     // First, consistently check songType
+    let baseDescription = '';
     switch (songType) {
       case 'preset':
         if (!presetType || !PRESET_CONFIGS[presetType]) {
           throw new Error(`Invalid preset type: ${presetType}`);
         }
-        return PRESET_CONFIGS[presetType].description;
+        baseDescription = PRESET_CONFIGS[presetType].description;
+        break;
 
       case 'theme':
       case 'theme-with-input':
         if (!theme || !THEME_CONFIGS[theme]) {
           throw new Error(`Invalid theme: ${theme}`);
         }
-        return THEME_CONFIGS[theme].description;
+        baseDescription = THEME_CONFIGS[theme].description;
+        break;
 
       case 'from-scratch':
         if (!mood) {
           throw new Error('Mood is required for from-scratch songs');
         }
-        return this.getMoodPrompt(mood);
+        baseDescription = this.getMoodPrompt(mood);
+        break;
 
       default:
         throw new Error('Invalid song configuration');
     }
+
+    // Append voice tag if not instrumental
+    const finalVoice = !isInstrumental ? (voice || 'softFemale') : undefined;
+    if (finalVoice) {
+      baseDescription += ` In the song, use the voice: ${finalVoice}`;
+    }
+
+    return baseDescription;
   }
 } 

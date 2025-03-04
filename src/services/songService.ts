@@ -480,7 +480,7 @@ export class SongService {
     
     try {
       // Create a temporary profile entry with onboarding flag
-      const { data: profile, error: profileError } = await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .insert([{ 
           id: tempId,

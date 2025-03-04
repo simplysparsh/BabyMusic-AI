@@ -93,6 +93,9 @@ export default function SongList() {
     song.song_type !== 'preset' || !song.preset_type
   );
 
+  // Check if all songs have errors
+  const allSongsHaveErrors = regularSongs.length > 0 && regularSongs.every(song => !!song.error);
+
   return (
     <div>
       <div className="flex justify-end mb-6">
@@ -135,6 +138,16 @@ export default function SongList() {
           </div>
         )}
       </div>
+      
+      {allSongsHaveErrors && (
+        <div className="mb-6 p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+          <p className="text-yellow-300 text-sm">
+            All your songs encountered generation issues. This could be due to high server load or temporary service disruptions. 
+            Please try retrying your songs or creating new ones.
+          </p>
+        </div>
+      )}
+      
       <div className="space-y-4">
         {regularSongs.map((song) => (
           <SongItem

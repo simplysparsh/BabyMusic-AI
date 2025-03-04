@@ -133,6 +133,15 @@ export class SongStateService {
       if (song.error.includes('Tags contained artist name:')) {
         return 'The song failed to generate because the tags contained an artist name. Please provide an alternative spelling for the artist name.';
       }
+      
+      // Handle timeout errors with a simpler message
+      if (song.error.includes('timed out')) {
+        // For preset songs, just show "Retry"
+        if (this.isPresetSong(song)) {
+          return 'Retry';
+        }
+        return 'Generation timed out. Please retry.';
+      }
     }
     
     // Default failure message
@@ -191,6 +200,7 @@ export class SongStateService {
     }
     
     if (isGenerating) return 'Generating...';
+    
     if (song.error) return this.getFailureMessage(song) || 'Failed';
     if (song.audio_url) return 'Play';
     

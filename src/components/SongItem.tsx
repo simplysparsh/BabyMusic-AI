@@ -29,14 +29,15 @@ export default function SongItem({
   const [expandedVariations, setExpandedVariations] = useState(false);
   const { getAudioUrl } = useSongAdapter();
   const { retryingSongs, setRetrying } = useSongStore();
-  const { user, profile } = useAuthStore();
+  const { user } = useAuthStore();
 
   // Get song state information using SongStateService
   const { 
     isGenerating, 
     hasFailed,
     hasVariations,
-    variationCount: _variationCount
+    variationCount: _variationCount,
+    canRetry
   } = SongStateService.getSongStateMetadata(
     song,
     generatingSongs,
@@ -52,7 +53,7 @@ export default function SongItem({
   const isRetrying = retryingSongs.has(song.id);
 
   // Check if the song is retryable
-  const isRetryable = SongStateService.isRetryable(song);
+  const isRetryable = canRetry;
 
   // Handle toggling variations display
   const toggleExpand = () => {
@@ -184,8 +185,11 @@ export default function SongItem({
               <button
                 onClick={handleRetry}
                 disabled={isRetrying}
-                className={`text-xs flex items-center text-white bg-primary/20 hover:bg-primary/30 
-                          px-2 py-1 rounded transition-all ${isRetrying ? 'opacity-50' : ''}`}
+                className={`text-xs flex items-center ${
+                  song.error && song.error.includes('timed out') 
+                    ? 'text-white bg-primary hover:bg-primary/80' 
+                    : 'text-white bg-primary/20 hover:bg-primary/30'
+                } px-2 py-1 rounded transition-all ${isRetrying ? 'opacity-50' : ''}`}
               >
                 <RefreshCw className={`w-3 h-3 mr-1 ${isRetrying ? 'animate-spin' : ''}`} />
                 {isRetrying ? 'Retrying...' : 'Retry'}

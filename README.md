@@ -167,6 +167,37 @@ The application uses Zustand for state management with the following stores:
 - Secure authentication
 - File storage for audio files
 
+The project is linked to a Supabase instance with the following details:
+
+- Project ID: `ustflrmqamppbghixjyl`
+- Edge Functions: Deployed and operational
+  - `cleanup-abandoned-signups`: Runs to clean up profiles that have been in the onboarding state for more than 24 hours
+
+### Setting Up Supabase Project
+
+```bash
+# Link to the Supabase project
+supabase link --project-ref ustflrmqamppbghixjyl
+
+# Deploy an edge function
+supabase functions deploy cleanup-abandoned-signups --no-verify-jwt
+
+# Push database migrations
+supabase db push --include-all
+
+# Set environment variables from .env.local
+supabase secrets set --env-file .env.local --project-ref ustflrmqamppbghixjyl
+```
+
+### Scheduling the Cleanup Function
+
+For the cleanup function to run automatically:
+
+1. Go to the [Supabase Dashboard](https://supabase.com/dashboard/project/ustflrmqamppbghixjyl)
+2. Navigate to "Edge Functions" in the sidebar
+3. Find the "cleanup-abandoned-signups" function
+4. Click on "Schedule" and set it to run every hour
+
 ## 📱 Progressive Features
 
 - Offline playback support

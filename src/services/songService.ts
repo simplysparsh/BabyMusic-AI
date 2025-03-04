@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { createMusicGenerationTask } from '../lib/piapi';
 import { PRESET_CONFIGS } from '../data/lyrics';
 import { getPresetType } from '../utils/presetUtils';
+import { DEFAULT_LANGUAGE } from '../types';
 import type {
   Song,
   MusicMood,
@@ -462,6 +463,159 @@ export class SongService {
         console.error('Failed to update song with retry error:', updateError);
       }
       
+      throw error;
+    }
+  }
+
+  /**
+   * Generates preset songs for a user during the sign-up process
+   * @param tempId A temporary ID to associate songs with this specific sign-up attempt
+   * @param babyName The baby's name to use in song generation
+   * @returns A temporary ID that can be used to link the songs to a user when sign-up completes
+   */
+  static async generatePresetSongsForNewUser(babyName: string): Promise<string> {
+    console.log('Starting early preset song generation for new user:', { babyName });
+    // Generate a temporary ID to associate with this sign-up session
+    const tempId = crypto.randomUUID();
+    
+    try {
+      // Create a temporary profile entry with onboarding flag
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .insert([{ 
+          id: tempId,
+          baby_name: babyName,
+          is_onboarding: true, 
+          preferred_language: DEFAULT_LANGUAGE,
+          preset_songs_generated: false,
+          created_at: new Date().toISOString()
+        }])
+        .select('*')
+        .single();
+
+      if (profileError) {
+        console.error('Failed to create temporary profile:', profileError);
+        throw profileError;
+      }
+      
+      // Start generating preset songs in the background
+      // We don't await these promises to allow the signup process to continue
+      Object.entries(PRESET_CONFIGS).forEach(([type, config]) => {
+        this.createSong({
+          userId: tempId,
+          name: config.title(babyName),
+          babyName,
+          songParams: {
+            mood: config.mood,
+            songType: 'preset',
+            preset_type: type as PresetType
+          }
+        }).catch(error => {
+          console.error(`Failed to generate preset song ${type}:`, error);
+          // Don't throw - we want to continue with sign-up even if song generation fails
+        });
+      });
+      
+      return tempId;
+    } catch (error) {
+      console.error('Failed to start preset song generation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Transfers songs from a temporary profile to a permanent user profile
+   * @param tempId The temporary ID used during song generation
+   * @param userId The permanent user ID to transfer songs to
+   */
+  static async transferSongsToUser(tempId: string, userId: string): Promise<void> {
+    console.log('Transferring songs to permanent user:', { tempId, userId });
+    
+    try {
+      // Update songs to link them to the permanent user ID
+      const { error: updateError } = await supabase
+        .from('songs')
+        .update({ user_id: userId })
+        .eq('user_id', tempId);
+
+      if (updateError) {
+        console.error('Failed to transfer songs to user:', updateError);
+        throw updateError;
+      }
+      
+      // Delete the temporary profile
+      const { error: deleteError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', tempId);
+        
+      if (deleteError) {
+        console.error('Failed to delete temporary profile:', deleteError);
+        // Don't throw - this is a cleanup operation and shouldn't block the flow
+      }
+      
+    } catch (error) {
+      console.error('Error in transferSongsToUser:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Cleanup function to remove abandoned sign-up data
+   * This should be called periodically to clean up orphaned data
+   */
+  static async cleanupAbandonedSignups(): Promise<void> {
+    console.log('Cleaning up abandoned sign-ups');
+    
+    try {
+      // Get profiles that are in onboarding state and older than 1 hour
+      const oneHourAgo = new Date();
+      oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+      
+      const { data: abandonedProfiles, error: queryError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('is_onboarding', true)
+        .lt('created_at', oneHourAgo.toISOString());
+        
+      if (queryError) {
+        console.error('Failed to query abandoned profiles:', queryError);
+        throw queryError;
+      }
+      
+      if (!abandonedProfiles || abandonedProfiles.length === 0) {
+        console.log('No abandoned sign-ups found');
+        return;
+      }
+      
+      console.log(`Found ${abandonedProfiles.length} abandoned sign-ups to clean up`);
+      
+      // Delete songs for abandoned profiles
+      for (const profile of abandonedProfiles) {
+        const { error: songsDeleteError } = await supabase
+          .from('songs')
+          .delete()
+          .eq('user_id', profile.id);
+          
+        if (songsDeleteError) {
+          console.error(`Failed to delete songs for abandoned profile ${profile.id}:`, songsDeleteError);
+          // Continue with other profiles even if one fails
+        }
+        
+        const { error: profileDeleteError } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', profile.id);
+          
+        if (profileDeleteError) {
+          console.error(`Failed to delete abandoned profile ${profile.id}:`, profileDeleteError);
+          // Continue with other profiles even if one fails
+        }
+      }
+      
+      console.log('Completed cleanup of abandoned sign-ups');
+    } catch (error) {
+      console.error('Error in cleanupAbandonedSignups:', error);
       throw error;
     }
   }

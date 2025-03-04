@@ -28,7 +28,7 @@ interface AuthState {
   }) => Promise<UserProfile>; // Change return type to match implementation
   
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, babyName: string) => Promise<void>;
+  signUp: (email: string, password: string, babyName: string, tempProfileId?: string) => Promise<void>;
   signOut: () => Promise<void>;
   loadUser: () => Promise<void | (() => void)>; // Fix return type to match implementation
 }
@@ -199,7 +199,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ initialized: true });
     }
   },
-  signUp: async (email: string, password: string, babyName: string) => {
+  signUp: async (email: string, password: string, babyName: string, tempProfileId?: string) => {
     set({ initialized: false });
     
     if (!email.trim() || !password.trim() || !babyName.trim()) {
@@ -235,12 +235,43 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       .from('profiles')
       .update({ 
         baby_name: babyName,
-        preset_songs_generated: false,
-        preferred_language: DEFAULT_LANGUAGE
+        preset_songs_generated: true,  // Set to true since we're already generating songs
+        preferred_language: DEFAULT_LANGUAGE,
+        is_onboarding: false  // Mark onboarding as complete
       })
       .eq('id', data.user.id);
 
     if (updateError) throw updateError;
+
+    // If we have a tempProfileId, transfer the songs from the temporary profile to the permanent one
+    if (tempProfileId) {
+      try {
+        await SongService.transferSongsToUser(tempProfileId, data.user.id);
+      } catch (transferError) {
+        console.error('Failed to transfer songs:', transferError);
+        // Don't throw here - this is a non-critical operation
+        // If it fails, the cleanup job will eventually remove the temporary data
+        
+        // Generate preset songs as a fallback
+        SongService.regeneratePresetSongs(data.user.id, babyName.trim())
+          .catch(err => console.error('Failed to regenerate preset songs as fallback:', err));
+      }
+    } else {
+      // If no temp profile (something went wrong earlier), generate songs now
+      // Generate initial preset songs
+      const { createSong } = useSongStore.getState();
+      const presetPromises = Object.entries(PRESET_CONFIGS).map(([type, config]) => {
+        return createSong({
+          name: config.title(babyName.trim()),
+          mood: config.mood,
+          songType: 'preset',
+          preset_type: type as PresetType,
+          lyrics: config.lyrics(babyName.trim())
+        });
+      });
+
+      await Promise.all(presetPromises);
+    }
 
     set({ 
       initialized: true,
@@ -254,20 +285,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         preferredLanguage: DEFAULT_LANGUAGE
       }
     });
-
-    // Generate initial preset songs
-    const { createSong } = useSongStore.getState();
-    const presetPromises = Object.entries(PRESET_CONFIGS).map(([type, config]) => {
-      return createSong({
-        name: config.title(babyName.trim()),
-        mood: config.mood,
-        lyrics: config.lyrics(babyName.trim()),
-        songType: 'preset',
-        preset_type: type as PresetType
-      });
-    });
-
-    await Promise.all(presetPromises);
   },
   signOut: async () => {
     set({ initialized: false });

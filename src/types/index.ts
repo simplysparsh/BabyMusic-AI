@@ -22,6 +22,7 @@ export interface MusicGenerationParams {
   mood?: MusicMood;
   lyrics?: string;
   name?: string;
+  gender?: string;
   ageGroup?: AgeGroup;
   tempo?: Tempo;
   isInstrumental?: boolean;
@@ -73,6 +74,7 @@ export interface UserProfile {
   birthMonth?: number;
   birthYear?: number;
   ageGroup?: AgeGroup;
+  gender?: string;
 }
 
 // Define BabyProfile type that contains the baby-related subset of profile data
@@ -83,4 +85,5 @@ export type BabyProfile = {
   birthYear?: number;
   ageGroup?: AgeGroup;
   preferredLanguage?: Language;
+  gender?: string;
 };

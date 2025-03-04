@@ -60,6 +60,7 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
   const [birthMonth, setBirthMonth] = useState<number>(CURRENT_MONTH);
   const [birthYear, setBirthYear] = useState<number>(CURRENT_YEAR);
   const [ageGroup, setAgeGroup] = useState<AgeGroup>('0-6');
+  const [gender, setGender] = useState<string>('');
   const { updateProfile } = useAuthStore();
 
   useEffect(() => {
@@ -67,6 +68,7 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
       setStep(1);
       setIsUpdating(false);
       setBabyName(initialBabyName);
+      setGender('');
     }
   }, [isOpen, initialBabyName]);
 
@@ -85,7 +87,8 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
         babyName,
         birthMonth,
         birthYear,
-        ageGroup: getAgeGroup(birthMonth, birthYear)
+        ageGroup: getAgeGroup(birthMonth, birthYear),
+        gender: gender || undefined
       });
       
       // Call onComplete with profile data
@@ -93,7 +96,8 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
         babyName,
         birthMonth,
         birthYear,
-        ageGroup: getAgeGroup(birthMonth, birthYear)
+        ageGroup: getAgeGroup(birthMonth, birthYear),
+        gender: gender || undefined
       });
     } catch (error) {
       console.error('Failed to update profile:', error);
@@ -160,6 +164,26 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
                 <p className="text-xs text-white/40 mt-2 flex items-center gap-2">
                   <Calendar className="w-3 h-3" />
                   We use age to customize songs for your child's developmental stage
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white/90 mb-2">
+                  What is {babyName}'s gender?
+                </label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors"
+                >
+                  <option value="">Select gender (optional)</option>
+                  <option value="boy">Boy</option>
+                  <option value="girl">Girl</option>
+                  <option value="other">Other</option>
+                </select>
+                <p className="text-xs text-white/40 mt-2 flex items-center gap-2">
+                  <Baby className="w-3 h-3" />
+                  We use this to personalize songs with gender-appropriate lyrics
                 </p>
               </div>
 

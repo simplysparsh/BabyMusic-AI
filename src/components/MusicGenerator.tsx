@@ -111,6 +111,12 @@ export default function MusicGenerator() {
         songType
       };
 
+      // Get the user's profile
+      const profile = useAuthStore.getState().profile;
+      if (!profile) {
+        throw new Error('User profile not found');
+      }
+
       if (songType === 'theme' || songType === 'theme-with-input') {
         console.log('Creating themed song:', {
           theme,
@@ -118,14 +124,11 @@ export default function MusicGenerator() {
           userInput: userInput.trim()
         });
 
-        // Safely access user metadata
-        const babyName = user?.user_metadata?.babyName || 'Baby';
-
         await createSong({
           ...baseParams,
           name: SongPromptService.generateTitle({
             theme,
-            babyName,
+            babyName: profile.babyName,
             isInstrumental: voiceSettings.isInstrumental,
             songType
           }),

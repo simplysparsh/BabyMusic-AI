@@ -32,6 +32,7 @@ interface LyricGenerationParams {
   userInput?: string;
   songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
   presetType?: PresetType;
+  gender?: string;
 }
 
 // Age-specific modifiers for prompts
@@ -60,7 +61,8 @@ export class LyricGenerationService {
   static async generateLyrics(params: LyricGenerationParams): Promise<string> {
     console.log('LyricGenerationService.generateLyrics called with:', {
       ...params,
-      userInput: params.userInput ? 'provided' : 'not provided'
+      userInput: params.userInput ? 'provided' : 'not provided',
+      gender: params.gender || 'not provided'
     });
 
     // Validate required parameters
@@ -91,6 +93,7 @@ export class LyricGenerationService {
         userInput,
         songType,
         presetType,
+        gender
       } = params;
 
       // Ensure clean baby name
@@ -129,27 +132,52 @@ export class LyricGenerationService {
         lyricsBasePrompt += ' ' + TEMPO_MODIFIERS[tempo];
       }
 
+      // Add gender-specific guidance if provided
+      let genderGuidance = '';
+      if (gender) {
+        if (gender === 'boy') {
+          genderGuidance = `Use male pronouns (he/him) and boy-appropriate language for ${name}.`;
+        } else if (gender === 'girl') {
+          genderGuidance = `Use female pronouns (she/her) and girl-appropriate language for ${name}.`;
+        } else {
+          genderGuidance = `Use gender-neutral pronouns (they/them) for ${name}.`;
+        }
+      }
+
       // Add user's custom input if provided
       if (userInput) {
         lyricsBasePrompt += `\n\nIncorporate these ideas: ${userInput}`;
       }
 
+      // Construct the final prompt with all parameters
+      const finalPrompt = `
+        Create lyrics for a children's song with the following requirements:
+        
+        Child's name: ${name}
+        ${ageGroup ? `Age group: ${ageGroup} months (${AGE_MODIFIERS[ageGroup]})` : ''}
+        ${mood ? `Mood: ${mood} (${MOOD_STYLES[mood]})` : ''}
+        ${tempo ? `Tempo: ${tempo} (${TEMPO_MODIFIERS[tempo]})` : ''}
+        ${genderGuidance ? `Gender guidance: ${genderGuidance}` : ''}
+        
+        ${lyricsBasePrompt}
+        
+        ${userInput ? `Incorporate these ideas: "${userInput}"` : ''}
+      `;
+
       try {
-        if (!lyricsBasePrompt?.trim()) {
+        if (!finalPrompt?.trim()) {
           throw new Error('Prompt is required for lyrics generation');
         }
 
-        const fullPrompt = `${SYSTEM_PROMPT}\n\n${lyricsBasePrompt}`;
-
         console.log('Sending lyrics prompt to Claude:', {
-          promptStart: lyricsBasePrompt.slice(0, 150) + '...\n',
-          hasName: lyricsBasePrompt.includes('for') && /for\s+\w+/.test(lyricsBasePrompt),
-          promptLength: fullPrompt.length
+          promptStart: finalPrompt.slice(0, 150) + '...\n',
+          hasName: finalPrompt.includes('for') && /for\s+\w+/.test(finalPrompt),
+          promptLength: finalPrompt.length
         });
 
         // Race between the API call and the timeout
         const lyrics = await Promise.race([
-          ClaudeAPI.makeRequest(fullPrompt),
+          ClaudeAPI.makeRequest(finalPrompt),
           timeoutPromise
         ]);
         
@@ -207,36 +235,77 @@ export class LyricGenerationService {
     mood?: MusicMood;
     presetType?: PresetType;
     songType?: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
+    gender?: string;
   }): Promise<string> {
-    const { babyName, theme, mood, presetType, songType } = params;
+    const { babyName, theme, mood, presetType, songType, gender } = params;
     const name = babyName.trim();
-
+    
     try {
+      console.log('Getting fallback lyrics for:', {
+        name,
+        theme,
+        mood,
+        presetType,
+        songType,
+        gender
+      });
+      
+      // Add gender-specific pronouns
+      let pronoun = 'they';
+      let possessivePronoun = 'their';
+      
+      if (gender === 'boy') {
+        pronoun = 'he';
+        possessivePronoun = 'his';
+      } else if (gender === 'girl') {
+        pronoun = 'she';
+        possessivePronoun = 'her';
+      }
+      
+      // For preset songs, use the preset config
       if (songType === 'preset' && presetType && PRESET_CONFIGS[presetType]) {
-        console.log('Using preset fallback lyrics');
-        return PRESET_CONFIGS[presetType].lyrics(name);
+        console.log('Using preset fallback lyrics for:', presetType);
+        const lyrics = PRESET_CONFIGS[presetType].lyrics(name);
+        return lyrics
+          .replace(/\{pronoun\}/g, pronoun)
+          .replace(/\{possessive\}/g, possessivePronoun);
       }
-
-      if (theme && THEME_CONFIGS[theme]) {
-        console.log('Using theme fallback lyrics');
-        return THEME_CONFIGS[theme].lyrics(name);
+      
+      // For theme songs, use the theme config
+      if ((songType === 'theme' || songType === 'theme-with-input') && theme && THEME_CONFIGS[theme]) {
+        console.log('Using theme fallback lyrics for:', theme);
+        const lyrics = THEME_CONFIGS[theme].lyrics(name);
+        return lyrics
+          .replace(/\{pronoun\}/g, pronoun)
+          .replace(/\{possessive\}/g, possessivePronoun);
       }
-
+      
       console.log('Using custom fallback lyrics');
       // For custom songs, use a mood-based template
-      return songType === 'from-scratch' && mood
+      let fallbackLyrics = songType === 'from-scratch' && mood
         ? `Let's make ${mood} music together,\n` +
           `${name} leads the way.\n` +
-          `With ${mood} melodies flowing,\n` +
-          `Creating magic today!`
-        : `Let's make music together,\n` +
-          `${name} leads the way.\n` +
+          `With ${pronoun} dancing and singing,\n` +
+          `${possessivePronoun} smile shines so bright.\n` +
           `With melodies flowing,\n` +
-          `Creating magic today!`;
+          `Creating magic today!`
+        : `Twinkle twinkle little star,\n` +
+          `${name} wonders who you are.\n` +
+          `Up above the world so high,\n` +
+          `Like a diamond in the sky.\n` +
+          `Twinkle twinkle little star,\n` +
+          `${name} knows just how special you are.`;
+      
+      return fallbackLyrics;
     } catch (error) {
       console.error('Error generating fallback lyrics:', error);
       // Ultimate fallback if everything else fails
-      return `${name}'s special song,\nFilled with joy all day long!`;
+      return `Twinkle twinkle little star,\n` +
+        `${name} wonders who you are.\n` +
+        `Up above the world so high,\n` +
+        `Like a diamond in the sky.\n` +
+        `Twinkle twinkle little star,\n` +
+        `${name} knows just how special you are.`;
     }
   }
 }

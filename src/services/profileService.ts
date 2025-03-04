@@ -9,6 +9,7 @@ interface ProfileUpdateParams {
   birthMonth?: number;
   birthYear?: number;
   ageGroup?: AgeGroup;
+  gender?: string;
 }
 
 export class ProfileService {
@@ -18,7 +19,8 @@ export class ProfileService {
     preferredLanguage,
     birthMonth,
     birthYear,
-    ageGroup
+    ageGroup,
+    gender
   }: ProfileUpdateParams): Promise<UserProfile> {
     const trimmedBabyName = babyName.trim();
     
@@ -28,7 +30,8 @@ export class ProfileService {
       preferredLanguage,
       birthMonth,
       birthYear,
-      ageGroup
+      ageGroup,
+      gender
     });
     
     // Basic validation
@@ -44,7 +47,8 @@ export class ProfileService {
           ...(preferredLanguage && { preferred_language: preferredLanguage }),
           ...(birthMonth && { birth_month: birthMonth }),
           ...(birthYear && { birth_year: birthYear }),
-          ...(ageGroup && { age_group: ageGroup })
+          ...(ageGroup && { age_group: ageGroup }),
+          ...(gender && { gender })
         }
       )
       .eq('id', userId)
@@ -67,7 +71,8 @@ export class ProfileService {
       dailyGenerations: profile.daily_generations,
       lastGenerationDate: profile.last_generation_date,
       babyName: profile.baby_name,
-      preferredLanguage: profile.preferred_language || DEFAULT_LANGUAGE
+      preferredLanguage: profile.preferred_language || DEFAULT_LANGUAGE,
+      gender: profile.gender
     };
 
     return profileResponse;

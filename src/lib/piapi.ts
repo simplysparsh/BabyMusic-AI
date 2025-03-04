@@ -25,6 +25,7 @@ export const createMusicGenerationTask = async ({
   mood,
   userInput,
   name,
+  gender,
   ageGroup,
   tempo,
   isInstrumental,
@@ -65,7 +66,8 @@ export const createMusicGenerationTask = async ({
         ageGroup,
         userInput,
         songType,
-        presetType: preset_type
+        presetType: preset_type,
+        gender
       });
     } catch (error) {
       console.error('Lyrics generation failed, using fallback:', error);
@@ -74,7 +76,8 @@ export const createMusicGenerationTask = async ({
         theme,
         mood,
         presetType: preset_type,
-        songType
+        songType,
+        gender
       });
     }
   }
@@ -115,6 +118,7 @@ export const createMusicGenerationTask = async ({
   console.log('Mood:', mood);
   console.log('Preset Type:', preset_type);
   console.log('Voice:', voice);
+  console.log('Gender:', gender);
   console.log('Is Instrumental:', isInstrumental);
   console.log('Base Description:', baseDescription);
   console.log('Title:', title);

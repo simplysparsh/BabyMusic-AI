@@ -44,4 +44,5 @@ export interface CreateSongParams {
   songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
   preset_type?: PresetType; // Type of preset song when songType is 'preset'
   lyrics?: string; // The lyrics to use for the song
+  gender?: string; // Baby's gender for personalized lyrics
 } 

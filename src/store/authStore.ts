@@ -24,6 +24,7 @@ interface AuthState {
     birthMonth?: number;
     birthYear?: number;
     ageGroup?: AgeGroup;
+    gender?: string;
   }) => Promise<UserProfile>; // Change return type to match implementation
   
   signIn: (email: string, password: string) => Promise<void>;
@@ -123,7 +124,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   
-  updateProfile: async ({ babyName: newBabyName, preferredLanguage, birthMonth, birthYear, ageGroup }) => {
+  updateProfile: async ({ babyName: newBabyName, preferredLanguage, birthMonth, birthYear, ageGroup, gender }) => {
     const user = get().user;
     if (!user) throw new Error('Not authenticated');
     const errorStore = useErrorStore.getState();
@@ -147,7 +148,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         preferredLanguage,
         birthMonth,
         birthYear,
-        ageGroup
+        ageGroup,
+        gender
       });
 
       // Update profile state immediately

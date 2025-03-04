@@ -11,13 +11,16 @@ interface ProfileModalProps {
 export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { profile, updateProfile } = useAuthStore();
   const { error: globalError, clearError } = useErrorStore();
-  const [formState, setFormState] = useState({ babyName: '' });
+  const [formState, setFormState] = useState({ babyName: '', gender: '' });
   const [error, setError] = useState<{ global?: string; babyName?: string }>({});
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     if (isOpen && profile) {
-      setFormState({ babyName: profile.babyName ?? '' });
+      setFormState({ 
+        babyName: profile.babyName ?? '',
+        gender: profile.gender ?? '' 
+      });
       setError({});
       setShowSuccess(false);
       clearError();
@@ -49,7 +52,10 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     }
     
     try {
-      await updateProfile({ babyName: trimmedName });
+      await updateProfile({ 
+        babyName: trimmedName,
+        gender: formState.gender || undefined
+      });
       setShowSuccess(true);
     } catch (error) {
       // Only show profile-specific errors
@@ -101,10 +107,27 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               required
             />
             {error.babyName && <p className="text-red-400 text-sm mt-1">{error.babyName}</p>}
-            {(error.global || globalError) && !error.babyName && (
-              <p className="text-red-400 text-sm mt-1">{error.global || globalError}</p>
-            )}
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white/90 mb-2">
+              Baby's Gender
+            </label>
+            <select
+              value={formState.gender}
+              onChange={(e) => setFormState((prev) => ({ ...prev, gender: e.target.value }))}
+              className="input w-full"
+            >
+              <option value="">Select gender (optional)</option>
+              <option value="boy">Boy</option>
+              <option value="girl">Girl</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          {(error.global || globalError) && (
+            <p className="text-red-400 text-sm mt-1">{error.global || globalError}</p>
+          )}
 
           <div className="flex justify-end gap-3">
             <button type="button" onClick={onClose} className="px-6 py-2 rounded-xl bg-white/10 text-white/80 hover:bg-white/20 transition-all duration-300">

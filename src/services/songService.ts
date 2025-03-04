@@ -278,19 +278,21 @@ export class SongService {
       hasUserInput: !!userInput
     });
 
-    // Get the user's profile to access ageGroup
+    // Get the user's profile to access ageGroup and gender
     const { data: profile } = await supabase
       .from('profiles')
-      .select('age_group')
+      .select('age_group, gender')
       .eq('id', userId)
       .single();
     
     const ageGroup = profile?.age_group as AgeGroup | undefined;
+    const gender = profile?.gender as string | undefined;
     
     console.log('Retrieved profile data for music generation:', {
       userId,
       hasAgeGroup: !!ageGroup,
-      ageGroup
+      ageGroup,
+      gender
     });
 
     // Start generation task
@@ -301,7 +303,8 @@ export class SongService {
         mood: determinedMood,
         userInput,
         name: babyName,
-        ageGroup, // Use the retrieved ageGroup from profile
+        gender,
+        ageGroup,
         tempo,
         isInstrumental,
         songType,
@@ -397,14 +400,15 @@ export class SongService {
       throw updateError;
     }
     
-    // Get the user's profile to access ageGroup
+    // Get the user's profile to access ageGroup and gender
     const { data: profile } = await supabase
       .from('profiles')
-      .select('age_group')
+      .select('age_group, gender')
       .eq('id', userId)
       .single();
     
     const ageGroup = profile?.age_group as AgeGroup | undefined;
+    const gender = profile?.gender as string | undefined;
     
     // Create a new generation task
     try {
@@ -413,6 +417,7 @@ export class SongService {
         mood: song.mood,
         userInput: song.user_lyric_input,
         name: babyName,
+        gender,
         ageGroup,
         tempo: song.tempo,
         isInstrumental: song.is_instrumental,

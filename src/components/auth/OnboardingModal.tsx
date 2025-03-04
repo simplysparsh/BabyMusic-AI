@@ -61,6 +61,7 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
   const [birthYear, setBirthYear] = useState<number>(CURRENT_YEAR);
   const [ageGroup, setAgeGroup] = useState<AgeGroup>('0-6');
   const [gender, setGender] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
   const { updateProfile } = useAuthStore();
 
   useEffect(() => {
@@ -69,6 +70,7 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
       setIsUpdating(false);
       setBabyName(initialBabyName);
       setGender('');
+      setError(null);
     }
   }, [isOpen, initialBabyName]);
 
@@ -78,9 +80,24 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
 
   if (!isOpen) return null;
 
+  const handleNext = () => {
+    if (!gender) {
+      setError("Please select your baby's gender");
+      return;
+    }
+    setError(null);
+    setStep(2);
+  };
+
   const handleComplete = async () => {
+    if (!gender) {
+      setError("Please select your baby's gender");
+      return;
+    }
+    
     try {
       setIsUpdating(true);
+      setError(null);
       
       // Update profile with birth data
       await updateProfile({
@@ -88,7 +105,7 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
         birthMonth,
         birthYear,
         ageGroup: getAgeGroup(birthMonth, birthYear),
-        gender: gender || undefined
+        gender
       });
       
       // Call onComplete with profile data
@@ -97,10 +114,11 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
         birthMonth,
         birthYear,
         ageGroup: getAgeGroup(birthMonth, birthYear),
-        gender: gender || undefined
+        gender
       });
     } catch (error) {
       console.error('Failed to update profile:', error);
+      setError('Failed to update profile. Please try again.');
     } finally {
       setIsUpdating(false);
     }
@@ -170,13 +188,15 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
               <div>
                 <label className="block text-sm font-medium text-white/90 mb-2">
                   What is {babyName}'s gender?
+                  <span className="text-primary ml-1" title="Required">*</span>
                 </label>
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
-                  className="input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors"
+                  className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${error ? 'border-red-400' : ''}`}
+                  required
                 >
-                  <option value="">Select gender (optional)</option>
+                  <option value="">Select gender</option>
                   <option value="boy">Boy</option>
                   <option value="girl">Girl</option>
                   <option value="other">Other</option>
@@ -185,10 +205,11 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
                   <Baby className="w-3 h-3" />
                   We use this to personalize songs with gender-appropriate lyrics
                 </p>
+                {error && <p className="text-red-400 text-sm mt-1">{error}</p>}
               </div>
 
               <button
-                onClick={() => setStep(2)}
+                onClick={handleNext}
                 className="w-full bg-gradient-to-r from-primary to-secondary text-black font-medium
                          py-3 rounded-xl hover:opacity-90 transition-all duration-300
                          shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40

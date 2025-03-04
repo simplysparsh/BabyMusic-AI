@@ -9,7 +9,7 @@ interface ProfileUpdateParams {
   birthMonth?: number;
   birthYear?: number;
   ageGroup?: AgeGroup;
-  gender?: string;
+  gender: string;
 }
 
 export class ProfileService {
@@ -37,6 +37,7 @@ export class ProfileService {
     // Basic validation
     if (!userId) throw new Error('User ID is required');
     if (!trimmedBabyName) throw new Error('Baby name is required');
+    if (!gender) throw new Error('Gender is required');
 
     // First update the profile in the database
     const { data: profile, error: updateError } = await supabase
@@ -48,7 +49,7 @@ export class ProfileService {
           ...(birthMonth && { birth_month: birthMonth }),
           ...(birthYear && { birth_year: birthYear }),
           ...(ageGroup && { age_group: ageGroup }),
-          ...(gender && { gender })
+          gender
         }
       )
       .eq('id', userId)

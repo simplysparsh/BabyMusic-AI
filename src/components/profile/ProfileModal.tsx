@@ -12,7 +12,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { profile, updateProfile } = useAuthStore();
   const { error: globalError, clearError } = useErrorStore();
   const [formState, setFormState] = useState({ babyName: '', gender: '' });
-  const [error, setError] = useState<{ global?: string; babyName?: string }>({});
+  const [error, setError] = useState<{ global?: string; babyName?: string; gender?: string }>({});
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
@@ -50,11 +50,16 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       setError({ babyName: "Please enter your baby's name" });
       return;
     }
+
+    if (!formState.gender) {
+      setError({ gender: "Please select your baby's gender" });
+      return;
+    }
     
     try {
       await updateProfile({ 
         babyName: trimmedName,
-        gender: formState.gender || undefined
+        gender: formState.gender
       });
       setShowSuccess(true);
     } catch (error) {
@@ -112,17 +117,20 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           <div>
             <label className="block text-sm font-medium text-white/90 mb-2">
               Baby's Gender
+              <span className="text-primary ml-1" title="Required">*</span>
             </label>
             <select
               value={formState.gender}
               onChange={(e) => setFormState((prev) => ({ ...prev, gender: e.target.value }))}
-              className="input w-full"
+              className={`input w-full ${error.gender ? 'border-red-400' : ''}`}
+              required
             >
-              <option value="">Select gender (optional)</option>
+              <option value="">Select gender</option>
               <option value="boy">Boy</option>
               <option value="girl">Girl</option>
               <option value="other">Other</option>
             </select>
+            {error.gender && <p className="text-red-400 text-sm mt-1">{error.gender}</p>}
           </div>
 
           {(error.global || globalError) && (

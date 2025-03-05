@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Music2, Settings } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import AuthModal from './auth/AuthModal';
+import EmailSignupForm from './EmailSignupForm';
 import ProfileModal from './profile/ProfileModal';
 import { useErrorStore } from '../store/errorStore';
+import { useEmailSignup } from '../hooks/useEmailSignup';
 
 export default function Header() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -11,6 +13,26 @@ export default function Header() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const { user, signOut } = useAuthStore();
   const { error: authError } = useErrorStore();
+  const { isOpen: isEmailSignupOpen, handleOpen: handleOpenEmailSignup, handleClose: handleCloseEmailSignup } = useEmailSignup();
+  
+  // Check for 'true' or 'TRUE' case-insensitively
+  const isSignupDisabled = import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true';
+  
+  console.log('VITE_DISABLE_SIGNUP:', import.meta.env.VITE_DISABLE_SIGNUP);
+  console.log('isSignupDisabled:', isSignupDisabled);
+  console.log('isEmailSignupOpen:', isEmailSignupOpen);
+
+  // Force open the email signup form for testing
+  useEffect(() => {
+    if (isSignupDisabled && !user) {
+      console.log('Forcing open email signup form for testing');
+      // Wait a bit to make sure everything is loaded
+      const timer = setTimeout(() => {
+        handleOpenEmailSignup();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isSignupDisabled, user, handleOpenEmailSignup]);
 
   useEffect(() => {
     if (authError) {
@@ -37,7 +59,7 @@ export default function Header() {
             <div className="flex items-center space-x-2 relative">
               <Music2 className="w-6 h-6 sm:w-8 sm:h-8 text-primary animate-float" />
               <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                {user ? 'Studio' : 'BabyMusic AI'}
+                BabyMusic AI
               </span>
             </div>
             <nav className="flex items-center space-x-4 relative">
@@ -69,36 +91,56 @@ export default function Header() {
                 </>
               ) : (
                 <>
-                  <button
-                    onClick={() => {
-                      setAuthMode('signin');
-                      setIsAuthModalOpen(true);
-                    }}
-                    className="btn-secondary text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3" 
-                    data-auth-trigger
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAuthMode('signup');
-                      setIsAuthModalOpen(true);
-                    }}
-                    className="btn-primary text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3"
-                  >
-                    Try Free
-                  </button>
+                  {isSignupDisabled ? (
+                    <button
+                      onClick={handleOpenEmailSignup}
+                      className="btn-primary text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3"
+                    >
+                      Join Waitlist
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setAuthMode('signin');
+                          setIsAuthModalOpen(true);
+                        }}
+                        className="btn-secondary text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3" 
+                        data-auth-trigger
+                      >
+                        Sign In
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAuthMode('signup');
+                          setIsAuthModalOpen(true);
+                        }}
+                        className="btn-primary text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3"
+                      >
+                        Try Free
+                      </button>
+                    </>
+                  )}
                 </>
               )}
             </nav>
           </div>
         </div>
       </header>
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        defaultMode={authMode}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
+      
+      {isSignupDisabled ? (
+        <EmailSignupForm
+          isOpen={isEmailSignupOpen}
+          onClose={handleCloseEmailSignup}
+        />
+      ) : (
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          defaultMode={authMode}
+          onClose={() => setIsAuthModalOpen(false)}
+        />
+      )}
+      
       <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}

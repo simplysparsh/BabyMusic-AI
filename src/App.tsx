@@ -13,6 +13,11 @@ function App() {
   const { hasStuckSongs, stuckSongCount } = useResetGenerating();
   const [path, setPath] = useState(window.location.pathname);
 
+  // Debug log for environment variables
+  useEffect(() => {
+    console.log('App mounted, VITE_DISABLE_SIGNUP:', import.meta.env.VITE_DISABLE_SIGNUP);
+  }, []);
+
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;

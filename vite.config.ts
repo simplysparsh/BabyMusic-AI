@@ -7,4 +7,9 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  define: {
+    'process.env': {
+      VITE_DISABLE_SIGNUP: process.env.VITE_DISABLE_SIGNUP,
+    },
+  },
 });

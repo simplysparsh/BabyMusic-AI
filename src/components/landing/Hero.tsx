@@ -1,13 +1,15 @@
-
 import { ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
 interface HeroProps {
-  onOpenAuth: (mode: 'signin' | 'signup') => void;
+  onOpenAuth: () => void;
 }
 
 export default function Hero({ onOpenAuth }: HeroProps) {
   const { user } = useAuthStore();
+  
+  // Check for 'true' or 'TRUE' case-insensitively
+  const isSignupDisabled = import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true';
   
   return (
     <section className="relative pt-28 pb-16 overflow-hidden">
@@ -24,14 +26,13 @@ export default function Hero({ onOpenAuth }: HeroProps) {
             through the magic of AI-powered music.
           </p>
           <div className="flex justify-center">
-            <a 
-              href={user ? "/dashboard" : "#"}
-              onClick={() => !user && onOpenAuth('signup')}
+            <button 
+              onClick={onOpenAuth}
               className="btn-primary text-sm sm:text-base px-5 py-2.5 sm:px-6 sm:py-3"
             >
-              {user ? 'Go to Dashboard' : 'Get Started Free'}
+              {isSignupDisabled ? 'Join the Waitlist' : 'Get Started Free'}
               <ArrowRight className="w-5 h-5 ml-2 inline-block" />
-            </a>
+            </button>
           </div>
         </div>
       </div>

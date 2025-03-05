@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
+    "@netlify/functions": "^3.0.1",
     "@supabase/supabase-js": "^2.39.0",
     "esbuild": "^0.25.0",
     "glob": "^11.0.1",

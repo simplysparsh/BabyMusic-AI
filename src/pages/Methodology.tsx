@@ -80,10 +80,10 @@ export default function Methodology() {
               <ArrowRight className="w-4 h-4" />
             </button>
             
-            <a href="#detailed-research" className="flex items-center gap-2 text-white/60 hover:text-white
-                                                transition-colors duration-300">
+            <a href="#detailed-research" className="flex items-center gap-2 px-4 py-2 text-white/60 hover:text-white
+                                               rounded-md hover:bg-white/5 transition-all duration-300">
               <BookOpen className="w-4 h-4" />
-              <span>Detailed Research</span>
+              <span className="font-medium">Research</span>
             </a>
           </div>
         </div>

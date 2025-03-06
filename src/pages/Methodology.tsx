@@ -1,11 +1,25 @@
-
 import { Brain, ArrowLeft, ArrowRight, Zap, Music2, Heart, Star, Sparkles, BookOpen } from 'lucide-react';
 import Footer from '../components/Footer';
 import AuthModal from '../components/auth/AuthModal';
 import { useAuthModal } from '../hooks/useAuthModal';
+import EmailSignupForm from '../components/EmailSignupForm';
+import { useEmailSignup } from '../hooks/useEmailSignup';
 
 export default function Methodology() {
   const { isAuthModalOpen, authMode, handleOpenAuth, handleCloseAuth } = useAuthModal();
+  const { isOpen: isEmailSignupOpen, handleOpen: handleOpenEmailSignup, handleClose: handleCloseEmailSignup } = useEmailSignup();
+  
+  // Check for 'true' or 'TRUE' case-insensitively
+  const isSignupDisabled = import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true';
+  
+  // Handle auth depending on whether signup is disabled
+  const handleAuthClick = () => {
+    if (isSignupDisabled) {
+      handleOpenEmailSignup();
+    } else {
+      handleOpenAuth('signup');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-radial from-background-dark via-background-dark to-black pt-20 pb-32">
@@ -59,10 +73,10 @@ export default function Methodology() {
 
           <div className="flex justify-between items-center">
             <button
-              onClick={() => handleOpenAuth('signup')}
+              onClick={handleAuthClick}
               className="btn-primary text-sm px-6 py-3 flex items-center gap-2"
             >
-              Try It Free
+              {isSignupDisabled ? 'Join the Waitlist' : 'Try It Free'}
               <ArrowRight className="w-4 h-4" />
             </button>
             
@@ -177,11 +191,11 @@ export default function Methodology() {
                 </p>
               </div>
               <button
-                onClick={() => handleOpenAuth('signup')}
+                onClick={handleAuthClick}
                 className="shrink-0 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl
                          transition-all duration-300 flex items-center gap-2 group"
               >
-                Try Now
+                {isSignupDisabled ? 'Join Waitlist' : 'Try Now'}
                 <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
               </button>
             </div>
@@ -254,10 +268,10 @@ export default function Methodology() {
               Ready to give your baby the gift of scientifically-crafted music?
             </p>
             <button
-              onClick={() => handleOpenAuth('signup')}
+              onClick={handleAuthClick}
               className="btn-primary text-sm px-6 py-3 flex items-center gap-2 mx-auto"
             >
-              Create Your First Song
+              {isSignupDisabled ? 'Join the Waitlist' : 'Create Your First Song'}
               <Sparkles className="w-4 h-4" />
             </button>
           </div>
@@ -267,11 +281,18 @@ export default function Methodology() {
           <Footer />
         </div>
         
-        <AuthModal
-          isOpen={isAuthModalOpen}
-          defaultMode={authMode}
-          onClose={handleCloseAuth}
-        />
+        {isSignupDisabled ? (
+          <EmailSignupForm
+            isOpen={isEmailSignupOpen}
+            onClose={handleCloseEmailSignup}
+          />
+        ) : (
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            defaultMode={authMode}
+            onClose={handleCloseAuth}
+          />
+        )}
       </div>
     </div>
   );

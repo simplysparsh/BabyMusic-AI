@@ -13,6 +13,16 @@ export default function EmailSignupForm({ isOpen, onClose }: EmailSignupFormProp
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [message, setMessage] = useState('');
+  const [isDevMode, setIsDevMode] = useState(false);
+
+  // Check if we're in development mode
+  useEffect(() => {
+    // In development, window.location.hostname is typically localhost or 127.0.0.1
+    setIsDevMode(
+      window.location.hostname === 'localhost' || 
+      window.location.hostname === '127.0.0.1'
+    );
+  }, []);
 
   if (!isOpen) return null;
 
@@ -36,37 +46,63 @@ export default function EmailSignupForm({ isOpen, onClose }: EmailSignupFormProp
       return;
     }
     
+    // Always log the email for tracking in development
+    if (isDevMode) {
+      console.log(`Waitlist signup email: ${trimmedEmail}`);
+    }
+    
     try {
-      const response = await fetch('/.netlify/functions/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: trimmedEmail })
-      });
-
-      let data;
+      // Always attempt to call the Netlify function first
+      // This allows testing with Netlify CLI in development
+      let apiSuccess = false;
+      let responseData = null;
+      
       try {
+        console.log('Attempting to call Netlify function at /.netlify/functions/waitlist');
+        const response = await fetch('/.netlify/functions/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: trimmedEmail })
+        });
+        
         const responseText = await response.text();
         
-        try {
-          data = JSON.parse(responseText);
-        } catch (jsonError) {
-          console.error('Error parsing JSON response:', jsonError);
-          throw new Error('Unexpected response from server');
+        if (responseText) {
+          try {
+            responseData = JSON.parse(responseText);
+            console.log('Netlify function response:', responseData);
+          } catch (jsonError) {
+            console.warn('Non-JSON response received:', responseText.slice(0, 100));
+          }
         }
-      } catch (jsonError) {
-        console.error('Error parsing JSON response:', jsonError);
-        throw new Error('Unexpected response from server');
-      }
-
-      if (!response.ok) {
-        throw new Error(data?.error || 'Something went wrong');
-      }
-
-      setSuccess(true);
-      if (data?.message) {
-        setMessage(data.message);
-      } else {
-        setMessage('Successfully added to waitlist! Please check your email to confirm your subscription.');
+        
+        if (response.ok) {
+          apiSuccess = true;
+          const successMessage = responseData?.message || 
+            'Successfully added to waitlist! Please check your email to confirm your subscription.';
+          setSuccess(true);
+          setMessage(successMessage);
+        } else if (responseData?.error) {
+          throw new Error(responseData.error);
+        }
+      } catch (apiError) {
+        console.warn('API request failed:', apiError);
+        
+        // Only if we're in development mode and the API call failed, use the fallback
+        if (isDevMode && !apiSuccess) {
+          console.log('🚨 Development mode - Using mock Beehiiv integration as fallback');
+          console.log('📨 Would have sent email to Beehiiv:', trimmedEmail);
+          
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 800));
+          
+          // Show a development-specific message
+          setSuccess(true);
+          setMessage('Development mode: Email would be added to Beehiiv waitlist in production.');
+        } else {
+          // In production, or if we want accurate error reporting in development
+          throw apiError;
+        }
       }
     } catch (err) {
       console.error('Form submission error:', err);
@@ -110,6 +146,11 @@ export default function EmailSignupForm({ isOpen, onClose }: EmailSignupFormProp
               <p className="text-white/60 text-sm">
                 {message || "We'll let you know when we launch"}
               </p>
+              {isDevMode && message.includes('Development mode') && (
+                <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+                  <p className="text-yellow-300 text-xs">Developer Mode: Mock response was used because the Netlify function was not available. Run with Netlify CLI to test the actual function.</p>
+                </div>
+              )}
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -131,6 +172,16 @@ export default function EmailSignupForm({ isOpen, onClose }: EmailSignupFormProp
               {error && (
                 <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                   <p className="text-red-400 text-sm">{error}</p>
+                </div>
+              )}
+              
+              {isDevMode && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                  <p className="text-yellow-300 text-xs">
+                    Developer Mode: {window.location.hostname}. 
+                    Will attempt to call Netlify function first. 
+                    Use 'netlify dev' command to test with real functions.
+                  </p>
                 </div>
               )}
               

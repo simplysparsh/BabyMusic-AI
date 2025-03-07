@@ -1,10 +1,13 @@
-import { ArrowRight } from 'lucide-react';
+import { Music2, Heart, Star, ArrowRight } from 'lucide-react';
 
 interface CTASectionProps {
   onOpenAuth: () => void;
 }
 
 export default function CTASection({ onOpenAuth }: CTASectionProps) {
+  // Check for 'true' or 'TRUE' case-insensitively
+  const isSignupDisabled = import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true';
+  
   // Handle methodology navigation to ensure scroll to top
   const handleMethodologyClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -43,7 +46,7 @@ export default function CTASection({ onOpenAuth }: CTASectionProps) {
                 className="relative inline-flex items-center btn-primary text-sm sm:text-base px-5 py-2.5 sm:px-6 sm:py-3 
                           hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 w-full sm:w-auto"
               >
-                {import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true' ? 'Join the Waitlist' : 'Create Your First Song'}
+                {isSignupDisabled ? 'Join the Waitlist' : 'Create Your First Song'}
                 <ArrowRight className="w-5 h-5 ml-2 inline-block" />
               </button>
               

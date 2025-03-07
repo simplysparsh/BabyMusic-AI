@@ -1,28 +1,28 @@
-import { FormEvent, useState } from 'react';
+import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { isValidEmail } from '../../utils/validation';
-import { useNavigate } from 'react-router-dom';
 
 interface HeroProps {
-  onOpenAuth: (mode: 'signin' | 'signup') => void;
+  onOpenAuth: () => void;
 }
 
 export default function Hero({ onOpenAuth }: HeroProps) {
-  const { isAuthenticated } = useAuthStore();
-  const navigate = useNavigate();
+  const { user } = useAuthStore();
   
   // State for the inline email form
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   
   // Check for 'true' or 'TRUE' case-insensitively
-  const isSignupDisabled = false;
+  const isSignupDisabled = import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true';
   
-  const handleSubmit = async (e: FormEvent) => {
+  // Handle direct submission of email form
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
     if (!email.trim()) {
       setError('Please enter your email');
@@ -35,32 +35,66 @@ export default function Hero({ onOpenAuth }: HeroProps) {
     }
     
     setIsSubmitting(true);
-    setError(null);
     
     try {
-      const response = await fetch('/.netlify/functions/waitlist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+      // In development mode, log the email for tracking
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        console.log(`Waitlist signup email: ${email.trim()}`);
       }
       
-      setIsSuccess(true);
-      setEmail('');
+      let apiSuccess = false;
+      let responseData = null;
+      
+      try {
+        console.log('Attempting to call Netlify function at /.netlify/functions/waitlist');
+        const response = await fetch('/.netlify/functions/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim() })
+        });
+        
+        const responseText = await response.text();
+        
+        if (responseText) {
+          try {
+            responseData = JSON.parse(responseText);
+            console.log('Netlify function response:', responseData);
+          } catch (jsonError) {
+            console.warn('Non-JSON response received:', responseText.slice(0, 100));
+          }
+        }
+        
+        if (response.ok) {
+          apiSuccess = true;
+          setSuccess(true);
+        } else if (responseData?.error) {
+          throw new Error(responseData.error);
+        }
+      } catch (apiError) {
+        console.warn('API request failed:', apiError);
+        
+        // In development mode, show success even if API fails
+        if ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && !apiSuccess) {
+          console.log('🚨 Development mode - Using mock Beehiiv integration as fallback');
+          console.log('📨 Would have sent email to Beehiiv:', email.trim());
+          
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 500));
+          setSuccess(true);
+        } else {
+          throw apiError;
+        }
+      }
     } catch (err) {
-      setError('Failed to join waitlist. Please try again.');
+      console.error('Form submission error:', err);
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setIsSubmitting(false);
     }
   };
   
   return (
-    <section className="relative pt-28 pb-16 overflow-hidden transform-gpu">
+    <section className="relative pt-28 pb-16 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center">
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold text-white mb-4 sm:mb-6 tracking-tight">
@@ -75,7 +109,7 @@ export default function Hero({ onOpenAuth }: HeroProps) {
           </p>
           
           {isSignupDisabled ? (
-            isSuccess ? (
+            success ? (
               <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 max-w-md mx-auto mb-6">
                 <p className="text-primary font-medium">Thank you for joining our waitlist!</p>
                 <p className="text-white/70 text-sm mt-1">We'll notify you when we launch.</p>
@@ -123,7 +157,7 @@ export default function Hero({ onOpenAuth }: HeroProps) {
           ) : (
             <div className="flex justify-center">
               <button 
-                onClick={() => onOpenAuth('signup')}
+                onClick={onOpenAuth}
                 className="btn-primary text-sm sm:text-base px-5 py-2.5 sm:px-6 sm:py-3"
               >
                 Get Started Free

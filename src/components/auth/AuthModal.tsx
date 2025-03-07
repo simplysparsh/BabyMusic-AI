@@ -235,7 +235,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
               )}
               <button
                 type="submit"
-                className={`${!isSignIn ? 'flex-1' : 'w-full'} bg-gradient-to-r from-primary to-secondary text-black font-medium
+                className={`flex-1 bg-gradient-to-r from-primary to-secondary text-black font-medium
                          py-3 rounded-xl hover:opacity-90 transition-all duration-300 mt-6
                          shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40
                          hover:scale-[1.02] active:scale-[0.98]`}

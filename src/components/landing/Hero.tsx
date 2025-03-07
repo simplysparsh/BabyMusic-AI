@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
 import { isValidEmail } from '../../utils/validation';
 
 interface HeroProps {
@@ -8,7 +7,6 @@ interface HeroProps {
 }
 
 export default function Hero({ onOpenAuth }: HeroProps) {
-  const { user } = useAuthStore();
   
   // State for the inline email form
   const [email, setEmail] = useState('');

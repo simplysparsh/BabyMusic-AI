@@ -1,4 +1,4 @@
-import { Music2, Heart, Star, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 interface CTASectionProps {
   onOpenAuth: () => void;

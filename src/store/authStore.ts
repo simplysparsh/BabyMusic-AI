@@ -28,7 +28,7 @@ interface AuthState {
   }) => Promise<UserProfile>; // Change return type to match implementation
   
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, babyName: string, tempProfileId?: string) => Promise<void>;
+  signUp: (email: string, password: string, babyName: string) => Promise<void>;
   signOut: () => Promise<void>;
   loadUser: () => Promise<void | (() => void)>; // Fix return type to match implementation
 }
@@ -199,92 +199,108 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ initialized: true });
     }
   },
-  signUp: async (email: string, password: string, babyName: string, tempProfileId?: string) => {
+  signUp: async (email: string, password: string, babyName: string) => {
     set({ initialized: false });
     
     if (!email.trim() || !password.trim() || !babyName.trim()) {
       throw new Error('All fields are required');
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
-      password,
-      options: {
-        data: {
-          babyName: babyName.trim(),
-          preferredLanguage: DEFAULT_LANGUAGE
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: {
+          data: {
+            babyName: babyName.trim(),
+            preferredLanguage: DEFAULT_LANGUAGE
+          }
         }
-      }
-    });
-
-    if (error) {
-      throw error;
-    }
-    
-    if (!data.user) {
-      throw new Error('No user returned after sign up');
-    }
-    
-    // Set user state immediately
-    set({ user: data.user });
-
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Update profile with baby name
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ 
-        baby_name: babyName,
-        preset_songs_generated: true,  // Set to true since we're already generating songs
-        preferred_language: DEFAULT_LANGUAGE,
-        is_onboarding: false  // Mark onboarding as complete
-      })
-      .eq('id', data.user.id);
-
-    if (updateError) throw updateError;
-
-    // If we have a tempProfileId, transfer the songs from the temporary profile to the permanent one
-    if (tempProfileId) {
-      try {
-        await SongService.transferSongsToUser(tempProfileId, data.user.id);
-      } catch (transferError) {
-        console.error('Failed to transfer songs:', transferError);
-        // Don't throw here - this is a non-critical operation
-        // If it fails, the cleanup job will eventually remove the temporary data
-        
-        // Generate preset songs as a fallback
-        SongService.regeneratePresetSongs(data.user.id, babyName.trim())
-          .catch(err => console.error('Failed to regenerate preset songs as fallback:', err));
-      }
-    } else {
-      // If no temp profile (something went wrong earlier), generate songs now
-      // Generate initial preset songs
-      const { createSong } = useSongStore.getState();
-      const presetPromises = Object.entries(PRESET_CONFIGS).map(([type, config]) => {
-        return createSong({
-          name: config.title(babyName.trim()),
-          mood: config.mood,
-          songType: 'preset',
-          preset_type: type as PresetType,
-          lyrics: config.lyrics(babyName.trim())
-        });
       });
 
-      await Promise.all(presetPromises);
-    }
-
-    set({ 
-      initialized: true,
-      profile: {
-        id: data.user.id,
-        email: data.user.email || '',
-        isPremium: false,
-        dailyGenerations: 0,
-        lastGenerationDate: new Date(),
-        babyName: babyName.trim(),
-        preferredLanguage: DEFAULT_LANGUAGE
+      if (error) {
+        throw error;
       }
-    });
+      
+      if (!data.user) {
+        throw new Error('No user returned after sign up');
+      }
+      
+      // Set user state immediately
+      set({ user: data.user });
+
+      // Check if profile already exists
+      const { data: existingProfile, error: queryError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .maybeSingle();
+        
+      if (queryError) {
+        // Log error but don't throw
+        console.error('Error checking for existing profile:', queryError);
+      }
+      
+      // If profile doesn't exist, create it
+      if (!existingProfile) {
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([{ 
+            id: data.user.id,
+            baby_name: babyName.trim(),
+            email: email.trim().toLowerCase(),
+            created_at: new Date().toISOString(),
+            preset_songs_generated: true,
+            preferred_language: DEFAULT_LANGUAGE,
+            gender: 'other' // Add default gender to satisfy NOT NULL constraint
+          }]);
+          
+        if (insertError) {
+          // Log error but don't throw
+          console.error('Error creating profile:', insertError);
+        }
+      } else {
+        // If profile exists, update it
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ 
+            baby_name: babyName.trim(),
+            preset_songs_generated: true,
+            preferred_language: DEFAULT_LANGUAGE
+          })
+          .eq('id', data.user.id);
+
+        if (updateError) {
+          // Log error but don't throw
+          console.error('Error updating profile:', updateError);
+        }
+      }
+
+      // Generate preset songs in the background
+      const trimmedBabyName = babyName.trim();
+      SongService.regeneratePresetSongs(data.user.id, trimmedBabyName, true)
+        .catch((error) => {
+          // Log error but don't show to user
+          console.error('Error generating preset songs:', error);
+        });
+
+      set({ 
+        initialized: true,
+        profile: {
+          id: data.user.id,
+          email: data.user.email || '',
+          isPremium: false,
+          dailyGenerations: 0,
+          lastGenerationDate: new Date(),
+          babyName: babyName.trim(),
+          preferredLanguage: DEFAULT_LANGUAGE,
+          gender: 'other'
+        }
+      });
+    } catch (error) {
+      set({ initialized: true });
+      throw error;
+    }
   },
   signOut: async () => {
     set({ initialized: false });

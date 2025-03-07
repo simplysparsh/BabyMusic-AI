@@ -1,1 +1,0 @@
-ALTER TABLE songs DROP COLUMN status; 

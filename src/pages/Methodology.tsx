@@ -9,12 +9,9 @@ export default function Methodology() {
   const { isAuthModalOpen, authMode, handleOpenAuth, handleCloseAuth } = useAuthModal();
   const { isOpen: isEmailSignupOpen, handleOpen: handleOpenEmailSignup, handleClose: handleCloseEmailSignup } = useEmailSignup();
   
-  // Check for 'true' or 'TRUE' case-insensitively
-  const isSignupDisabled = import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true';
-  
   // Handle auth depending on whether signup is disabled
   const handleAuthClick = () => {
-    if (isSignupDisabled) {
+    if (import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true') {
       handleOpenEmailSignup();
     } else {
       handleOpenAuth('signup');
@@ -76,7 +73,7 @@ export default function Methodology() {
               onClick={handleAuthClick}
               className="btn-primary text-sm px-6 py-3 flex items-center gap-2"
             >
-              {isSignupDisabled ? 'Join the Waitlist' : 'Try It Free'}
+              {import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true' ? 'Join the Waitlist' : 'Try It Free'}
               <ArrowRight className="w-4 h-4" />
             </button>
             
@@ -195,7 +192,7 @@ export default function Methodology() {
                 className="shrink-0 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl
                          transition-all duration-300 flex items-center gap-2 group"
               >
-                {isSignupDisabled ? 'Join Waitlist' : 'Try Now'}
+                {import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true' ? 'Join Waitlist' : 'Try Now'}
                 <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
               </button>
             </div>
@@ -271,7 +268,7 @@ export default function Methodology() {
               onClick={handleAuthClick}
               className="btn-primary text-sm px-6 py-3 flex items-center gap-2 mx-auto"
             >
-              {isSignupDisabled ? 'Join the Waitlist' : 'Create Your First Song'}
+              {import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true' ? 'Join the Waitlist' : 'Create Your First Song'}
               <Sparkles className="w-4 h-4" />
             </button>
           </div>
@@ -281,7 +278,7 @@ export default function Methodology() {
           <Footer />
         </div>
         
-        {isSignupDisabled ? (
+        {import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true' ? (
           <EmailSignupForm
             isOpen={isEmailSignupOpen}
             onClose={handleCloseEmailSignup}

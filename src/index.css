@@ -96,3 +96,12 @@
 .hexagon-inner {
   clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
 }
+
+.scroll-optimize {
+  transform: translateZ(0);
+}
+
+.scroll-container {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}

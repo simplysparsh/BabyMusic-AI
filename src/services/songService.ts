@@ -109,8 +109,10 @@ export class SongService {
     }
   }
 
-  static async regeneratePresetSongs(userId: string, babyName: string) {
-    console.log('Starting preset song regeneration:', { userId, babyName });
+  static async regeneratePresetSongs(userId: string, babyName: string, isSilent: boolean = false) {
+    if (!isSilent) {
+      console.log('Starting preset song regeneration:', { userId, babyName });
+    }
 
     try {
       // Delete existing preset songs first
@@ -137,9 +139,14 @@ export class SongService {
       );
 
       await Promise.all(presetPromises);
-      console.log('Preset song regeneration completed successfully');
+      
+      if (!isSilent) {
+        console.log('Preset song regeneration completed successfully');
+      }
     } catch (error) {
-      console.error('Failed to regenerate preset songs:', error);
+      if (!isSilent) {
+        console.error('Failed to regenerate preset songs:', error);
+      }
       // Don't throw - let the error be handled by the UI layer if needed
     }
   }
@@ -469,154 +476,124 @@ export class SongService {
 
   /**
    * Generates preset songs for a user during the sign-up process
-   * @param tempId A temporary ID to associate songs with this specific sign-up attempt
    * @param babyName The baby's name to use in song generation
-   * @returns A temporary ID that can be used to link the songs to a user when sign-up completes
+   * @param email The email to use for profile creation
+   * @returns The user ID
    */
-  static async generatePresetSongsForNewUser(babyName: string): Promise<string> {
-    console.log('Starting early preset song generation for new user:', { babyName });
-    // Generate a temporary ID to associate with this sign-up session
-    const tempId = crypto.randomUUID();
+  static async generatePresetSongsForNewUser(babyName: string, email: string): Promise<string> {
+    console.log('Starting preset song generation for new user:', { babyName, email });
+    
+    // Generate a UUID for the user
+    let userId;
+    try {
+      userId = crypto.randomUUID();
+    } catch (error) {
+      console.error('crypto.randomUUID() not available, using fallback:', error);
+      userId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+    
+    console.log(`Generated user ID: ${userId}`);
     
     try {
-      // Create a temporary profile entry with onboarding flag
-      const { error: profileError } = await supabase
+      // First check if a profile with this email already exists
+      const { data: existingProfile, error: queryError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+        
+      if (queryError) {
+        console.error('Error checking for existing profile:', queryError);
+      } else if (existingProfile) {
+        console.log(`Found existing profile with ID ${existingProfile.id} for email ${email}`);
+        return existingProfile.id;
+      }
+      
+      // Create a simple profile with just name and email
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .insert([{ 
-          id: tempId,
+          id: userId,
           baby_name: babyName,
-          is_onboarding: true, 
-          preferred_language: DEFAULT_LANGUAGE,
+          email: email,
+          created_at: new Date().toISOString(),
           preset_songs_generated: false,
-          created_at: new Date().toISOString()
+          preferred_language: DEFAULT_LANGUAGE
         }])
         .select('*')
         .single();
 
       if (profileError) {
-        console.error('Failed to create temporary profile:', profileError);
-        throw profileError;
+        // If it's a duplicate key error, try to fetch the existing profile
+        if (profileError.code === '23505') {
+          console.log('Duplicate key error, trying to fetch existing profile');
+          const { data: retryProfile, error: retryError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', email)
+            .maybeSingle();
+            
+          if (retryError) {
+            console.error('Error fetching existing profile on retry:', retryError);
+            throw new Error(`Failed to fetch existing profile: ${retryError.message}`);
+          }
+          
+          if (retryProfile) {
+            console.log(`Found existing profile on retry with ID ${retryProfile.id}`);
+            return retryProfile.id;
+          }
+        }
+        
+        console.error('Failed to create profile:', profileError);
+        throw new Error(`Failed to create profile: ${profileError.message}`);
       }
+      
+      console.log('Successfully created profile:', profile);
       
       // Start generating preset songs in the background
-      // We don't await these promises to allow the signup process to continue
-      Object.entries(PRESET_CONFIGS).forEach(([type, config]) => {
-        this.createSong({
-          userId: tempId,
-          name: config.title(babyName),
-          babyName,
-          songParams: {
-            mood: config.mood,
-            songType: 'preset',
-            preset_type: type as PresetType
-          }
-        }).catch(error => {
-          console.error(`Failed to generate preset song ${type}:`, error);
-          // Don't throw - we want to continue with sign-up even if song generation fails
-        });
-      });
+      this.startPresetSongGeneration(userId, babyName);
       
-      return tempId;
+      return userId;
     } catch (error) {
-      console.error('Failed to start preset song generation:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Transfers songs from a temporary profile to a permanent user profile
-   * @param tempId The temporary ID used during song generation
-   * @param userId The permanent user ID to transfer songs to
-   */
-  static async transferSongsToUser(tempId: string, userId: string): Promise<void> {
-    console.log('Transferring songs to permanent user:', { tempId, userId });
-    
-    try {
-      // Update songs to link them to the permanent user ID
-      const { error: updateError } = await supabase
-        .from('songs')
-        .update({ user_id: userId })
-        .eq('user_id', tempId);
-
-      if (updateError) {
-        console.error('Failed to transfer songs to user:', updateError);
-        throw updateError;
-      }
-      
-      // Delete the temporary profile
-      const { error: deleteError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', tempId);
-        
-      if (deleteError) {
-        console.error('Failed to delete temporary profile:', deleteError);
-        // Don't throw - this is a cleanup operation and shouldn't block the flow
-      }
-      
-    } catch (error) {
-      console.error('Error in transferSongsToUser:', error);
+      console.error('Error in generatePresetSongsForNewUser:', error);
       throw error;
     }
   }
   
   /**
-   * Cleanup function to remove abandoned sign-up data
-   * This should be called periodically to clean up orphaned data
+   * Starts generating preset songs in the background
+   * This is separated from the profile creation to keep the code clean
+   * @param userId The user ID to associate the songs with
+   * @param babyName The baby's name to use in song generation
    */
-  static async cleanupAbandonedSignups(): Promise<void> {
-    console.log('Cleaning up abandoned sign-ups');
-    
-    try {
-      // Get profiles that are in onboarding state and older than 1 hour
-      const oneHourAgo = new Date();
-      oneHourAgo.setHours(oneHourAgo.getHours() - 1);
-      
-      const { data: abandonedProfiles, error: queryError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('is_onboarding', true)
-        .lt('created_at', oneHourAgo.toISOString());
-        
-      if (queryError) {
-        console.error('Failed to query abandoned profiles:', queryError);
-        throw queryError;
-      }
-      
-      if (!abandonedProfiles || abandonedProfiles.length === 0) {
-        console.log('No abandoned sign-ups found');
-        return;
-      }
-      
-      console.log(`Found ${abandonedProfiles.length} abandoned sign-ups to clean up`);
-      
-      // Delete songs for abandoned profiles
-      for (const profile of abandonedProfiles) {
-        const { error: songsDeleteError } = await supabase
-          .from('songs')
-          .delete()
-          .eq('user_id', profile.id);
-          
-        if (songsDeleteError) {
-          console.error(`Failed to delete songs for abandoned profile ${profile.id}:`, songsDeleteError);
-          // Continue with other profiles even if one fails
-        }
-        
-        const { error: profileDeleteError } = await supabase
-          .from('profiles')
-          .delete()
-          .eq('id', profile.id);
-          
-        if (profileDeleteError) {
-          console.error(`Failed to delete abandoned profile ${profile.id}:`, profileDeleteError);
-          // Continue with other profiles even if one fails
-        }
-      }
-      
-      console.log('Completed cleanup of abandoned sign-ups');
-    } catch (error) {
-      console.error('Error in cleanupAbandonedSignups:', error);
-      throw error;
-    }
+  private static startPresetSongGeneration(userId: string, babyName: string): void {
+    // Small delay to ensure profile is fully created before starting song generation
+    setTimeout(() => {
+      // Generate each preset song type
+      Object.entries(PRESET_CONFIGS).forEach(([type, config]) => {
+        this.createSong({
+          userId,
+          name: config.title(babyName),
+          babyName,
+          songParams: {
+            mood: config.mood,
+            songType: 'preset',
+            preset_type: type as PresetType,
+          }
+        }).then(() => {
+          console.log(`Successfully created preset song ${type} for user ${userId}`);
+        }).catch(error => {
+          console.error(`Failed to create preset song ${type} for user ${userId}:`, {
+            message: error.message,
+            code: error.code
+          });
+          // Don't throw - we want to continue with sign-up even if song generation fails
+        });
+      });
+    }, 100);
   }
 }

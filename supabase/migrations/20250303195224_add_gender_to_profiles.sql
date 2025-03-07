@@ -19,7 +19,9 @@ BEGIN
   ) THEN
     ALTER TABLE profiles ADD COLUMN gender text;
     
-    -- Add CHECK constraint to ensure valid values
-    ALTER TABLE profiles ADD CONSTRAINT gender_check CHECK (gender IN ('boy', 'girl', 'other'));
+    -- Add CHECK constraint to ensure valid values if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'gender_check') THEN
+      ALTER TABLE profiles ADD CONSTRAINT gender_check CHECK (gender IN ('boy', 'girl', 'other'));
+    END IF;
   END IF;
 END $$; 

@@ -26,7 +26,7 @@ export default function Dashboard() {
   }
 
   return (
-    <main>
+    <main className="scroll-container">
       {error && (
         <div className="fixed top-16 left-0 right-0 z-50 p-4 bg-red-500/90 backdrop-blur-sm text-white text-center">
           {error}
@@ -52,27 +52,30 @@ export default function Dashboard() {
 
         <PresetSongs />
         <MusicGenerator />
-        <div className="mt-16 max-w-2xl mx-auto relative z-10">
-          <h2 className="text-4xl font-bold bg-gradient-to-r from-primary via-white to-secondary 
-                      bg-clip-text text-transparent mb-8 text-center">
-            Your Melodies
-            <span className="block text-base text-white/60 font-normal mt-2">
-              Your collection of personalized songs
-            </span>
-          </h2>
-          <SongList />
-        </div>
+        
+        <div className="scroll-optimize">
+          <div className="mt-16 max-w-2xl mx-auto relative z-10">
+            <h2 className="text-4xl font-bold bg-gradient-to-r from-primary via-white to-secondary 
+                        bg-clip-text text-transparent mb-8 text-center">
+              Your Melodies
+              <span className="block text-base text-white/60 font-normal mt-2">
+                Your collection of personalized songs
+              </span>
+            </h2>
+            <SongList />
+          </div>
 
-        {/* Detailed Streak Section */}
-        <div className="mt-24 max-w-2xl mx-auto">
-          <h2 className="text-3xl font-bold text-white mb-8 text-center">
-            Your Progress
-          </h2>
-          <DetailedStreak
-            streakDays={streakDays}
-            dailyGoal={dailyGoal}
-            songsToday={songsToday}
-          />
+          {/* Detailed Streak Section */}
+          <div className="mt-24 max-w-2xl mx-auto">
+            <h2 className="text-3xl font-bold text-white mb-8 text-center">
+              Your Progress
+            </h2>
+            <DetailedStreak
+              streakDays={streakDays}
+              dailyGoal={dailyGoal}
+              songsToday={songsToday}
+            />
+          </div>
         </div>
       </section>
       <Footer />

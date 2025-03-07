@@ -20,35 +20,46 @@ BEGIN
   ) THEN
     ALTER TABLE songs ADD COLUMN theme text;
 
-    -- Add check constraint for valid themes
-    ALTER TABLE songs ADD CONSTRAINT valid_theme CHECK (
-      theme IN (
-        'pitchDevelopment',
-        'cognitiveSpeech',
-        'sleepRegulation',
-        'socialEngagement',
-        'musicalDevelopment',
-        'indianClassical',
-        'westernClassical',
-        'custom'
-      ) OR theme IS NULL
-    );
+    -- Add check constraint for valid themes if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'valid_theme') THEN
+      ALTER TABLE songs ADD CONSTRAINT valid_theme CHECK (
+        theme IN (
+          'pitchDevelopment',
+          'cognitiveSpeech',
+          'sleepRegulation',
+          'socialEngagement',
+          'musicalDevelopment',
+          'indianClassical',
+          'westernClassical',
+          'custom'
+        ) OR theme IS NULL
+      );
+    END IF;
   END IF;
 
-  -- Make mood nullable
-  ALTER TABLE songs ALTER COLUMN mood DROP NOT NULL;
+  -- Make mood nullable if it's not already
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'songs' AND column_name = 'mood' AND is_nullable = 'NO'
+  ) THEN
+    ALTER TABLE songs ALTER COLUMN mood DROP NOT NULL;
+  END IF;
 
-  -- Add constraint to ensure either theme or mood is present
-  ALTER TABLE songs ADD CONSTRAINT theme_or_mood_required 
-    CHECK (
-      (theme IS NOT NULL) OR 
-      (mood IS NOT NULL)
-    );
+  -- Add constraint to ensure either theme or mood is present if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'theme_or_mood_required') THEN
+    ALTER TABLE songs ADD CONSTRAINT theme_or_mood_required 
+      CHECK (
+        (theme IS NOT NULL) OR 
+        (mood IS NOT NULL)
+      );
+  END IF;
 
-  -- Add constraint to ensure custom theme has mood
-  ALTER TABLE songs ADD CONSTRAINT custom_theme_requires_mood
-    CHECK (
-      theme != 'custom' OR 
-      (theme = 'custom' AND mood IS NOT NULL)
-    );
+  -- Add constraint to ensure custom theme has mood if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'custom_theme_requires_mood') THEN
+    ALTER TABLE songs ADD CONSTRAINT custom_theme_requires_mood
+      CHECK (
+        theme != 'custom' OR 
+        (theme = 'custom' AND mood IS NOT NULL)
+      );
+  END IF;
 END $$;

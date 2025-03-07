@@ -7,9 +7,14 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
-  define: {
-    'process.env': {
-      VITE_DISABLE_SIGNUP: process.env.VITE_DISABLE_SIGNUP,
-    },
-  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['lucide-react', 'zustand']
+        }
+      }
+    }
+  }
 });

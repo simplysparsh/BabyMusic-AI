@@ -234,18 +234,16 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
               <div className="space-y-4">
                 <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                   <div className="flex items-center gap-3">
-                    <Music2 className="w-5 h-5 text-primary animate-pulse" />
+                    <Music2 className="w-5 h-5 text-primary" />
                     <div className="flex-1">
-                      <div className="h-2 bg-primary/20 rounded-full overflow-hidden">
-                        <div className="h-full w-3/4 bg-primary animate-pulse"></div>
-                      </div>
-                      <p className="text-sm text-white/60 mt-2">Generating your preset songs...</p>
+                      <p className="text-sm text-white/80">Your account is ready!</p>
+                      <p className="text-sm text-white/60 mt-1">Explore preset songs in your dashboard.</p>
                     </div>
                   </div>
                 </div>
 
                 <p className="text-sm text-white/80 leading-relaxed">
-                  We're creating special songs tailored to {babyName}'s age group ({ageGroup}).
+                  We've prepared special songs tailored to {babyName}'s age group ({ageGroup}).
                   These melodies are scientifically designed to support cognitive development and emotional well-being.
                 </p>
               </div>

@@ -3,7 +3,6 @@ import { useAuthStore } from '../../store/authStore';
 import { X } from 'lucide-react';
 import OnboardingModal from './OnboardingModal';
 import type { BabyProfile } from '../../types';
-import { SongService } from '../../services/songService';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -23,8 +22,6 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
   const [step, setStep] = useState<'credentials' | 'babyNameFirst' | 'babyName' | 'creatingAccount'>(
     isSignIn ? 'credentials' : 'babyNameFirst'
   );
-  const [generatingSongs, setGeneratingSongs] = useState(false);
-  const [tempProfileId, setTempProfileId] = useState<string | null>(null);
   const { signIn, signUp } = useAuthStore();
 
   useEffect(() => {
@@ -51,15 +48,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
     }
     
     setBabyNameError('');
-    SongService.generatePresetSongsForNewUser(trimmedBabyName)
-      .then(tempId => {
-        setTempProfileId(tempId);
-        setStep('credentials');
-      })
-      .catch(err => {
-        const message = err instanceof Error ? err.message : 'An error occurred';
-        setError(message);
-      });
+    setStep('credentials');
   };
 
   const handleCredentialsSubmit = async (e: FormEvent) => {
@@ -79,29 +68,6 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
       }
     } else {
       setStep('creatingAccount');
-    }
-  };
-
-  const handleGenerateSongs = async () => {
-    const trimmedBabyName = babyName.trim();
-    
-    if (!trimmedBabyName) {
-      setBabyNameError('Please enter your baby\'s name');
-      return;
-    }
-    
-    setGeneratingSongs(true);
-    
-    try {
-      const tempId = await SongService.generatePresetSongsForNewUser(trimmedBabyName);
-      setTempProfileId(tempId);
-      setStep('creatingAccount');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'An error occurred';
-      setError(message);
-      setStep('babyName');
-    } finally {
-      setGeneratingSongs(false);
     }
   };
 
@@ -127,7 +93,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
     }
     
     try {
-      await signUp(trimmedEmail, password, trimmedBabyName, tempProfileId || undefined);
+      await signUp(trimmedEmail, password, trimmedBabyName);
       setShowOnboarding(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
@@ -315,32 +281,20 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
               <button
                 type="button"
                 onClick={handleBack}
-                disabled={generatingSongs}
                 className="flex-1 bg-white/5 text-white py-3 rounded-xl border border-white/10
-                         hover:bg-white/10 transition-all duration-300 hover:border-white/20
-                         disabled:opacity-50 disabled:cursor-not-allowed"
+                         hover:bg-white/10 transition-all duration-300 hover:border-white/20"
               >
                 Back
               </button>
               <button
                 type="button"
-                onClick={handleGenerateSongs}
-                disabled={generatingSongs}
+                onClick={() => setStep('creatingAccount')}
                 className="flex-1 bg-gradient-to-r from-primary to-secondary text-black font-medium
                          py-3 rounded-xl hover:opacity-90 transition-all duration-300
                          shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40
-                         hover:scale-[1.02] active:scale-[0.98]
-                         disabled:opacity-50 disabled:cursor-not-allowed
-                         disabled:hover:scale-100 disabled:hover:shadow-none"
+                         hover:scale-[1.02] active:scale-[0.98]"
               >
-                {generatingSongs ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-black/20 border-t-black/80 rounded-full animate-spin"></div>
-                    <span>Starting Song Generation...</span>
-                  </div>
-                ) : (
-                  'Next'
-                )}
+                Next
               </button>
             </div>
           </div>
@@ -350,12 +304,6 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
         return (
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <div className="mb-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
-                <p className="text-primary text-sm">
-                  ✨ We're creating custom songs for {babyName} in the background!
-                </p>
-              </div>
-              
               <p className="text-white/80 mb-6">
                 Complete your account details to continue:
               </p>

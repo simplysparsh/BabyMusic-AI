@@ -36,7 +36,38 @@ Baby Music AI is an innovative web application that creates personalized lullabi
 
 ## Environment Setup
 
-This application requires several environment variables to function properly. You can set these up manually or use our setup script.
+This application requires several environment variables to function properly. These variables should be defined in different places depending on the environment:
+
+### Local Development
+Create a `.env.local` file in the root directory with the following variables:
+
+```
+# Feature flags
+VITE_DISABLE_SIGNUP=false
+
+# Supabase configuration
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# API keys
+VITE_CLAUDE_API_KEY=your_claude_api_key
+VITE_PIAPI_KEY=your_piapi_key
+VITE_WEBHOOK_SECRET=your_webhook_secret
+```
+
+### Production Deployment
+For production, set these environment variables in:
+- **Netlify**: Environment variables section in the Netlify dashboard
+- **Supabase**: Secrets section in the Supabase dashboard for Edge Functions
+
+### Accessing Environment Variables in Code
+In Vite applications, environment variables are accessed directly using the `import.meta.env` object:
+
+```typescript
+// Access environment variables directly
+const isSignupDisabled = import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+```
 
 ### Option 1: Using the Setup Script
 
@@ -171,7 +202,6 @@ The project is linked to a Supabase instance with the following details:
 
 - Project ID: `ustflrmqamppbghixjyl`
 - Edge Functions: Deployed and operational
-  - `cleanup-abandoned-signups`: Runs to clean up profiles that have been in the onboarding state for more than 24 hours
 
 ### Setting Up Supabase Project
 
@@ -179,8 +209,8 @@ The project is linked to a Supabase instance with the following details:
 # Link to the Supabase project
 supabase link --project-ref ustflrmqamppbghixjyl
 
-# Deploy an edge function
-supabase functions deploy cleanup-abandoned-signups --no-verify-jwt
+# Deploy an edge function (if needed)
+supabase functions deploy your-function-name --no-verify-jwt
 
 # Push database migrations
 supabase db push --include-all
@@ -188,15 +218,6 @@ supabase db push --include-all
 # Set environment variables from .env.local
 supabase secrets set --env-file .env.local --project-ref ustflrmqamppbghixjyl
 ```
-
-### Scheduling the Cleanup Function
-
-For the cleanup function to run automatically:
-
-1. Go to the [Supabase Dashboard](https://supabase.com/dashboard/project/ustflrmqamppbghixjyl)
-2. Navigate to "Edge Functions" in the sidebar
-3. Find the "cleanup-abandoned-signups" function
-4. Click on "Schedule" and set it to run every hour
 
 ## 📱 Progressive Features
 

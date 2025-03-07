@@ -31,21 +31,38 @@ CREATE TABLE IF NOT EXISTS song_generations (
 -- Enable RLS
 ALTER TABLE song_generations ENABLE ROW LEVEL SECURITY;
 
--- Add policies
-CREATE POLICY "Users can view own song generations"
-  ON song_generations
-  FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM songs
-    WHERE songs.id = song_generations.song_id
-    AND songs.user_id = auth.uid()
-  ));
+-- Add policies if they don't exist
+DO $$
+BEGIN
+  -- Check if the policy exists before creating it
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'song_generations' 
+    AND policyname = 'Users can view own song generations'
+  ) THEN
+    EXECUTE 'CREATE POLICY "Users can view own song generations"
+      ON song_generations
+      FOR SELECT
+      USING (EXISTS (
+        SELECT 1 FROM songs
+        WHERE songs.id = song_generations.song_id
+        AND songs.user_id = auth.uid()
+      ))';
+  END IF;
 
-CREATE POLICY "Users can insert own song generations"
-  ON song_generations
-  FOR INSERT
-  WITH CHECK (EXISTS (
-    SELECT 1 FROM songs
-    WHERE songs.id = song_generations.song_id
-    AND songs.user_id = auth.uid()
-  ));
+  -- Check if the policy exists before creating it
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'song_generations' 
+    AND policyname = 'Users can insert own song generations'
+  ) THEN
+    EXECUTE 'CREATE POLICY "Users can insert own song generations"
+      ON song_generations
+      FOR INSERT
+      WITH CHECK (EXISTS (
+        SELECT 1 FROM songs
+        WHERE songs.id = song_generations.song_id
+        AND songs.user_id = auth.uid()
+      ))';
+  END IF;
+END $$;

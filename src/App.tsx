@@ -13,11 +13,7 @@ function App() {
   const { hasStuckSongs, stuckSongCount } = useResetGenerating();
   const [path, setPath] = useState(window.location.pathname);
 
-  // Debug log for environment variables
-  useEffect(() => {
-    console.log('App mounted, VITE_DISABLE_SIGNUP:', import.meta.env.VITE_DISABLE_SIGNUP);
-  }, []);
-
+  // Handle client-side navigation
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -37,16 +33,15 @@ function App() {
   useEffect(() => {
     if (user) {
       setupSubscription();
-      loadSongs();
+      loadSongs().catch(error => {
+        console.error('Failed to load songs:', error);
+      });
     }
   }, [user, setupSubscription, loadSongs]);
 
   // Check for stuck songs on app load
   useEffect(() => {
     if (user && hasStuckSongs) {
-      console.log(`Found ${stuckSongCount} stuck songs on app load, attempting to fix...`);
-      
-      // Check if these songs actually exist in the database
       const checkStuckSongs = async () => {
         try {
           // This will reconcile UI state with database state
@@ -54,7 +49,6 @@ function App() {
           
           // If there are still stuck songs after reconciliation, reset them
           if (hasStuckSongs) {
-            console.log(`Still have ${stuckSongCount} stuck songs after reconciliation, resetting...`);
             await resetGeneratingState();
           }
         } catch (error) {

@@ -34,16 +34,32 @@ CREATE TABLE IF NOT EXISTS lyric_generation_errors (
 -- Enable RLS
 ALTER TABLE lyric_generation_errors ENABLE ROW LEVEL SECURITY;
 
--- Allow authenticated users to insert errors
-CREATE POLICY "Users can insert lyric generation errors"
-  ON lyric_generation_errors
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (true);
+-- Add policies if they don't exist
+DO $$
+BEGIN
+  -- Check if the policy exists before creating it
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'lyric_generation_errors' 
+    AND policyname = 'Users can insert lyric generation errors'
+  ) THEN
+    EXECUTE 'CREATE POLICY "Users can insert lyric generation errors"
+      ON lyric_generation_errors
+      FOR INSERT
+      TO authenticated
+      WITH CHECK (true)';
+  END IF;
 
--- Allow authenticated users to view their own errors
-CREATE POLICY "Users can view lyric generation errors"
-  ON lyric_generation_errors
-  FOR SELECT
-  TO authenticated
-  USING (true);
+  -- Check if the policy exists before creating it
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'lyric_generation_errors' 
+    AND policyname = 'Users can view lyric generation errors'
+  ) THEN
+    EXECUTE 'CREATE POLICY "Users can view lyric generation errors"
+      ON lyric_generation_errors
+      FOR SELECT
+      TO authenticated
+      USING (true)';
+  END IF;
+END $$;

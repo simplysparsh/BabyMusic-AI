@@ -252,7 +252,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             created_at: new Date().toISOString(),
             preset_songs_generated: true,
             preferred_language: DEFAULT_LANGUAGE,
-            gender: 'other' // Add default gender to satisfy NOT NULL constraint
+            gender: null // Set default gender to null, user will provide during onboarding
           }]);
           
         if (insertError) {
@@ -294,7 +294,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           lastGenerationDate: new Date(),
           babyName: babyName.trim(),
           preferredLanguage: DEFAULT_LANGUAGE,
-          gender: 'other'
+          gender: null // Set default gender to null, user will provide during onboarding
         }
       });
     } catch (error) {

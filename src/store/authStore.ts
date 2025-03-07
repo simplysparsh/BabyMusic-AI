@@ -207,6 +207,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     try {
+      console.log('Starting signup process...');
+      
+      // Verify Supabase client has API key
+      if (!supabase.supabaseKey) {
+        console.error('Supabase client missing API key');
+        throw new Error('Authentication service configuration error. Please try again later.');
+      }
+      
       const { data, error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
@@ -219,12 +227,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       if (error) {
+        console.error('Supabase signup error:', error);
         throw error;
       }
       
       if (!data.user) {
+        console.error('No user returned after sign up');
         throw new Error('No user returned after sign up');
       }
+      
+      console.log('User created successfully, setting up profile...');
       
       // Set user state immediately
       set({ user: data.user });

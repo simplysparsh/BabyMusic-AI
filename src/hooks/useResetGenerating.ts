@@ -23,19 +23,10 @@ export function useResetGenerating() {
     }
   }, [hasStuckSongs, resetGeneratingState]);
   
-  const resetWithConfirmation = useCallback(async () => {
-    if (!hasStuckSongs) return;
-    
-    if (window.confirm(`This will clear ${generatingSongs.size} song${generatingSongs.size > 1 ? 's' : ''} that ${generatingSongs.size > 1 ? 'are' : 'is'} stuck in the generating state. Continue?`)) {
-      await resetStuckSongs();
-    }
-  }, [hasStuckSongs, generatingSongs.size, resetStuckSongs]);
-  
   return {
     hasStuckSongs,
     isResetting,
     resetStuckSongs,
-    resetWithConfirmation,
     stuckSongCount: generatingSongs.size
   };
 }

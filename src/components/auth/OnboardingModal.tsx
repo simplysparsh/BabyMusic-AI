@@ -31,28 +31,6 @@ const getAgeGroup = (month: number, year: number): AgeGroup => {
   return '13-24';
 };
 
-// This function is defined for future use but currently unused
-const _getAgeRecommendations = (ageGroup: AgeGroup) => {
-  const recommendations = {
-    '0-6': [
-      'Simple, soothing melodies for sleep and comfort',
-      'White noise patterns for calming',
-      'Gentle lullabies for bonding'
-    ],
-    '7-12': [
-      'Rhythmic patterns for motor development',
-      'Simple word songs for language learning',
-      'Interactive melodies for playtime'
-    ],
-    '13-24': [
-      'Complex patterns for cognitive development',
-      'Songs with actions for coordination',
-      'Educational melodies for vocabulary building'
-    ]
-  };
-  return recommendations[ageGroup];
-};
-
 export default function OnboardingModal({ isOpen, onComplete, initialBabyName }: OnboardingModalProps) {
   const [step, setStep] = useState(1);
   const [isUpdating, setIsUpdating] = useState(false);

@@ -2,6 +2,7 @@ import type {
   Song,
   PresetType
 } from '../types';
+import { supabase } from '../lib/supabase';
 
 // Define a type for the error object structure
 interface SongErrorObject {
@@ -19,15 +20,50 @@ interface SongErrorObject {
 export class SongStateService {
   /**
    * Determines if a song is currently generating
+   * This is the single source of truth for generation state
    */
   static isGenerating(song: Song | undefined): boolean {
     if (!song) return false;
     
-    // If the song has an audio URL, it's not generating regardless of other factors
-    if (song.audio_url) return false;
+    // If the song has an audio URL or error, it's not generating
+    if (song.audio_url || song.error) {
+      return false;
+    }
+    
+    // Check if the song has been stuck for too long (more than 5 minutes)
+    const createdAt = new Date(song.createdAt).getTime();
+    const now = Date.now();
+    const fiveMinutesInMs = 5 * 60 * 1000;
+    
+    if (now - createdAt > fiveMinutesInMs) {
+      // Song has been stuck for too long, mark as not generating
+      this.updateSongWithError(song.id, "Generation took too long. Please try again.");
+      return false;
+    }
     
     // A song is generating if it has no audio_url and no error
-    return !song.error;
+    return !song.audio_url && !song.error;
+  }
+  
+  /**
+   * Update a song with an error message
+   */
+  static async updateSongWithError(songId: string, errorMessage: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('songs')
+        .update({
+          error: errorMessage,
+          retryable: true
+        })
+        .eq('id', songId);
+        
+      if (error) {
+        console.error('Failed to update song with error:', error);
+      }
+    } catch (err) {
+      console.error('Error updating song with error:', err);
+    }
   }
 
   /**

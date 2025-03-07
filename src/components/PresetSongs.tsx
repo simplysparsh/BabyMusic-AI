@@ -3,10 +3,8 @@ import { Baby, UtensilsCrossed, Moon, Waves } from 'lucide-react';
 import usePresetSongs from '../hooks/usePresetSongs';
 import { useAuthStore } from '../store/authStore';
 import { useAudioStore } from '../store/audioStore';
-import { SongStateService } from '../services/songStateService';
 import PresetSongCard from './preset/PresetSongCard';
 import type { PresetType } from '../types';
-import { songAdapter } from '../utils/songAdapter';
 
 const PRESETS: {
   type: PresetType;
@@ -46,9 +44,7 @@ const PresetSongs: FC = () => {
     songs,
     handlePresetClick,
     handlePlay,
-    handleVariationChange,
-    currentVariation,
-    localGeneratingTypes
+    handleVariationChange
   } = usePresetSongs();
   
   // Get current playing song from audio store
@@ -70,8 +66,9 @@ const PresetSongs: FC = () => {
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 relative">
         {PRESETS.map(({ type, icon, title, description }) => {
-          const currentSong = SongStateService.getSongForPresetType(songs, type);
-          const audioUrl = currentSong ? songAdapter.getAudioUrl(currentSong) : undefined;
+          // Find the song for this preset type
+          const song = songs.find(s => s.preset_type === type);
+          const audioUrl = song?.audio_url;
           
           return (
             <PresetSongCard
@@ -82,11 +79,9 @@ const PresetSongs: FC = () => {
               iconComponent={icon}
               songs={songs}
               isPlaying={isPlaying && currentPlayingUrl === audioUrl}
-              onPlayClick={handlePlay}
+              onPlayClick={(url) => handlePlay(url)}
               onGenerateClick={handlePresetClick}
               onVariationChange={handleVariationChange}
-              currentVariationIndex={currentVariation[type] || 0}
-              localGeneratingTypes={localGeneratingTypes}
             />
           );
         })}

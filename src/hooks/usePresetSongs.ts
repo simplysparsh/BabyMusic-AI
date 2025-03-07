@@ -11,12 +11,6 @@ export default function usePresetSongs() {
   const { songs, generatingSongs, createSong } = useSongStore();
   const { isPlaying: _isPlaying, playAudio } = useAudioStore();
   
-  // Track local generating states for immediate UI feedback
-  const [localGeneratingTypes, setLocalGeneratingTypes] = useState<Set<PresetType>>(new Set());
-  
-  // Track current variation for each preset type
-  const [currentVariation, setCurrentVariation] = useState<Record<string, number>>({});
-  
   // Filter only preset songs
   const [presetSongs, setPresetSongs] = useState<Song[]>([]);
   
@@ -39,29 +33,6 @@ export default function usePresetSongs() {
     
     setPresetSongs(filteredPresetSongs);
     
-    // Clear local generating types for songs that are no longer generating
-    // or have completed/failed
-    setLocalGeneratingTypes(prev => {
-      const newSet = new Set(prev);
-      
-      // For each preset type in the local generating set
-      Array.from(prev).forEach(type => {
-        const songForType = SongStateService.getSongForPresetType(songs, type);
-        
-        // If the song exists and either has an audio_url or error, it's no longer generating
-        if (songForType && (songForType.audio_url || songForType.error)) {
-          newSet.delete(type);
-        }
-        
-        // If the song's ID is no longer in the generatingSongs set, it's no longer generating
-        if (songForType && !generatingSongs.has(songForType.id)) {
-          newSet.delete(type);
-        }
-      });
-      
-      return newSet;
-    });
-    
     // Only log preset songs updates
     if (filteredPresetSongs.length > 0) {
       // Debug logging can be re-enabled if needed
@@ -82,7 +53,7 @@ export default function usePresetSongs() {
     const isGenerating = SongStateService.isPresetTypeGenerating(songs, type);
     
     // If the song is already generating, do nothing
-    if (isGenerating || localGeneratingTypes.has(type)) {
+    if (isGenerating) {
       return;
     }
     
@@ -91,11 +62,6 @@ export default function usePresetSongs() {
       playAudio(currentSong.audio_url);
     } else {
       // Otherwise generate a new song
-      
-      // Set local generating state immediately for UI feedback
-      setLocalGeneratingTypes(prev => new Set(prev).add(type));
-      
-      // Create the song
       createSong({
         name: songNames[type as keyof typeof songNames],
         mood: PRESET_CONFIGS[type].mood,
@@ -105,7 +71,7 @@ export default function usePresetSongs() {
         gender: profile.gender
       });
     }
-  }, [songs, createSong, playAudio, user, profile, localGeneratingTypes, songNames]);
+  }, [songs, createSong, playAudio, user, profile, songNames]);
 
   const handlePlay = useCallback((audioUrl: string) => {
     playAudio(audioUrl);
@@ -125,26 +91,21 @@ export default function usePresetSongs() {
     
     if (!variationCount || variationCount <= 1) return;
     
-    setCurrentVariation((prev: Record<string, number>) => {
-      const current = prev[type] || 0;
-      const newIndex = direction === 'next'
-        ? (current + 1) % variationCount
-        : (current - 1 + variationCount) % variationCount;
-      
-      return { ...prev, [type]: newIndex };
-    });
+    // Use index 0 as default since we don't have is_primary property
+    const currentVariation = 0;
+    const newIndex = direction === 'next'
+      ? (currentVariation + 1) % variationCount
+      : (currentVariation - 1 + variationCount) % variationCount;
     
-    if (song?.variations?.[currentVariation[type] || 0]?.audio_url) {
-      playAudio(song.variations[currentVariation[type] || 0].audio_url);
+    if (song?.variations?.[newIndex]?.audio_url) {
+      playAudio(song.variations[newIndex].audio_url);
     }
-  }, [songs, currentVariation, playAudio]);
+  }, [songs, playAudio]);
 
   return {
     songs: presetSongs, // Return only preset songs
     handlePresetClick,
     handlePlay,
-    handleVariationChange,
-    currentVariation,
-    localGeneratingTypes
+    handleVariationChange
   };
 }

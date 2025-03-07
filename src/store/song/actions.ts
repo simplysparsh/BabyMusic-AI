@@ -7,6 +7,7 @@
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../authStore';
 import { SongService } from '../../services/songService';
+import { SongStateService } from '../../services/songStateService';
 import type { Song, PresetType } from '../../types';
 import type { SongState, CreateSongParams } from './types';
 import { songAdapter } from '../../utils/songAdapter';
@@ -54,17 +55,25 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         }
       }
 
+      // Update generating songs based on SongStateService
+      const updatedGeneratingSongs = new Set<string>();
+      songsData?.forEach(song => {
+        if (SongStateService.isGenerating(song as Song)) {
+          updatedGeneratingSongs.add(song.id);
+        }
+      });
+
       console.log('State reconciliation:', {
         dbSongs: songsData?.length || 0,
         previousGenerating: get().generatingSongs.size,
-        newGenerating: newGeneratingSongs.size,
+        newGenerating: updatedGeneratingSongs.size,
         previousTaskIds: get().processingTaskIds.size,
         newTaskIds: newProcessingTaskIds.size
       });
       
       set({ 
         songs: songsData as Song[] || [],
-        generatingSongs: newGeneratingSongs,
+        generatingSongs: updatedGeneratingSongs,
         processingTaskIds: newProcessingTaskIds,
         stagedTaskIds: newStagedTaskIds
       });
@@ -115,10 +124,9 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         console.log(`Found ${existingSongs.length} existing songs for preset type ${currentPresetType}`);
         
         // Check if any are currently generating
-        // Use songAdapter for consistent property access
+        // Use SongStateService for consistent state management
         const isGenerating = existingSongs.some(song => 
-          !songAdapter.getAudioUrl(song) && !song.error ||
-          get().generatingSongs.has(song.id)
+          SongStateService.isGenerating(song)
         );
         
         if (isGenerating) {

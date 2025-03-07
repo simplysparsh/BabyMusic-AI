@@ -15,9 +15,7 @@ import type {
 } from '../types';
 
 // Define the timeout duration for song generation (4 minutes in milliseconds)
-const SONG_GENERATION_TIMEOUT = 4 * 60 * 1000; // 4 minutes
-// Define a longer timeout for retries (6 minutes in milliseconds)
-const RETRY_GENERATION_TIMEOUT = 6 * 60 * 1000; // 6 minutes
+const SONG_GENERATION_TIMEOUT = 4 * 60 * 1000; // 4 minutes for all song generation
 
 export class SongService {
   // Map to store timeout IDs for each song
@@ -27,13 +25,13 @@ export class SongService {
    * Sets a timeout for song generation
    * @param songId The ID of the song to set a timeout for
    */
-  private static setSongGenerationTimeout(songId: string, isRetry: boolean = false): void {
+  private static setSongGenerationTimeout(songId: string): void {
     // Clear any existing timeout for this song
     this.clearSongGenerationTimeout(songId);
     
-    // Set a new timeout with longer duration for retries
-    const timeoutDuration = isRetry ? RETRY_GENERATION_TIMEOUT : SONG_GENERATION_TIMEOUT;
-    const timeoutMinutes = isRetry ? 6 : 4;
+    // Use the standard timeout duration
+    const timeoutDuration = SONG_GENERATION_TIMEOUT;
+    const timeoutMinutes = 4;
     
     const timeoutId = setTimeout(async () => {
       console.log(`Song generation timeout reached for song ${songId} after ${timeoutMinutes} minutes`);
@@ -62,17 +60,17 @@ export class SongService {
     // Store the timeout ID
     this.timeoutIds.set(songId, timeoutId);
     
-    // Set up a subscription to clear the timeout if the song gets an audio URL
-    this.setupAudioUrlListener(songId);
+    // Set up a subscription to clear the timeout if the song gets an audio URL or error
+    this.setupSongStateListener(songId);
   }
   
   /**
-   * Sets up a listener to clear the timeout when a song gets an audio URL
+   * Sets up a listener to clear the timeout when a song gets an audio URL or error
    * @param songId The ID of the song to listen for
    */
-  private static setupAudioUrlListener(songId: string): void {
+  private static setupSongStateListener(songId: string): void {
     const subscription = supabase
-      .channel(`song-audio-url-${songId}`)
+      .channel(`song-state-${songId}`)
       .on(
         'postgres_changes',
         {
@@ -84,9 +82,9 @@ export class SongService {
         (payload) => {
           const updatedSong = payload.new as Song;
           
-          // If the song now has an audio URL, clear the timeout
-          if (updatedSong.audio_url) {
-            console.log(`Song ${songId} received audio URL, clearing timeout`);
+          // If the song now has an audio URL or an error, clear the timeout
+          if (updatedSong.audio_url || updatedSong.error) {
+            console.log(`Song ${songId} received audio URL or error, clearing timeout`);
             this.clearSongGenerationTimeout(songId);
             
             // Unsubscribe from further updates
@@ -446,8 +444,8 @@ export class SongService {
         console.error('Failed to update song with new task ID:', taskUpdateError);
       }
       
-      // Set a timeout for the retry with a longer duration
-      this.setSongGenerationTimeout(songId, true);
+      // Set a timeout for the retry using the standard timeout duration
+      this.setSongGenerationTimeout(songId);
       
       return {
         ...song,

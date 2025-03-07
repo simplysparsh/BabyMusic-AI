@@ -269,7 +269,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Set user state immediately
       set({ user: data.user });
 
-      // Check if profile already exists
+      // Check if profile already exists (it shouldn't, but check just in case)
       const { data: existingProfile, error: queryError } = await supabase
         .from('profiles')
         .select('*')
@@ -283,6 +283,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       // If profile doesn't exist, create it
       if (!existingProfile) {
+        console.log('Creating new profile for user:', data.user.id);
         const { error: insertError } = await supabase
           .from('profiles')
           .insert([{ 
@@ -296,11 +297,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           }]);
           
         if (insertError) {
-          // Log error but don't throw
           console.error('Error creating profile:', insertError);
+          // Try to get more details about the error
+          if (insertError.details) {
+            console.error('Error details:', insertError.details);
+          }
+          if (insertError.hint) {
+            console.error('Error hint:', insertError.hint);
+          }
+          // Don't throw, but log the error
         }
       } else {
         // If profile exists, update it
+        console.log('Profile already exists, updating it:', existingProfile.id);
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ 

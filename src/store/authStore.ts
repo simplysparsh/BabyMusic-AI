@@ -130,6 +130,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const errorStore = useErrorStore.getState();
     const currentProfile = get().profile;
 
+    console.log('Starting profile update with data:', {
+      newBabyName,
+      preferredLanguage,
+      birthMonth,
+      birthYear,
+      ageGroup,
+      gender
+    });
+
     errorStore.clearError();
 
     if (!newBabyName) {
@@ -142,6 +151,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('Baby name is required');
       }
 
+      // Ensure gender is explicitly passed
       const updatedProfile = await ProfileService.updateProfile({
         userId: user.id,
         babyName: trimmedNewName,
@@ -151,6 +161,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         ageGroup,
         gender
       });
+
+      console.log('Profile updated successfully:', updatedProfile);
 
       // Update profile state immediately
       set({ profile: updatedProfile });
@@ -209,9 +221,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       console.log('Starting signup process...');
       
-      // Verify Supabase client has API key
-      if (!supabase.supabaseKey) {
-        console.error('Supabase client missing API key');
+      // Verify Supabase client is configured
+      if (!supabase) {
+        console.error('Supabase client not initialized');
         throw new Error('Authentication service configuration error. Please try again later.');
       }
       
@@ -293,7 +305,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             created_at: new Date().toISOString(),
             preset_songs_generated: true,
             preferred_language: DEFAULT_LANGUAGE,
-            gender: null // Set default gender to null, user will provide during onboarding
+            gender: undefined // Set default gender to undefined, user will provide during onboarding
           }]);
           
         if (insertError) {
@@ -343,7 +355,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           lastGenerationDate: new Date(),
           babyName: babyName.trim(),
           preferredLanguage: DEFAULT_LANGUAGE,
-          gender: null // Set default gender to null, user will provide during onboarding
+          gender: undefined // Set default gender to undefined, user will provide during onboarding
         }
       });
     } catch (error) {

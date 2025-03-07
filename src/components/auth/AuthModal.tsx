@@ -19,10 +19,11 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [signupComplete, setSignupComplete] = useState(false);
   const [step, setStep] = useState<'credentials' | 'babyNameFirst' | 'babyName' | 'creatingAccount'>(
     isSignIn ? 'credentials' : 'babyNameFirst'
   );
-  const { signIn, signUp } = useAuthStore();
+  const { signIn, signUp, profile } = useAuthStore();
 
   useEffect(() => {
     if (isOpen) {
@@ -33,8 +34,17 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
       setBabyName('');
       setError('');
       setBabyNameError('');
+      setSignupComplete(false);
     }
   }, [isOpen, defaultMode]);
+
+  // Ensure onboarding is shown after successful signup
+  useEffect(() => {
+    if (signupComplete && profile && !profile.gender) {
+      console.log('Profile loaded after signup, showing onboarding modal');
+      setShowOnboarding(true);
+    }
+  }, [signupComplete, profile]);
 
   if (!isOpen) return null;
 
@@ -93,9 +103,13 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
     }
     
     try {
+      console.log('Starting signup process...');
       await signUp(trimmedEmail, password, trimmedBabyName);
+      console.log('Signup successful, showing onboarding modal...');
+      setSignupComplete(true);
       setShowOnboarding(true);
     } catch (err) {
+      console.error('Signup error:', err);
       const message = err instanceof Error ? err.message : 'An error occurred';
       setError(
         message.includes('already registered') 
@@ -109,6 +123,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
   };
 
   const handleOnboardingComplete = (_babyProfile: BabyProfile) => {
+    console.log('Onboarding complete, closing modals...');
     setShowOnboarding(false);
     onClose();
   };
@@ -125,6 +140,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
   };
 
   if (showOnboarding) {
+    console.log('Rendering OnboardingModal with babyName:', babyName.trim());
     return (
       <OnboardingModal
         isOpen={true}

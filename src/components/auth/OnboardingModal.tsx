@@ -44,6 +44,7 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
 
   useEffect(() => {
     if (isOpen) {
+      console.log('OnboardingModal opened with initialBabyName:', initialBabyName);
       setStep(1);
       setIsUpdating(false);
       setBabyName(initialBabyName);
@@ -63,6 +64,7 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
       setError("Please select your baby's gender");
       return;
     }
+    console.log('Moving to step 2 with gender:', gender);
     setError(null);
     setStep(2);
   };
@@ -74,17 +76,26 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
     }
     
     try {
-      setIsUpdating(true);
-      setError(null);
-      
-      // Update profile with birth data
-      await updateProfile({
+      console.log('Completing onboarding with data:', {
         babyName,
         birthMonth,
         birthYear,
         ageGroup: getAgeGroup(birthMonth, birthYear),
         gender
       });
+      setIsUpdating(true);
+      setError(null);
+      
+      // Update profile with birth data
+      const updatedProfile = await updateProfile({
+        babyName,
+        birthMonth,
+        birthYear,
+        ageGroup: getAgeGroup(birthMonth, birthYear),
+        gender
+      });
+      
+      console.log('Profile updated successfully:', updatedProfile);
       
       // Call onComplete with profile data
       onComplete({

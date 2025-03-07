@@ -228,6 +228,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (error) {
         console.error('Supabase signup error:', error);
+        
+        // Handle specific error types
+        if (error.message.includes('Database error saving new user')) {
+          console.log('Attempting to check if user already exists...');
+          
+          // Try to sign in with the provided credentials to check if user exists
+          try {
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email: email.trim().toLowerCase(),
+              password
+            });
+            
+            if (!signInError && signInData.user) {
+              console.log('User already exists, signing in instead');
+              set({ user: signInData.user });
+              await get().loadProfile();
+              set({ initialized: true });
+              return;
+            } else {
+              console.log('User does not exist, this is a different database error');
+              throw new Error('Unable to create account due to a database error. Please try again later.');
+            }
+          } catch (signInErr) {
+            console.error('Error checking if user exists:', signInErr);
+            throw new Error('Unable to create account. The email might already be in use or there was a database error.');
+          }
+        }
+        
         throw error;
       }
       

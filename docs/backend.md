@@ -6,12 +6,22 @@ The Baby Music AI backend is powered by Supabase, an open-source Firebase altern
 
 Supabase provides a PostgreSQL database for storing application data. The database schema for Baby Music AI includes the following main tables:
 
-- `users`: Stores user information, such as email, name, and authentication details.
-- `songs`: Stores information about generated songs, including the user ID, song name, audio URL, and creation date.
-- `song_variations`: Stores variations of generated songs, linked to the main song via a foreign key.
-- `presets`: Stores preset song templates for specific moments, such as playtime or bedtime.
+### Core Tables
 
-The database also includes additional tables for managing user preferences, favorites, and other application-specific data.
+- `profiles`: Stores user profile information, such as email, name, and authentication details.
+- `songs`: Stores information about generated songs, including the user ID, song name, audio URL, task ID, error (if any), and creation date.
+- `song_variations`: Stores variations of generated songs, linked to the main song via a foreign key. Contains audio URLs and metadata for each variation.
+
+### Supporting Tables
+
+- `song_generations`: Tracks the generation process of songs, including start time, completion time, and any errors that occur during generation.
+- `lyric_generation_errors`: Logs errors that occur during lyric generation, including error messages and context (theme, mood, preset type). Used for monitoring and improving the lyric generation service.
+
+The database schema is designed to support:
+- User authentication and profile management
+- Song generation and variation tracking
+- Error logging and monitoring
+- Real-time updates via Supabase's built-in change notification system
 
 ## Authentication
 
@@ -20,7 +30,7 @@ Supabase provides a built-in authentication system that supports various authent
 The authentication flow works as follows:
 
 1. Users register with their email and password.
-2. Supabase creates a new user record in the `users` table and sends a confirmation email.
+2. Supabase creates a new user record and profile, and sends a confirmation email.
 3. Users confirm their email address by clicking the confirmation link.
 4. Users log in with their email and password, and Supabase returns a JSON Web Token (JWT) that can be used to authenticate subsequent requests.
 
@@ -30,7 +40,7 @@ The frontend stores the JWT in local storage and includes it in the `Authorizati
 
 Supabase provides a storage service for storing and serving user-generated content, such as audio files. Baby Music AI uses this service to store generated song audio files.
 
-When a song is generated, the audio file is uploaded to Supabase storage, and the URL of the file is stored in the `songs` table. The frontend can then retrieve the audio URL from the database and use it to play the song or provide download links.
+When a song is generated, the audio file is uploaded to Supabase storage, and the URL of the file is stored in the `songs` or `song_variations` table. The frontend can then retrieve the audio URL from the database and use it to play the song or provide download links.
 
 ## API Endpoints
 
@@ -39,7 +49,6 @@ The backend exposes a set of API endpoints for interacting with the application 
 The main API endpoints include:
 
 - `/api/songs`: Handles song generation requests, retrieves song lists, and manages song metadata.
-- `/api/presets`: Retrieves preset song templates and manages preset data.
 - `/api/auth`: Handles user registration, login, and authentication-related tasks.
 
 The API endpoints are secured using JWT authentication, and the Edge Functions verify the JWT before processing the request.

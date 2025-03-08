@@ -12,8 +12,8 @@ interface AudioClip {
 }
 
 const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET')
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
 console.log('Edge Function started:', {
   hasWebhookSecret: !!WEBHOOK_SECRET,
@@ -129,8 +129,7 @@ serve(async (req) => {
           .update({ 
             audio_url: clip.audio_url,
             error: null,
-            status: 'completed',
-            task_id: null
+            task_id: null // Clear task_id to indicate it's no longer in the queue
           })
           .eq('id', songs.id)
           .eq('task_id', task_id.toString());
@@ -142,7 +141,7 @@ serve(async (req) => {
         console.log('Successfully processed song and variations:', {
           songId: songs.id,
           taskId: task_id,
-          status: 'completed'
+          state: 'completed'
         });
       }
     }
@@ -173,8 +172,7 @@ serve(async (req) => {
           error: errorMsg,
           retryable,
           audio_url: null,
-          status: 'failed',
-          task_id: null
+          task_id: null // Clear task_id to indicate it's no longer in the queue
         })
         .eq('id', songs.id)
         .eq('task_id', task_id.toString());

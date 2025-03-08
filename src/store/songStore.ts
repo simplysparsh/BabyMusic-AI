@@ -22,7 +22,7 @@ export const useSongStore = create<SongState>((set, get) => {
     generatingSongs: new Set<string>(),
     retryingSongs: new Set<string>(),
     processingTaskIds: new Set<string>(),
-    stagedTaskIds: new Set<string>(),
+    queuedTaskIds: new Set<string>(),
     isDeleting: false,
     error: null,
 

@@ -34,7 +34,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       const existingSongIds = new Set((songsData || []).map(song => song.id));
       const newGeneratingSongs = new Set([...get().generatingSongs].filter(id => existingSongIds.has(id)));
       const newProcessingTaskIds = new Set([...get().processingTaskIds]);
-      const newStagedTaskIds = new Set([...get().stagedTaskIds]);
+      const newQueuedTaskIds = new Set([...get().queuedTaskIds]);
       
       // Remove task IDs associated with songs that don't exist
       songsData?.forEach(song => {
@@ -51,7 +51,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         const songExists = songsData?.some(song => song.task_id === taskId);
         if (!songExists) {
           newProcessingTaskIds.delete(taskId);
-          newStagedTaskIds.delete(taskId);
+          newQueuedTaskIds.delete(taskId);
         }
       }
 
@@ -75,7 +75,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         songs: songsData as Song[] || [],
         generatingSongs: updatedGeneratingSongs,
         processingTaskIds: newProcessingTaskIds,
-        stagedTaskIds: newStagedTaskIds
+        queuedTaskIds: newQueuedTaskIds
       });
     } catch (error) {
       console.error('Error loading songs:', error);
@@ -257,7 +257,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         songs: [], 
         generatingSongs: new Set(),
         processingTaskIds: new Set(),
-        stagedTaskIds: new Set()
+        queuedTaskIds: new Set()
       });
     } catch (error) {
       console.error('Error deleting songs:', error);
@@ -341,7 +341,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       set({
         generatingSongs: new Set(),
         processingTaskIds: new Set(),
-        stagedTaskIds: new Set()
+        queuedTaskIds: new Set()
       });
       
       console.log('Successfully reset generating state');

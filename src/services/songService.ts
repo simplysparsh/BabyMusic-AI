@@ -258,6 +258,18 @@ export class SongService {
         songId: song.id
       });
       
+      // Update the song with the task ID
+      const { error: updateError } = await supabase
+        .from('songs')
+        .update({
+          task_id: taskId
+        })
+        .eq('id', song.id);
+      
+      if (updateError) {
+        console.error('Failed to update song with task ID:', updateError);
+      }
+      
       // Set a timeout for this song generation
       this.setSongGenerationTimeout(song.id);
     } catch (error) {
@@ -269,7 +281,10 @@ export class SongService {
       throw error;
     }
 
-    return song;
+    return {
+      ...song,
+      task_id: taskId
+    } as Song;
   }
 
   static async loadUserSongs(userId: string): Promise<Song[]> {
@@ -385,13 +400,10 @@ export class SongService {
       
       // Update the song with the error
       try {
-        await supabase
-          .from('songs')
-          .update({
-            error: 'Failed to retry song generation. Please try again later.',
-            retryable: true
-          })
-          .eq('id', songId);
+        await SongStateService.updateSongWithError(
+          songId, 
+          'Failed to retry song generation. Please try again later.'
+        );
       } catch (updateError) {
         console.error('Failed to update song with retry error:', updateError);
       }

@@ -14,7 +14,7 @@ export interface SongState {
   generatingSongs: Set<string>;
   retryingSongs: Set<string>;
   processingTaskIds: Set<string>;
-  stagedTaskIds: Set<string>;
+  queuedTaskIds: Set<string>; // Tasks that are in the queue (have task_id, no audio_url, no error)
   isDeleting: boolean;
   error: string | null;
 

@@ -17,6 +17,11 @@ interface SongErrorObject {
  * 
  * This service establishes a single source of truth for song state by relying
  * exclusively on song entities and their properties.
+ * 
+ * The song state model is simplified to three states:
+ * 1. Generating: Song has a task_id, no audio_url, and no error
+ * 2. Completed: Song has an audio_url
+ * 3. Failed: Song has an error
  */
 export class SongStateService {
   /**
@@ -26,13 +31,13 @@ export class SongStateService {
   static isGenerating(song: Song | undefined): boolean {
     if (!song) return false;
     
-    // If the song has an audio URL, it's not generating
-    if (song.audio_url) {
+    // If the song has an error, it's not generating (error overrides everything)
+    if (song.error) {
       return false;
     }
     
-    // If the song has an error, it's not generating
-    if (song.error) {
+    // If the song has an audio URL, it's not generating
+    if (song.audio_url) {
       return false;
     }
     
@@ -56,8 +61,8 @@ export class SongStateService {
       return false;
     }
     
-    // A song is generating if it has no audio_url, no error, and is not retryable
-    return true;
+    // A song is generating if it has a task_id, no audio_url, and no error
+    return !!song.task_id;
   }
   
   /**
@@ -70,7 +75,7 @@ export class SongStateService {
         .update({
           error: errorMessage,
           retryable: true,
-          status: 'failed'
+          task_id: null // Clear task_id to indicate it's no longer in the queue
         })
         .eq('id', songId);
         
@@ -133,6 +138,11 @@ export class SongStateService {
   static hasFailed(song: Song | undefined): boolean {
     if (!song) return false;
     
+    // If the song has an error, it has failed (error overrides everything)
+    if (song.error) {
+      return true;
+    }
+    
     // If the song is marked as retryable, it has failed (even if error is null)
     if (song.retryable && !song.audio_url) {
       // If there's no error message but retryable is true, this is an inconsistent state
@@ -142,21 +152,6 @@ export class SongStateService {
         this.updateSongWithError(song.id, "Generation failed. Please try again.");
       }
       return true;
-    }
-    
-    // A song has failed if it has no audio_url and has an error
-    if (!song.audio_url && song.error) {
-      // Handle error as object with code property
-      if (typeof song.error === 'object' && song.error !== null) {
-        // Type guard to check if errorObj has a code property
-        if ('code' in song.error) {
-          const errorObj = song.error as SongErrorObject;
-          return errorObj.code !== 0;
-        }
-        return false;
-      }
-      // Handle error as string
-      return !!song.error;
     }
     
     return false;
@@ -216,7 +211,7 @@ export class SongStateService {
    */
   static canRetry(song: Song | undefined): boolean {
     if (!song) return false;
-    return !!song.error && !!song.retryable && !song.audio_url;
+    return this.hasFailed(song) && !!song.retryable;
   }
 
   /**
@@ -385,13 +380,13 @@ export class SongStateService {
   }
 
   /**
-   * Determines if a song is in the staged state
-   * This is used for tracking staged tasks in the subscription handler
+   * Determines if a song is in the queue
+   * This is used for tracking tasks in the subscription handler
    */
-  static isStaged(song: Song | undefined): boolean {
+  static isInQueue(song: Song | undefined): boolean {
     if (!song) return false;
     
-    // A song is staged if it has a status of 'staged' and a task_id
-    return song.status === 'staged' && !!song.task_id;
+    // A song is in the queue if it has a task_id, no audio_url, and no error
+    return !!song.task_id && !song.audio_url && !song.error;
   }
 }

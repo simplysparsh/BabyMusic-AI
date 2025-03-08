@@ -16,7 +16,6 @@ interface SongPayload {
   error?: string | null;
   audio_url?: string | null;
   task_id?: string;
-  status?: string;
   user_id: string;
 }
 
@@ -33,9 +32,9 @@ export async function handleSongUpdate(
   // Log for debugging
   console.log(`Song update for ${newSong.name}:`, {
     song_type: newSong.song_type,
-    status: newSong.status,
     audioUrl: !!newSong.audio_url,
-    error: !!newSong.error
+    error: !!newSong.error,
+    task_id: newSong.task_id
   });
 
   // Track task IDs for processing state
@@ -45,10 +44,10 @@ export async function handleSongUpdate(
     });
   }
 
-  // Handle staged tasks
-  if (SongStateService.isStaged(newSong as unknown as Song) && newSong.task_id && !get().stagedTaskIds.has(newSong.task_id)) {
+  // Handle songs in queue
+  if (SongStateService.isInQueue(newSong as unknown as Song) && newSong.task_id && !get().queuedTaskIds.has(newSong.task_id)) {
     set({
-      stagedTaskIds: new Set([...get().stagedTaskIds, newSong.task_id])
+      queuedTaskIds: new Set([...get().queuedTaskIds, newSong.task_id])
     });
   }
 

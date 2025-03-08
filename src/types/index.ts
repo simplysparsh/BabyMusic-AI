@@ -48,7 +48,6 @@ export interface Song {
   task_id?: string;
   song_type?: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
   preset_type?: PresetType;
-  status?: 'pending' | 'generating' | 'staged' | 'completed' | 'failed';
 }
 
 export interface SongVariation {

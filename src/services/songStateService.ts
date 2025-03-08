@@ -3,6 +3,7 @@ import type {
   PresetType
 } from '../types';
 import { supabase } from '../lib/supabase';
+import { TimeoutService } from './timeoutService';
 
 // Define a type for the error object structure
 interface SongErrorObject {
@@ -25,24 +26,38 @@ export class SongStateService {
   static isGenerating(song: Song | undefined): boolean {
     if (!song) return false;
     
-    // If the song has an audio URL or error, it's not generating
-    if (song.audio_url || song.error) {
+    // If the song has an audio URL, it's not generating
+    if (song.audio_url) {
       return false;
     }
     
-    // Check if the song has been stuck for too long (more than 5 minutes)
-    const createdAt = new Date(song.createdAt).getTime();
-    const now = Date.now();
-    const fiveMinutesInMs = 5 * 60 * 1000;
+    // If the song has an error, it's not generating
+    if (song.error) {
+      return false;
+    }
     
-    if (now - createdAt > fiveMinutesInMs) {
+    // If the song is marked as retryable, it's not generating (even if error is null)
+    // This handles the inconsistent state where retryable is true but error is null
+    if (song.retryable) {
+      // Log this inconsistent state for debugging
+      console.warn(`Song ${song.id} has retryable: true but error: null - treating as failed`);
+      
+      // Try to fix this inconsistent state
+      this.updateSongWithError(song.id, "Generation failed. Please try again.");
+      return false;
+    }
+    
+    // Check if the song has been stuck for too long (more than the timeout duration)
+    // This is a fallback check in case the timeout didn't fire for some reason
+    if (TimeoutService.hasSongTimedOut(song)) {
       // Song has been stuck for too long, mark as not generating
+      console.log(`Song ${song.id} has been stuck for too long, marking as failed`);
       this.updateSongWithError(song.id, "Generation took too long. Please try again.");
       return false;
     }
     
-    // A song is generating if it has no audio_url and no error
-    return !song.audio_url && !song.error;
+    // A song is generating if it has no audio_url, no error, and is not retryable
+    return true;
   }
   
   /**
@@ -54,7 +69,8 @@ export class SongStateService {
         .from('songs')
         .update({
           error: errorMessage,
-          retryable: true
+          retryable: true,
+          status: 'failed'
         })
         .eq('id', songId);
         
@@ -117,6 +133,17 @@ export class SongStateService {
   static hasFailed(song: Song | undefined): boolean {
     if (!song) return false;
     
+    // If the song is marked as retryable, it has failed (even if error is null)
+    if (song.retryable && !song.audio_url) {
+      // If there's no error message but retryable is true, this is an inconsistent state
+      if (!song.error) {
+        console.warn(`Song ${song.id} has retryable: true but error: null - treating as failed`);
+        // Try to fix this inconsistent state
+        this.updateSongWithError(song.id, "Generation failed. Please try again.");
+      }
+      return true;
+    }
+    
     // A song has failed if it has no audio_url and has an error
     if (!song.audio_url && song.error) {
       // Handle error as object with code property
@@ -159,7 +186,7 @@ export class SongStateService {
         // Check for artist name error in raw_message
         if (errorObj.raw_message && typeof errorObj.raw_message === 'string') {
           if (errorObj.raw_message.includes('Tags contained artist name:')) {
-            return 'The song failed to generate because the tags contained an artist name. Please provide an alternative spelling for the artist name.';
+            return 'Song generation failed: song contained an artist name. Provide an alternative spelling for baby name via settings.';
           }
         }
       }
@@ -262,6 +289,7 @@ export class SongStateService {
     variationCount: number;
     statusLabel: string;
     isPresetSong: boolean;
+    isCompleted: boolean;
   } {
     // Determine state based on song properties
     const isGenerating = this.isGenerating(song);
@@ -272,6 +300,7 @@ export class SongStateService {
     const variationCount = this.getVariationCount(song);
     const isPresetSong = this.isPresetSong(song);
     const statusLabel = this.getStatusLabel(song, isGenerating);
+    const isCompleted = this.isCompleted(song);
 
     return {
       isGenerating,
@@ -281,7 +310,8 @@ export class SongStateService {
       hasVariations,
       variationCount,
       statusLabel,
-      isPresetSong
+      isPresetSong,
+      isCompleted
     };
   }
 
@@ -301,6 +331,7 @@ export class SongStateService {
     variationCount: number;
     statusLabel: string;
     song: Song | undefined;
+    isCompleted: boolean;
   } {
     // Find the most relevant song for this preset type
     const song = this.getSongForPresetType(songs, presetType);
@@ -317,6 +348,7 @@ export class SongStateService {
     const hasVariations = this.hasVariations(song);
     const variationCount = this.getVariationCount(song);
     const statusLabel = this.getStatusLabel(song, isGenerating);
+    const isCompleted = this.isCompleted(song);
 
     return {
       isGenerating,
@@ -326,8 +358,20 @@ export class SongStateService {
       hasVariations,
       variationCount,
       statusLabel,
-      song
+      song,
+      isCompleted
     };
+  }
+
+  /**
+   * Determines if a song is completed
+   * This is the single source of truth for completion state
+   */
+  static isCompleted(song: Song | undefined): boolean {
+    if (!song) return false;
+    
+    // A song is completed if it has an audio URL
+    return !!song.audio_url;
   }
 
   /**
@@ -338,5 +382,16 @@ export class SongStateService {
     
     // A song is retryable if it has failed and has the retryable flag set
     return this.hasFailed(song) && !!song.retryable;
+  }
+
+  /**
+   * Determines if a song is in the staged state
+   * This is used for tracking staged tasks in the subscription handler
+   */
+  static isStaged(song: Song | undefined): boolean {
+    if (!song) return false;
+    
+    // A song is staged if it has a status of 'staged' and a task_id
+    return song.status === 'staged' && !!song.task_id;
   }
 }

@@ -7,6 +7,7 @@ import type { Song } from '../../../types';
 import type { SongState } from '../types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { songAdapter } from '../../../utils/songAdapter';
+import { SongStateService } from '../../../services/songStateService';
 
 interface SongPayload {
   id: string;
@@ -45,7 +46,7 @@ export async function handleSongUpdate(
   }
 
   // Handle staged tasks
-  if (newSong.status === 'staged' && newSong.task_id && !get().stagedTaskIds.has(newSong.task_id)) {
+  if (SongStateService.isStaged(newSong as unknown as Song) && newSong.task_id && !get().stagedTaskIds.has(newSong.task_id)) {
     set({
       stagedTaskIds: new Set([...get().stagedTaskIds, newSong.task_id])
     });
@@ -88,8 +89,7 @@ export async function handleSongUpdate(
   }
 
   // Clear generating state when song is complete or has error
-  if (songAdapter.isAudioReady(updatedSong) || updatedSong.error || 
-      updatedSong.status === 'failed' || updatedSong.status === 'completed') {
+  if (SongStateService.isCompleted(updatedSong) || SongStateService.hasFailed(updatedSong)) {
     const newGenerating = new Set(get().generatingSongs);
     newGenerating.delete(updatedSong.id);
 

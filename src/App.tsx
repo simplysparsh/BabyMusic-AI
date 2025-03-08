@@ -6,6 +6,8 @@ import { useEffect, useState, Suspense } from 'react';
 import { useAuthStore } from './store/authStore'; 
 import { useSongStore } from './store/songStore';
 import { useResetGenerating } from './hooks/useResetGenerating';
+import { SongStateService } from './services/songStateService';
+import { TimeoutService } from './services/timeoutService';
 
 function App() {
   const { user, initialized } = useAuthStore();
@@ -44,6 +46,9 @@ function App() {
     if (user && hasStuckSongs) {
       const checkStuckSongs = async () => {
         try {
+          // Check for and fix inconsistent song states
+          await TimeoutService.checkAndFixInconsistentStates();
+          
           // This will reconcile UI state with database state
           await loadSongs();
           

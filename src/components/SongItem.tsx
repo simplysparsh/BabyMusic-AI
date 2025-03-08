@@ -6,6 +6,7 @@ import { useSongAdapter } from '../utils/songAdapter';
 import { useSongStore } from '../store/songStore';
 import { SongService } from '../services/songService';
 import { useAuthStore } from '../store/authStore';
+import SongGenerationTimer from './common/SongGenerationTimer';
 
 interface SongItemProps {
   song: Song;
@@ -47,7 +48,7 @@ export default function SongItem({
   );
 
   // Additional check for completed status
-  const isCompleted = song.status === 'completed' || !!song.audio_url;
+  const isCompleted = SongStateService.isCompleted(song);
 
   // Check if the song is currently being retried
   const isRetrying = retryingSongs.has(song.id);
@@ -178,9 +179,17 @@ export default function SongItem({
             }`}></div>
           </div>
           <div className="flex items-center justify-between mt-1">
-            <p className={`text-xs text-white/60 ${hasFailed ? '!text-red-400' : ''}`}>
-              {isGenerating ? 'Generating...' : (isCompleted ? 'Ready to play' : (song.error || 'Processing...'))}
-            </p>
+            {isGenerating ? (
+              <SongGenerationTimer 
+                isGenerating={isGenerating} 
+                showProgress={false}
+                className="w-full"
+              />
+            ) : (
+              <p className={`text-xs text-white/60 ${hasFailed ? '!text-red-400' : ''}`}>
+                {isCompleted ? 'Ready to play' : (song.error || 'Processing...')}
+              </p>
+            )}
             {isRetryable && (
               <button
                 onClick={handleRetry}

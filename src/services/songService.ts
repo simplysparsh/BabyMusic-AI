@@ -13,98 +13,26 @@ import type {
   AgeGroup,
   MusicGenerationParams
 } from '../types';
-
-// Define the timeout duration for song generation (4 minutes in milliseconds)
-const SONG_GENERATION_TIMEOUT = 4 * 60 * 1000; // 4 minutes for all song generation
+import { SongStateService } from '../services/songStateService';
+import { TimeoutService, SONG_TIMEOUT_DURATION } from '../services/timeoutService';
 
 export class SongService {
-  // Map to store timeout IDs for each song
-  private static timeoutIds: Map<string, NodeJS.Timeout> = new Map();
-
   /**
    * Sets a timeout for song generation
    * @param songId The ID of the song to set a timeout for
    */
   private static setSongGenerationTimeout(songId: string): void {
-    // Clear any existing timeout for this song
-    this.clearSongGenerationTimeout(songId);
-    
-    // Use the standard timeout duration
-    const timeoutDuration = SONG_GENERATION_TIMEOUT;
-    const timeoutMinutes = 4;
-    
-    const timeoutId = setTimeout(async () => {
-      console.log(`Song generation timeout reached for song ${songId} after ${timeoutMinutes} minutes`);
-      
-      try {
-        // Update the song with a timeout error
-        const { error } = await supabase
-          .from('songs')
-          .update({
-            error: `Song generation timed out after ${timeoutMinutes} minutes. Please try again.`,
-            retryable: true
-          })
-          .eq('id', songId);
-          
-        if (error) {
-          console.error('Failed to update song with timeout error:', error);
-        }
-      } catch (err) {
-        console.error('Error handling song generation timeout:', err);
-      } finally {
-        // Clean up the timeout reference
-        this.timeoutIds.delete(songId);
-      }
-    }, timeoutDuration);
-    
-    // Store the timeout ID
-    this.timeoutIds.set(songId, timeoutId);
-    
-    // Set up a subscription to clear the timeout if the song gets an audio URL or error
-    this.setupSongStateListener(songId);
+    // Use the centralized timeout handling in TimeoutService
+    TimeoutService.setSongGenerationTimeout(songId);
   }
   
-  /**
-   * Sets up a listener to clear the timeout when a song gets an audio URL or error
-   * @param songId The ID of the song to listen for
-   */
-  private static setupSongStateListener(songId: string): void {
-    const subscription = supabase
-      .channel(`song-state-${songId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'songs',
-          filter: `id=eq.${songId}`
-        },
-        (payload) => {
-          const updatedSong = payload.new as Song;
-          
-          // If the song now has an audio URL or an error, clear the timeout
-          if (updatedSong.audio_url || updatedSong.error) {
-            console.log(`Song ${songId} received audio URL or error, clearing timeout`);
-            this.clearSongGenerationTimeout(songId);
-            
-            // Unsubscribe from further updates
-            subscription.unsubscribe();
-          }
-        }
-      )
-      .subscribe();
-  }
-
   /**
    * Clears a song generation timeout
    * @param songId The ID of the song to clear the timeout for
    */
   private static clearSongGenerationTimeout(songId: string): void {
-    const timeoutId = this.timeoutIds.get(songId);
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      this.timeoutIds.delete(songId);
-    }
+    // Use the centralized timeout handling in TimeoutService
+    TimeoutService.clearSongGenerationTimeout(songId);
   }
 
   static async regeneratePresetSongs(userId: string, babyName: string, isSilent: boolean = false) {

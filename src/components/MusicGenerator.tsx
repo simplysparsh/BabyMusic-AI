@@ -9,9 +9,9 @@ import CustomOptions from './music-generator/CustomOptions';
 import LyricsInput from './music-generator/LyricsInput';
 import GenerationProgress from './music-generator/GenerationProgress';
 import { SongPromptService } from '../services/songPromptService';
+import { useSongGenerationTimer } from '../hooks/useSongGenerationTimer';
 
 type TabType = 'themes' | 'fromScratch';
-const GENERATION_TIME = 240; // 4 minutes in seconds
 
 export default function MusicGenerator() {
   const [activeTab, setActiveTab] = useState<TabType>('themes');
@@ -23,29 +23,15 @@ export default function MusicGenerator() {
     voice: 'softFemale' as VoiceType
   });
   const [userInput, setUserInput] = useState('');
-  const [timeLeft, setTimeLeft] = useState(GENERATION_TIME);
   const [error, setError] = useState<string | null>(null);
   const [songType, setSongType] = useState<'preset' | 'theme' | 'theme-with-input' | 'from-scratch'>('theme');
   
   const { createSong, generatingSongs } = useSongStore();
   const { user } = useAuthStore();
   const isGenerating = generatingSongs.size > 0;
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setInterval>;
-    if (isGenerating) {
-      // Reset timer when starting generation
-      setTimeLeft(GENERATION_TIME);
-      timer = setInterval(() => {
-        setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-      }, 1000);
-    }
-    return () => {
-      if (timer) {
-        clearInterval(timer);
-      }
-    };
-  }, [isGenerating]);
+  
+  // Use the centralized timer hook
+  const { timeLeft, totalTime, formattedTime, progress } = useSongGenerationTimer(isGenerating);
 
   // Reset states when changing tabs
   useEffect(() => {
@@ -254,7 +240,9 @@ export default function MusicGenerator() {
         {isGenerating && (
           <GenerationProgress
             timeLeft={timeLeft}
-            totalTime={GENERATION_TIME}
+            totalTime={totalTime}
+            formattedTime={formattedTime}
+            progress={progress}
           />
         )}
       </div>

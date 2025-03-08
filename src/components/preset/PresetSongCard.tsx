@@ -3,6 +3,7 @@ import { Play, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { PresetType, Song } from '../../types';
 import { SongStateService } from '../../services/songStateService';
 import { songAdapter } from '../../utils/songAdapter';
+import SongGenerationTimer from '../common/SongGenerationTimer';
 
 interface PresetCardProps {
   type: PresetType;
@@ -155,9 +156,13 @@ export default function PresetSongCard({
               return (
                 <span className="inline-flex items-center text-xs bg-primary/20 text-white
                                px-3 py-1.5 rounded-full ml-2 border border-primary/20
-                               shadow-lg animate-pulse z-10 whitespace-nowrap">
-                  <span className="w-2 h-2 bg-primary rounded-full mr-2 animate-ping"></span>
-                  {statusLabel}
+                               shadow-lg z-10 whitespace-nowrap">
+                  <SongGenerationTimer 
+                    isGenerating={isGenerating}
+                    showProgress={false}
+                    compact={true}
+                    className="!m-0 !p-0"
+                  />
                 </span>
               );
             }

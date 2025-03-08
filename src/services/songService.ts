@@ -191,7 +191,7 @@ export class SongService {
         preset_type: presetType || null,
         is_instrumental: isInstrumental || false,
         user_id: userId,
-        retryable: true, // Mark all songs as retryable by default
+        retryable: false, // Only set to true when an error occurs
       }])
       .select()
       .single();

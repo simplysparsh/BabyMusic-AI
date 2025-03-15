@@ -163,20 +163,21 @@ export class SongStateService {
   static getFailureMessage(song: Song | undefined): string | undefined {
     if (!song || !song.error) return undefined;
     
+    // For preset songs, always show "Retry" in the UI
+    if (this.isPresetSong(song)) {
+      // Log the detailed error to console for debugging
+      console.error('Song generation failed:', song.error);
+      return 'Retry';
+    }
+    
     // Handle error as object with raw_message property
     if (typeof song.error === 'object' && song.error !== null) {
       // Type guard and casting for specific error properties
       if ('code' in song.error) {
         const errorObj = song.error as SongErrorObject;
         
-        // Check for specific error codes and messages
-        if (errorObj.code === 10000) {
-          if (errorObj.raw_message && typeof errorObj.raw_message === 'string') {
-            if (errorObj.raw_message.includes('failed to generate clip')) {
-              return 'The song generation service encountered an issue. Please try again later.';
-            }
-          }
-        }
+        // Log the detailed error to console
+        console.error('Song generation failed:', errorObj);
         
         // Check for artist name error in raw_message
         if (errorObj.raw_message && typeof errorObj.raw_message === 'string') {
@@ -188,16 +189,15 @@ export class SongStateService {
     }
     // Handle error as string
     else if (typeof song.error === 'string') {
+      // Log the detailed error to console
+      console.error('Song generation failed:', song.error);
+      
       if (song.error.includes('Tags contained artist name:')) {
         return 'The song failed to generate because the tags contained an artist name. Please provide an alternative spelling for the artist name.';
       }
       
       // Handle timeout errors with a simpler message
       if (song.error.includes('timed out')) {
-        // For preset songs, just show "Retry"
-        if (this.isPresetSong(song)) {
-          return 'Retry';
-        }
         return 'Generation timed out. Please retry.';
       }
     }

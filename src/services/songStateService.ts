@@ -53,6 +53,17 @@ export class SongStateService {
   }
 
   /**
+   * Determines if a song is in the queue
+   * This is used for tracking tasks in the subscription handler
+   */
+  static isInQueue(song: Song | undefined): boolean {
+    if (!song) return false;
+    
+    // A song is in the queue if it has a task_id, no audio_url, and no error
+    return !!song.task_id && !song.audio_url && !song.error;
+  }
+
+  /**
    * Determines if a song is ready to play
    */
   static isReady(song: Song | undefined): boolean {

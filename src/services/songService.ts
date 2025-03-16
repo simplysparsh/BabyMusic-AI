@@ -288,6 +288,9 @@ export class SongService {
         songId: song.id
       });
 
+      // Clear any existing timeout for this song
+      this.clearSongGenerationTimeout(song.id);
+
       // Update the song with an error message and mark as retryable
       await this.markSongAsError(song.id, 'Failed to start music generation. Please try again.');
 
@@ -323,6 +326,19 @@ export class SongService {
   static async deleteUserSongs(userId: string): Promise<void> {
     if (!userId) {
       throw new Error('User ID is required');
+    }
+
+    // First get all songs for this user to clear their timeouts
+    const { data: songs, error: fetchError } = await supabase
+      .from('songs')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (fetchError) {
+      console.error('Failed to fetch songs for timeout clearing:', fetchError);
+    } else if (songs && songs.length > 0) {
+      // Clear timeouts for all songs
+      songs.forEach(song => this.clearSongGenerationTimeout(song.id));
     }
 
     const { error } = await supabase
@@ -370,6 +386,9 @@ export class SongService {
         console.error('Failed to update song for retry:', updateError);
         throw new Error('Failed to prepare song for retry');
       }
+      
+      // Clear any existing timeout for this song
+      this.clearSongGenerationTimeout(songId);
       
       // Create a new music generation task
       const taskId = await createMusicGenerationTask({
@@ -553,6 +572,9 @@ export class SongService {
    */
   private static async markSongAsError(songId: string, errorMessage: string): Promise<void> {
     try {
+      // Clear any existing timeout for this song
+      this.clearSongGenerationTimeout(songId);
+      
       const { error } = await supabase
         .from('songs')
         .update({

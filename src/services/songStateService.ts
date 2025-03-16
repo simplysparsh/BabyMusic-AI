@@ -94,6 +94,9 @@ export class SongStateService {
    */
   static async updateSongWithError(songId: string, errorMessage: string): Promise<void> {
     try {
+      // Clear any timeout for this song
+      TimeoutService.clearSongGenerationTimeout(songId);
+      
       const { error } = await supabase
         .from('songs')
         .update({

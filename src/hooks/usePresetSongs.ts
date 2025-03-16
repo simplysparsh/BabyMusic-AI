@@ -6,9 +6,6 @@ import { useAudioStore } from '../store/audioStore';
 import { useAuthStore } from '../store/authStore';
 import { PRESET_CONFIGS } from '../data/lyrics';
 
-// Debounce time to prevent multiple clicks
-const DEBOUNCE_TIME = 1000; // milliseconds
-
 export default function usePresetSongs() {
   const { user, profile } = useAuthStore();
   const { songs, generatingSongs, createSong } = useSongStore();

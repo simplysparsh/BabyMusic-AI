@@ -13,11 +13,11 @@ DELETE FROM songs;
 DELETE FROM profiles;
 
 -- Check if the handle_new_user function exists, if not create it
-DO $$ 
+DO $do_block$ 
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'handle_new_user') THEN
-    CREATE FUNCTION handle_new_user()
-    RETURNS trigger AS $$
+    CREATE OR REPLACE FUNCTION handle_new_user()
+    RETURNS trigger AS $func$
     BEGIN
       INSERT INTO public.profiles (id, email, baby_name, preferred_language, created_at, preset_songs_generated)
       VALUES (
@@ -30,9 +30,10 @@ BEGIN
       );
       RETURN new;
     END;
-    $$ LANGUAGE plpgsql SECURITY DEFINER;
+    $func$ LANGUAGE plpgsql SECURITY DEFINER;
   END IF;
-END $$;
+END;
+$do_block$;
 
 -- Drop the trigger if it exists
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -44,7 +45,7 @@ CREATE TRIGGER on_auth_user_created
 
 -- Add a check function to verify the trigger is working
 CREATE OR REPLACE FUNCTION check_profile_trigger_exists()
-RETURNS boolean AS $$
+RETURNS boolean AS $func$
 DECLARE
   trigger_exists boolean;
 BEGIN
@@ -54,14 +55,14 @@ BEGIN
   
   RETURN trigger_exists;
 END;
-$$ LANGUAGE plpgsql;
+$func$ LANGUAGE plpgsql;
 
 -- Create a function for fallback profile creation
 CREATE OR REPLACE FUNCTION create_profile_fallback(
   user_id UUID,
   user_email TEXT,
   user_baby_name TEXT
-) RETURNS VOID AS $$
+) RETURNS VOID AS $func$
 BEGIN
   -- Check if profile already exists
   IF NOT EXISTS (SELECT 1 FROM profiles WHERE id = user_id) THEN
@@ -88,13 +89,13 @@ BEGIN
     RAISE NOTICE 'Profile already exists for user %', user_id;
   END IF;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create a function to force update song audio
 CREATE OR REPLACE FUNCTION force_update_song_audio(
   song_id UUID,
   audio_url TEXT
-) RETURNS BOOLEAN AS $$
+) RETURNS BOOLEAN AS $func$
 DECLARE
   success BOOLEAN;
 BEGIN
@@ -121,7 +122,7 @@ BEGIN
   
   RETURN success;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Add a function to check for songs with missing audio URLs
 CREATE OR REPLACE FUNCTION check_songs_with_missing_audio()
@@ -131,7 +132,7 @@ RETURNS TABLE (
   task_id TEXT,
   created_at TIMESTAMPTZ,
   age_hours NUMERIC
-) AS $$
+) AS $func$
 BEGIN
   RETURN QUERY
   SELECT 
@@ -145,4 +146,4 @@ BEGIN
   AND s.created_at < NOW() - INTERVAL '1 hour'
   ORDER BY s.created_at DESC;
 END;
-$$ LANGUAGE plpgsql; 
+$func$ LANGUAGE plpgsql; 

@@ -10,7 +10,6 @@ import { SongService } from '../../services/songService';
 import { SongStateService } from '../../services/songStateService';
 import type { Song, PresetType } from '../../types';
 import type { SongState, CreateSongParams } from './types';
-import { songAdapter as _songAdapter } from '../../utils/songAdapter';
 import { getPresetType as _getPresetType } from '../../utils/presetUtils';
 
 // Create a typed setter and getter for the zustand store

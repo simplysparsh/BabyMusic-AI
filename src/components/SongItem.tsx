@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Play, Pause, Download, Share2, ChevronDown, RefreshCw } from 'lucide-react';
 import { SongStateService } from '../services/songStateService';
 import type { Song } from '../types';
-import { useSongAdapter } from '../utils/songAdapter';
 import { useSongStore } from '../store/songStore';
 import { SongService } from '../services/songService';
 import { useAuthStore } from '../store/authStore';
@@ -28,33 +27,21 @@ export default function SongItem({
   onDownloadClick
 }: SongItemProps) {
   const [expandedVariations, setExpandedVariations] = useState(false);
-  const { getAudioUrl } = useSongAdapter();
   const { retryingSongs, setRetrying } = useSongStore();
   const { user } = useAuthStore();
 
   // Get song state information using SongStateService
-  const { 
-    isGenerating, 
-    hasFailed,
-    hasVariations,
-    variationCount: _variationCount,
-    canRetry
-  } = SongStateService.getSongStateMetadata(
-    song,
-    generatingSongs,
-    processingTaskIds,
-    undefined, // Not relevant for regular songs
-    null       // Not a preset song
-  );
+  const isGenerating = SongStateService.isGenerating(song);
+  const hasFailed = SongStateService.hasFailed(song);
+  const hasVariations = SongStateService.hasVariations(song);
+  const variationCount = SongStateService.getVariationCount(song);
+  const canRetry = SongStateService.canRetry(song);
 
   // Additional check for completed status
   const isCompleted = SongStateService.isCompleted(song);
 
   // Check if the song is currently being retried
   const isRetrying = retryingSongs.has(song.id);
-
-  // Check if the song is retryable
-  const isRetryable = canRetry;
 
   // Handle toggling variations display
   const toggleExpand = () => {
@@ -64,7 +51,7 @@ export default function SongItem({
   };
 
   // Get the audio URL and check if it's actually available
-  const audioUrl = getAudioUrl(song);
+  const audioUrl = song.audio_url;
   const isPlayable = !!audioUrl; // A song is playable if it has an audio URL
 
   // Handle retry button click
@@ -190,7 +177,7 @@ export default function SongItem({
                 {isCompleted ? 'Ready to play' : (song.error || 'Processing...')}
               </p>
             )}
-            {isRetryable && (
+            {canRetry && (
               <button
                 onClick={handleRetry}
                 disabled={isRetrying}

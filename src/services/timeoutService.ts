@@ -1,8 +1,18 @@
 import { supabase } from '../lib/supabase';
 import { SongStateService } from './songStateService';
+import type { Song } from '../types';
 
 // Define the timeout duration for song generation (5 minutes in milliseconds)
 export const SONG_TIMEOUT_DURATION = 5 * 60 * 1000;
+
+// Define a type for the payload from Supabase
+interface SongPayload {
+  id: string;
+  name: string;
+  audio_url?: string | null;
+  error?: string | null;
+  task_id?: string | null;
+}
 
 /**
  * TimeoutService handles all timeout-related functionality for the application.
@@ -63,7 +73,7 @@ export class TimeoutService {
           filter: `id=eq.${songId}`
         },
         (payload) => {
-          const updatedSong = payload.new as any;
+          const updatedSong = payload.new as SongPayload;
           
           // If the song now has an audio URL or an error, clear the timeout
           if (updatedSong.audio_url || updatedSong.error) {
@@ -96,7 +106,7 @@ export class TimeoutService {
    * @param song The song to check
    * @returns true if the song has timed out, false otherwise
    */
-  static hasSongTimedOut(song: any): boolean {
+  static hasSongTimedOut(song: Song): boolean {
     if (!song || !song.createdAt) return false;
     
     const createdAt = new Date(song.createdAt).getTime();

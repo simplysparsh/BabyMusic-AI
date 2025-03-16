@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, MouseEvent } from 'react';
+import { useState, useEffect, useCallback, MouseEvent, useMemo } from 'react';
 import type { PresetType, Song } from '../types';
 import { useSongStore } from '../store/songStore';
 import { SongStateService } from '../services/songStateService';
@@ -28,15 +28,17 @@ export default function usePresetSongs() {
     pooping: 0
   });
   
-  // Generate song names based on baby name
-  const songNames = profile?.babyName
-    ? Object.fromEntries(
-        Object.entries(PRESET_CONFIGS).map(([type, config]) => [
-          type,
-          config.title(profile.babyName!)
-        ])
-      )
-    : {};
+  // Generate song names based on baby name using useMemo to avoid dependency issues
+  const songNames = useMemo(() => {
+    return profile?.babyName
+      ? Object.fromEntries(
+          Object.entries(PRESET_CONFIGS).map(([type, config]) => [
+            type,
+            config.title(profile.babyName!)
+          ])
+        )
+      : {};
+  }, [profile?.babyName]);
 
   // Update filtered songs when the songs state changes
   useEffect(() => {

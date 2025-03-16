@@ -8,40 +8,44 @@
     - Add verification functions to prevent future issues
 */
 
--- First, clean up existing data
-DELETE FROM songs;
-DELETE FROM profiles;
+-- First, clean up existing data (commented out for safety - uncomment if needed)
+-- DELETE FROM songs;
+-- DELETE FROM profiles;
 
--- Check if the handle_new_user function exists, if not create it
-DO $do_block$ 
+-- Create the handle_new_user function if it doesn't exist
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS trigger AS $func$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'handle_new_user') THEN
-    CREATE OR REPLACE FUNCTION handle_new_user()
-    RETURNS trigger AS $func$
-    BEGIN
-      INSERT INTO public.profiles (id, email, baby_name, preferred_language, created_at, preset_songs_generated)
-      VALUES (
-        new.id, 
-        new.email, 
-        SPLIT_PART(new.email, '@', 1), -- Default baby name from email
-        'en', -- Default language
-        NOW(),
-        true
-      );
-      RETURN new;
-    END;
-    $func$ LANGUAGE plpgsql SECURITY DEFINER;
-  END IF;
+  INSERT INTO public.profiles (id, email, baby_name, preferred_language, created_at, preset_songs_generated)
+  VALUES (
+    new.id, 
+    new.email, 
+    SPLIT_PART(new.email, '@', 1), -- Default baby name from email
+    'en', -- Default language
+    NOW(),
+    true
+  );
+  RETURN new;
 END;
-$do_block$;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Drop the trigger if it exists
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
 -- Recreate the trigger
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+DO $do_block$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'on_auth_user_created' 
+    AND tgrelid = 'auth.users'::regclass
+  ) THEN
+    CREATE TRIGGER on_auth_user_created
+      AFTER INSERT ON auth.users
+      FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+  END IF;
+END;
+$do_block$;
 
 -- Add a check function to verify the trigger is working
 CREATE OR REPLACE FUNCTION check_profile_trigger_exists()
@@ -50,7 +54,9 @@ DECLARE
   trigger_exists boolean;
 BEGIN
   SELECT EXISTS (
-    SELECT 1 FROM pg_trigger WHERE tgname = 'on_auth_user_created'
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'on_auth_user_created'
+    AND tgrelid = 'auth.users'::regclass
   ) INTO trigger_exists;
   
   RETURN trigger_exists;

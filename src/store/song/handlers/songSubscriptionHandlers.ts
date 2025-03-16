@@ -42,7 +42,7 @@ export async function handleSongUpdate(
   if (hasSignificantChange) {
     console.log(`Song state change for ${newSong.name} (${newSong.id}):`, {
       song_type: newSong.song_type,
-      preset_type: (newSong as any).preset_type,
+      preset_type: (newSong as SongPayload & { preset_type?: string }).preset_type,
       audio_url: {
         before: oldSong.audio_url ? 'present' : 'none',
         after: newSong.audio_url ? 'present' : 'none'

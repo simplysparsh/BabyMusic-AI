@@ -51,50 +51,48 @@ export class SongPromptService {
     songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
     presetType?: PresetType;
   }): string {
-    const { theme, mood, babyName, isInstrumental, songType, presetType } = params;
-    const now = new Date();
-    const version = Math.floor((now.getTime() % 1000000) / 100000);
-
-    // First, consistently check songType
+    const { theme, mood, babyName, isInstrumental: _isInstrumental, songType, presetType } = params;
+    const version = Math.floor(Math.random() * 10) + 1;
+    
+    // Define theme and mood names outside case blocks
+    const themeNames = {
+      pitchDevelopment: "Musical Journey",
+      cognitiveSpeech: "Speaking Adventure",
+      sleepRegulation: "Sleepy Time",
+      socialEngagement: "Friendship Song",
+      indianClassical: "Indian Melody",
+      westernClassical: "Classical Journey"
+    };
+    
+    const moodNames = {
+      calm: "Peaceful",
+      playful: "Playful",
+      learning: "Learning",
+      energetic: "Energetic"
+    };
+    
     switch (songType) {
       case 'preset':
-        if (!presetType || !PRESET_CONFIGS[presetType]) {
-          throw new Error(`Invalid preset type: ${presetType}`);
+        if (!presetType) {
+          throw new Error('Preset type is required for preset songs');
         }
-        return `${PRESET_CONFIGS[presetType].title(babyName)} (v${version})`;
+        return `${babyName}'s ${PRESET_CONFIGS[presetType].title(babyName)} (v${version})`;
 
       case 'theme':
       case 'theme-with-input':
         if (!theme) {
           throw new Error('Theme is required for theme-based songs');
         }
-        const themeNames = {
-          pitchDevelopment: "Musical Journey",
-          cognitiveSpeech: "Speaking Adventure",
-          sleepRegulation: "Sleepy Time",
-          socialEngagement: "Friendship Song",
-          indianClassical: "Indian Melody",
-          westernClassical: "Classical Journey"
-        };
         return `${babyName}'s ${themeNames[theme]} (v${version})`;
 
       case 'from-scratch':
         if (!mood) {
           throw new Error('Mood is required for from-scratch songs');
         }
-        const moodNames = {
-          calm: "Peaceful",
-          playful: "Playful",
-          learning: "Learning",
-          energetic: "Energetic"
-        };
-        return isInstrumental 
-          ? `${babyName}'s ${moodNames[mood]} Melody (v${version})`
-          : `${babyName}'s ${moodNames[mood]} Song (v${version})`;
+        return `${babyName}'s ${moodNames[mood]} Adventure (v${version})`;
 
       default:
-        // Fallback for any unexpected cases
-        return `${babyName}'s Song (v${version})`;
+        return `${babyName}'s Special Song (v${version})`;
     }
   }
 

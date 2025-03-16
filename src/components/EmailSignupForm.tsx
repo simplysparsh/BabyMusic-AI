@@ -71,7 +71,7 @@ export default function EmailSignupForm({ isOpen, onClose }: EmailSignupFormProp
           try {
             responseData = JSON.parse(responseText);
             console.log('Netlify function response:', responseData);
-          } catch (jsonError) {
+          } catch {
             console.warn('Non-JSON response received:', responseText.slice(0, 100));
           }
         }

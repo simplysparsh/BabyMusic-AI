@@ -6,7 +6,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useAuthStore } from './store/authStore'; 
 import { useSongStore } from './store/songStore';
 import { useResetGenerating } from './hooks/useResetGenerating';
-import { SongStateService } from './services/songStateService';
+import { SongStateService as _SongStateService } from './services/songStateService';
 import { TimeoutService } from './services/timeoutService';
 
 function App() {

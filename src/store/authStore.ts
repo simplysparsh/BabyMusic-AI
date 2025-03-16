@@ -6,8 +6,9 @@ import { ProfileService } from '../services/profileService';
 import { SongService } from '../services/songService';
 import { type User } from '@supabase/supabase-js';
 import { DEFAULT_LANGUAGE } from '../types';
-import type { UserProfile, Language, AgeGroup, PresetType } from '../types';
-import { PRESET_CONFIGS } from '../data/lyrics';
+import type { UserProfile, Language, AgeGroup } from '../types';
+import type { PresetType as _PresetType } from '../types';
+import { PRESET_CONFIGS as _PRESET_CONFIGS } from '../data/lyrics';
 
 interface AuthState {
   user: User | null;

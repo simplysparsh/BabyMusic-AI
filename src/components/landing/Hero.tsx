@@ -57,7 +57,7 @@ export default function Hero({ onOpenAuth }: HeroProps) {
           try {
             responseData = JSON.parse(responseText);
             console.log('Netlify function response:', responseData);
-          } catch (jsonError) {
+          } catch {
             console.warn('Non-JSON response received:', responseText.slice(0, 100));
           }
         }

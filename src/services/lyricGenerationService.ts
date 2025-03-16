@@ -271,7 +271,7 @@ export class LyricGenerationService {
       
       console.log('Using custom fallback lyrics');
       // For custom songs, use a mood-based template
-      let fallbackLyrics = songType === 'from-scratch' && mood
+      const fallbackLyrics = songType === 'from-scratch' && mood
         ? `Let's make ${mood} music together,\n` +
           `${name} leads the way.\n` +
           `With ${pronoun} dancing and singing,\n` +

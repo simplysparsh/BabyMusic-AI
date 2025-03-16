@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import * as path from 'path';
+import * as _path from 'path';
 import * as glob from 'glob';
 
 // Patterns that might indicate secrets

@@ -20,7 +20,7 @@ export default function SongGenerationTimer({
   compact = false,
   onTimeout
 }: SongGenerationTimerProps) {
-  const { timeLeft, formattedTime, progress, totalTime } = useSongGenerationTimer(isGenerating);
+  const { timeLeft, formattedTime, progress, totalTime: _totalTime } = useSongGenerationTimer(isGenerating);
   
   // Call onTimeout when timer reaches 0
   if (timeLeft === 0 && onTimeout) {

@@ -85,7 +85,10 @@ export const checkUserExists = async (email: string) => {
 
 // Make the functions available globally for debugging
 if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).clearSupabaseStorage = clearSupabaseStorage;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).testSupabaseConnection = testSupabaseConnection;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).checkUserExists = checkUserExists;
 }

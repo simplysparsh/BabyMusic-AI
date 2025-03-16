@@ -282,26 +282,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Set user state immediately
       set({ user: data.user });
 
-      // Check if profile already exists (it shouldn't, but check just in case)
-      const { data: existingProfile, error: queryError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .maybeSingle();
-        
-      if (queryError) {
-        // Log error but don't throw
-        console.error('Error checking for existing profile:', queryError);
-      }
+      const trimmedBabyName = babyName.trim();
+      const userId = data.user.id;
       
-      // If profile doesn't exist, create it
-      if (!existingProfile) {
-        console.log('Creating new profile for user:', data.user.id);
-        const { error: insertError } = await supabase
+      // Create or update profile in a single transaction
+      try {
+        // Create or update the profile
+        const { error: upsertError } = await supabase
           .from('profiles')
-          .insert([{ 
-            id: data.user.id,
-            baby_name: babyName.trim(),
+          .upsert([{ 
+            id: userId,
+            baby_name: trimmedBabyName,
             email: email.trim().toLowerCase(),
             created_at: new Date().toISOString(),
             preset_songs_generated: true,
@@ -309,56 +300,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             gender: undefined // Set default gender to undefined, user will provide during onboarding
           }]);
           
-        if (insertError) {
-          console.error('Error creating profile:', insertError);
-          // Try to get more details about the error
-          if (insertError.details) {
-            console.error('Error details:', insertError.details);
-          }
-          if (insertError.hint) {
-            console.error('Error hint:', insertError.hint);
-          }
-          // Don't throw, but log the error
+        if (upsertError) {
+          console.error('Error creating/updating profile:', upsertError);
         }
-      } else {
-        // If profile exists, update it
-        console.log('Profile already exists, updating it:', existingProfile.id);
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ 
-            baby_name: babyName.trim(),
-            preset_songs_generated: true,
-            preferred_language: DEFAULT_LANGUAGE
-          })
-          .eq('id', data.user.id);
-
-        if (updateError) {
-          // Log error but don't throw
-          console.error('Error updating profile:', updateError);
-        }
+      } catch (profileError) {
+        console.error('Error in profile creation:', profileError);
       }
 
-      // Generate preset songs in the background
-      const trimmedBabyName = babyName.trim();
-      SongService.regeneratePresetSongs(data.user.id, trimmedBabyName, true)
+      // Generate preset songs in the background (don't await)
+      SongService.regeneratePresetSongs(userId, trimmedBabyName, true)
         .catch((error) => {
-          // Log error but don't show to user
           console.error('Error generating preset songs:', error);
         });
 
-      set({ 
-        initialized: true,
-        profile: {
-          id: data.user.id,
-          email: data.user.email || '',
-          isPremium: false,
-          dailyGenerations: 0,
-          lastGenerationDate: new Date(),
-          babyName: babyName.trim(),
-          preferredLanguage: DEFAULT_LANGUAGE,
-          gender: undefined // Set default gender to undefined, user will provide during onboarding
-        }
-      });
+      // Immediately load the profile to ensure it's in the state
+      await get().loadProfile();
+
+      set({ initialized: true });
     } catch (error) {
       set({ initialized: true });
       throw error;

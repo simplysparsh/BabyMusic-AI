@@ -19,11 +19,10 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [signupComplete, setSignupComplete] = useState(false);
   const [step, setStep] = useState<'credentials' | 'babyNameFirst' | 'babyName'>(
     isSignIn ? 'credentials' : 'babyNameFirst'
   );
-  const { signIn, signUp, profile } = useAuthStore();
+  const { signIn, signUp } = useAuthStore();
 
   useEffect(() => {
     if (isOpen) {
@@ -34,18 +33,9 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
       setBabyName('');
       setError('');
       setBabyNameError('');
-      setSignupComplete(false);
+      setShowOnboarding(false);
     }
   }, [isOpen, defaultMode]);
-
-  // Ensure onboarding is shown after successful signup
-  useEffect(() => {
-    console.log('Checking signup status:', { signupComplete, profile });
-    if (signupComplete && profile) {
-      console.log('Profile loaded after signup, showing onboarding modal');
-      setShowOnboarding(true);
-    }
-  }, [signupComplete, profile]);
 
   if (!isOpen) return null;
 
@@ -101,7 +91,6 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
         console.log('Starting signup process...');
         await signUp(trimmedEmail, password, trimmedBabyName);
         console.log('Signup successful, showing onboarding modal...');
-        setSignupComplete(true);
         setShowOnboarding(true);
       } catch (err) {
         console.error('Signup error:', err);
@@ -111,7 +100,6 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
             ? 'This email is already registered. Please sign in instead.'
             : message
         );
-        setIsLoading(false);
       } finally {
         setIsLoading(false);
       }

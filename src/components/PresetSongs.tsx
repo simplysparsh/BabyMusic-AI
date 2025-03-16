@@ -40,17 +40,16 @@ const PRESETS: {
 
 const PresetSongs: FC = () => {
   const { user, profile } = useAuthStore();
-  const { 
+  const { isPlaying, currentUrl: currentPlayingUrl } = useAudioStore();
+  
+  const {
     songs,
     handlePresetClick,
     handlePlay,
     handleVariationChange,
-    localGeneratingTypes,
+    isPresetTypeGenerating,
     currentVariationIndices
   } = usePresetSongs();
-  
-  // Get current playing song from audio store
-  const { isPlaying, currentUrl: currentPlayingUrl } = useAudioStore();
 
   // Show component only when we have a logged-in user
   if (!user) return null;
@@ -85,7 +84,7 @@ const PresetSongs: FC = () => {
               onGenerateClick={handlePresetClick}
               onVariationChange={handleVariationChange}
               currentVariationIndex={currentVariationIndices[type] || 0}
-              localGeneratingTypes={localGeneratingTypes}
+              isPresetTypeGenerating={isPresetTypeGenerating}
             />
           );
         })}

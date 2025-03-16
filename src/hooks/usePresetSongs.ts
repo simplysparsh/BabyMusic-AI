@@ -17,9 +17,6 @@ export default function usePresetSongs() {
   // Filter only preset songs
   const [presetSongs, setPresetSongs] = useState<Song[]>([]);
   
-  // Track local generating state to prevent multiple clicks
-  const [localGeneratingTypes, setLocalGeneratingTypes] = useState<Set<PresetType>>(new Set());
-  
   // Track current variation index for each preset type
   const [variationIndices, setVariationIndices] = useState<Record<PresetType, number>>({
     playing: 0,
@@ -48,25 +45,19 @@ export default function usePresetSongs() {
     );
     
     setPresetSongs(filteredPresetSongs);
-    
-    // Clear local generating state for any types that are no longer generating
-    setLocalGeneratingTypes(prev => {
-      const newSet = new Set(prev);
-      for (const type of prev) {
-        const isStillGenerating = Array.from(generatingSongs).some(id => {
-          const song = filteredPresetSongs.find(s => s.id === id);
-          return song && song.preset_type === type;
-        });
-        
-        if (!isStillGenerating) {
-          newSet.delete(type);
-        }
-      }
-      return newSet;
-    });
+  }, [songs]);
+
+  // Check if a preset type is currently generating
+  const isPresetTypeGenerating = useCallback((type: PresetType): boolean => {
+    // Check if any song of this type is in the global generating set
+    return songs.some(song => 
+      song.preset_type === type && 
+      song.id && 
+      generatingSongs.has(song.id)
+    );
   }, [songs, generatingSongs]);
 
-  // Handle preset card click with debounce
+  // Handle preset card click
   const handlePresetClick = useCallback((type: PresetType) => {
     // If user or profile is missing, we can't proceed
     if (!user?.id || !profile?.babyName) {
@@ -78,8 +69,8 @@ export default function usePresetSongs() {
     const isGenerating = SongStateService.isPresetTypeGenerating(songs, type);
     const hasFailed = currentSong ? SongStateService.hasFailed(currentSong) : false;
     
-    // If the song is already generating or we're in local generating state, do nothing
-    if (isGenerating || localGeneratingTypes.has(type)) {
+    // If the song is already generating, do nothing
+    if (isGenerating) {
       return;
     }
     
@@ -100,9 +91,6 @@ export default function usePresetSongs() {
       action: hasFailed ? 'retrying' : 'generating new'
     });
     
-    // Set local generating state to prevent multiple clicks
-    setLocalGeneratingTypes(prev => new Set([...prev, type]));
-    
     // Generate a new song
     createSong({
       name: songNames[type as keyof typeof songNames],
@@ -112,16 +100,7 @@ export default function usePresetSongs() {
       lyrics: PRESET_CONFIGS[type].lyrics(profile.babyName),
       gender: profile.gender
     });
-    
-    // Clear local generating state after a timeout
-    setTimeout(() => {
-      setLocalGeneratingTypes(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(type);
-        return newSet;
-      });
-    }, DEBOUNCE_TIME);
-  }, [songs, createSong, playAudio, user, profile, songNames, localGeneratingTypes]);
+  }, [songs, createSong, playAudio, user, profile, songNames]);
 
   const handlePlay = useCallback((audioUrl: string) => {
     playAudio(audioUrl);
@@ -162,11 +141,11 @@ export default function usePresetSongs() {
   }, [songs, playAudio, variationIndices]);
 
   return {
-    songs: presetSongs, // Return only preset songs
+    songs: presetSongs,
     handlePresetClick,
     handlePlay,
     handleVariationChange,
-    localGeneratingTypes,
+    isPresetTypeGenerating,
     currentVariationIndices: variationIndices
   };
 }

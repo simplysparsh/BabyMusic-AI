@@ -153,12 +153,24 @@ export const createMusicGenerationTask = async ({
         errorMessage = errorText || errorMessage;
       }
 
+      // Check for common API key issues
+      if (response.status === 401 || errorMessage.includes('auth') || errorMessage.includes('key')) {
+        console.error('API KEY ISSUE DETECTED:', {
+          status: response.status,
+          message: errorMessage,
+          apiKeyLength: API_KEY ? API_KEY.length : 0,
+          apiKeyDefined: !!API_KEY
+        });
+      }
+
       console.error('API Error Details:', {
         status: response.status,
         statusText: response.statusText,
         headers: Object.fromEntries(response.headers.entries()),
         message: errorMessage,
         url: API_URL,
+        apiKeyDefined: !!API_KEY,
+        webhookUrlDefined: !!WEBHOOK_URL,
         requestBody: {
           ...requestBody,
           config: {

@@ -14,7 +14,7 @@ import type {
   MusicGenerationParams
 } from '../types';
 import { SongStateService } from '../services/songStateService';
-import { TimeoutService, SONG_TIMEOUT_DURATION } from '../services/timeoutService';
+import { TimeoutService } from '../services/timeoutService';
 
 export class SongService {
   /**
@@ -251,6 +251,14 @@ export class SongService {
         preset_type: presetType || undefined
       };
       
+      console.log('Calling createMusicGenerationTask with params:', {
+        songType,
+        preset_type: presetType,
+        theme,
+        mood: determinedMood,
+        hasUserInput: !!userInput
+      });
+      
       taskId = await createMusicGenerationTask(generationParams);
 
       console.log('Music generation task created:', {
@@ -268,6 +276,8 @@ export class SongService {
       
       if (updateError) {
         console.error('Failed to update song with task ID:', updateError);
+        // Try to update the song with an error message
+        await this.markSongAsError(song.id, 'Failed to update song with task ID');
       }
       
       // Set a timeout for this song generation
@@ -277,6 +287,9 @@ export class SongService {
         error,
         songId: song.id
       });
+
+      // Update the song with an error message and mark as retryable
+      await this.markSongAsError(song.id, 'Failed to start music generation. Please try again.');
 
       throw error;
     }
@@ -533,5 +546,27 @@ export class SongService {
         });
       });
     }, 100);
+  }
+
+  /**
+   * Marks a song as having an error and sets it as retryable
+   */
+  private static async markSongAsError(songId: string, errorMessage: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('songs')
+        .update({
+          error: errorMessage,
+          retryable: true,
+          task_id: null // Clear task_id to indicate it's no longer in the queue
+        })
+        .eq('id', songId);
+        
+      if (error) {
+        console.error('Failed to mark song as error:', error);
+      }
+    } catch (err) {
+      console.error('Error marking song as error:', err);
+    }
   }
 }

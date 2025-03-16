@@ -1,5 +1,5 @@
 import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useState, useEffect } from 'react';
-import { Play, RefreshCw, Wand2, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { Play, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
 import { songAdapter } from '../../utils/songAdapter';

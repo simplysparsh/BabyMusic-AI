@@ -10,8 +10,8 @@ import { SongService } from '../../services/songService';
 import { SongStateService } from '../../services/songStateService';
 import type { Song, PresetType } from '../../types';
 import type { SongState, CreateSongParams } from './types';
-import { songAdapter } from '../../utils/songAdapter';
-import { getPresetType } from '../../utils/presetUtils';
+import { songAdapter as _songAdapter } from '../../utils/songAdapter';
+import { getPresetType as _getPresetType } from '../../utils/presetUtils';
 
 // Create a typed setter and getter for the zustand store
 type SetState = (state: Partial<SongState>) => void;
@@ -31,8 +31,6 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       if (error) throw error;
 
       // Clear any generating songs that don't exist in the database
-      const existingSongIds = new Set((songsData || []).map(song => song.id));
-      const newGeneratingSongs = new Set([...get().generatingSongs].filter(id => existingSongIds.has(id)));
       const newProcessingTaskIds = new Set([...get().processingTaskIds]);
       const newQueuedTaskIds = new Set([...get().queuedTaskIds]);
       
@@ -137,24 +135,36 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         // Delete any existing songs of this preset type
         if (existingSongs.length > 0) {
           console.log(`Deleting ${existingSongs.length} existing songs for preset type ${currentPresetType}:`, 
-            existingSongs.map(s => ({ id: s.id, name: s.name })));
+            existingSongs.map(s => ({ 
+              id: s.id, 
+              name: s.name, 
+              hasAudio: !!s.audio_url, 
+              hasError: !!s.error, 
+              hasTaskId: !!s.task_id 
+            })));
           
-          const { error: deleteError } = await supabase
-            .from('songs')
-            .delete()
-            .in('id', existingSongs.map(s => s.id));
+          try {
+            // Force delete all songs of this preset type, regardless of their state
+            const { error: deleteError } = await supabase
+              .from('songs')
+              .delete()
+              .in('id', existingSongs.map(s => s.id));
 
-          if (deleteError) {
-            console.error(`Failed to delete existing ${currentPresetType} songs:`, deleteError);
-            throw deleteError;
+            if (deleteError) {
+              console.error(`Failed to delete existing ${currentPresetType} songs:`, deleteError);
+              throw deleteError;
+            }
+
+            console.log(`Successfully deleted ${existingSongs.length} existing ${currentPresetType} songs`);
+            
+            // Update local state to remove deleted songs
+            set({
+              songs: get().songs.filter(s => !existingSongs.find(es => es.id === s.id))
+            });
+          } catch (error) {
+            console.error(`Error deleting existing ${currentPresetType} songs:`, error);
+            // Continue with song creation even if deletion fails
           }
-
-          // Update local state to remove deleted songs
-          set({
-            songs: get().songs.filter(s => !existingSongs.find(es => es.id === s.id))
-          });
-          
-          console.log(`Successfully deleted existing ${currentPresetType} songs`);
         }
       }
 

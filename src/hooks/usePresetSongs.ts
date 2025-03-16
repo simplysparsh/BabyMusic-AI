@@ -62,13 +62,6 @@ export default function usePresetSongs() {
       }
       return newSet;
     });
-    
-    // Only log preset songs updates
-    if (filteredPresetSongs.length > 0) {
-      // Debug logging can be re-enabled if needed
-      // console.log('usePresetSongs preset songs updated:', filteredPresetSongs);
-      // console.log('usePresetSongs generatingSongs:', Array.from(generatingSongs));
-    }
   }, [songs, generatingSongs]);
 
   // Handle preset card click with debounce
@@ -81,6 +74,7 @@ export default function usePresetSongs() {
 
     const currentSong = SongStateService.getSongForPresetType(songs, type);
     const isGenerating = SongStateService.isPresetTypeGenerating(songs, type);
+    const hasFailed = currentSong ? SongStateService.hasFailed(currentSong) : false;
     
     // If the song is already generating or we're in local generating state, do nothing
     if (isGenerating || localGeneratingTypes.has(type)) {
@@ -90,29 +84,41 @@ export default function usePresetSongs() {
     // If the song is ready (has audio URL), play it
     if (currentSong && currentSong.audio_url) {
       playAudio(currentSong.audio_url);
-    } else {
-      // Set local generating state to prevent multiple clicks
-      setLocalGeneratingTypes(prev => new Set([...prev, type]));
-      
-      // Generate a new song
-      createSong({
-        name: songNames[type as keyof typeof songNames],
-        mood: PRESET_CONFIGS[type].mood,
-        songType: 'preset',
-        preset_type: type,
-        lyrics: PRESET_CONFIGS[type].lyrics(profile.babyName),
-        gender: profile.gender
-      });
-      
-      // Clear local generating state after a timeout
-      setTimeout(() => {
-        setLocalGeneratingTypes(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(type);
-          return newSet;
-        });
-      }, DEBOUNCE_TIME);
+      return;
     }
+    
+    // Log the action being taken
+    console.log(`Handling click for ${type} preset:`, {
+      currentSong: currentSong ? {
+        id: currentSong.id,
+        name: currentSong.name,
+        hasFailed,
+        hasAudio: !!currentSong.audio_url
+      } : 'none',
+      action: hasFailed ? 'retrying' : 'generating new'
+    });
+    
+    // Set local generating state to prevent multiple clicks
+    setLocalGeneratingTypes(prev => new Set([...prev, type]));
+    
+    // Generate a new song
+    createSong({
+      name: songNames[type as keyof typeof songNames],
+      mood: PRESET_CONFIGS[type].mood,
+      songType: 'preset',
+      preset_type: type,
+      lyrics: PRESET_CONFIGS[type].lyrics(profile.babyName),
+      gender: profile.gender
+    });
+    
+    // Clear local generating state after a timeout
+    setTimeout(() => {
+      setLocalGeneratingTypes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(type);
+        return newSet;
+      });
+    }, DEBOUNCE_TIME);
   }, [songs, createSong, playAudio, user, profile, songNames, localGeneratingTypes]);
 
   const handlePlay = useCallback((audioUrl: string) => {

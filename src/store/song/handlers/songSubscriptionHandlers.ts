@@ -32,13 +32,21 @@ export async function handleSongUpdate(
   // Only log state transitions, not every update
   const hasNewError = !oldSong.error && newSong.error;
   const hasNewAudio = !oldSong.audio_url && newSong.audio_url;
+  const hasTaskIdChange = oldSong.task_id !== newSong.task_id;
   
-  if (hasNewError || hasNewAudio) {
-    console.log(`Song update for ${newSong.name}:`, {
+  // Only log significant changes to reduce console spam
+  if (hasNewError || hasNewAudio || hasTaskIdChange) {
+    console.log(`Song update received for ${newSong.name} (${newSong.id}):`, {
       song_type: newSong.song_type,
-      audioUrl: !!newSong.audio_url,
-      error: !!newSong.error,
-      task_id: newSong.task_id
+      preset_type: (newSong as any).preset_type,
+      old_audio_url: oldSong.audio_url ? 'present' : 'none',
+      new_audio_url: newSong.audio_url ? 'present' : 'none',
+      old_error: oldSong.error,
+      new_error: newSong.error,
+      old_task_id: oldSong.task_id,
+      new_task_id: newSong.task_id,
+      hasNewError,
+      hasNewAudio
     });
   }
 

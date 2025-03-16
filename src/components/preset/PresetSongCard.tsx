@@ -37,11 +37,14 @@ export default function PresetSongCard({
 }: PresetCardProps) {
   // Add local loading state to provide immediate feedback
   const [isLocalLoading, setIsLocalLoading] = useState(false);
+  // Add local retry state to maintain "Retry" label during transitions
+  const [isRetrying, setIsRetrying] = useState(false);
   
   // Get song state metadata using the comprehensive helper method for preset types
   const {
     isGenerating: serviceIsGenerating,
     hasFailed,
+    canRetry,
     isReady,
     hasVariations,
     variationCount,
@@ -52,6 +55,13 @@ export default function PresetSongCard({
     type
   );
   
+  // Reset retry state when song state changes
+  useEffect(() => {
+    if (serviceIsGenerating || isReady) {
+      setIsRetrying(false);
+    }
+  }, [serviceIsGenerating, isReady]);
+  
   // Check both the service and local state for generating status
   const isGenerating = serviceIsGenerating || localGeneratingTypes.has(type) || isLocalLoading;
   
@@ -61,6 +71,8 @@ export default function PresetSongCard({
     statusLabel = "Generating...";
   } else if (isGenerating && !serviceIsGenerating) {
     statusLabel = "Generating...";
+  } else if (isRetrying) {
+    statusLabel = "Retry";
   }
 
   // Reset local loading state when service state changes
@@ -80,6 +92,11 @@ export default function PresetSongCard({
     if (isReady && audioUrl) {
       onPlayClick(audioUrl, type);
     } else {
+      // If this is a retry, set the retry state
+      if (hasFailed && canRetry) {
+        setIsRetrying(true);
+      }
+      
       // Set local loading state immediately for visual feedback
       setIsLocalLoading(true);
       
@@ -88,7 +105,7 @@ export default function PresetSongCard({
         onGenerateClick(type);
       }, LOADING_DELAY);
     }
-  }, [isGenerating, isReady, audioUrl, type, onPlayClick, onGenerateClick]);
+  }, [isGenerating, isReady, audioUrl, type, onPlayClick, onGenerateClick, hasFailed, canRetry]);
 
   // Get color scheme based on preset type
   const getColorScheme = () => {
@@ -194,12 +211,23 @@ export default function PresetSongCard({
               );
             }
             
-            if (hasFailed) {
+            if (isRetrying) {
               return (
                 <span className="inline-flex items-center text-xs bg-red-500/20 text-white
                                px-3 py-1.5 rounded-full ml-2 border border-red-500/20
                                shadow-lg z-10 whitespace-nowrap">
                   <RefreshCw className="w-3 h-3 mr-1 animate-spin-slow" />
+                  {statusLabel}
+                </span>
+              );
+            }
+            
+            if (hasFailed) {
+              return (
+                <span className="inline-flex items-center text-xs bg-red-500/20 text-white
+                               px-3 py-1.5 rounded-full ml-2 border border-red-500/20
+                               shadow-lg z-10 whitespace-nowrap">
+                  <RefreshCw className="w-3 h-3 mr-1" />
                   {statusLabel}
                 </span>
               );

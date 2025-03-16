@@ -1,9 +1,12 @@
-import { ComponentType, KeyboardEvent, MouseEvent, useCallback } from 'react';
+import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useState, useEffect } from 'react';
 import { Play, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService } from '../../services/songStateService';
 import { songAdapter } from '../../utils/songAdapter';
 import SongGenerationTimer from '../common/SongGenerationTimer';
+
+// Add a small delay to show loading state before actual generation starts
+const LOADING_DELAY = 300; // milliseconds
 
 interface PresetCardProps {
   type: PresetType;
@@ -32,6 +35,9 @@ export default function PresetSongCard({
   currentVariationIndex,
   localGeneratingTypes = new Set()
 }: PresetCardProps) {
+  // Add local loading state to provide immediate feedback
+  const [isLocalLoading, setIsLocalLoading] = useState(false);
+  
   // Get song state metadata using the comprehensive helper method for preset types
   const {
     isGenerating: serviceIsGenerating,
@@ -47,10 +53,22 @@ export default function PresetSongCard({
   );
   
   // Check both the service and local state for generating status
-  const isGenerating = serviceIsGenerating || localGeneratingTypes.has(type);
+  const isGenerating = serviceIsGenerating || localGeneratingTypes.has(type) || isLocalLoading;
   
   // Determine the status label based on combined generating state
-  const statusLabel = isGenerating && !serviceIsGenerating ? "Generating..." : serviceStatusLabel;
+  let statusLabel = serviceStatusLabel;
+  if (isLocalLoading) {
+    statusLabel = "Generating...";
+  } else if (isGenerating && !serviceIsGenerating) {
+    statusLabel = "Generating...";
+  }
+
+  // Reset local loading state when service state changes
+  useEffect(() => {
+    if (serviceIsGenerating) {
+      setIsLocalLoading(false);
+    }
+  }, [serviceIsGenerating]);
 
   // Get the audio URL using the adapter
   const audioUrl = currentSong ? songAdapter.getAudioUrl(currentSong) : undefined;
@@ -62,7 +80,13 @@ export default function PresetSongCard({
     if (isReady && audioUrl) {
       onPlayClick(audioUrl, type);
     } else {
-      onGenerateClick(type);
+      // Set local loading state immediately for visual feedback
+      setIsLocalLoading(true);
+      
+      // Add a small delay before actual generation to ensure UI updates
+      setTimeout(() => {
+        onGenerateClick(type);
+      }, LOADING_DELAY);
     }
   }, [isGenerating, isReady, audioUrl, type, onPlayClick, onGenerateClick]);
 
@@ -122,6 +146,9 @@ export default function PresetSongCard({
 
   const colors = getColorScheme();
 
+  // Add a pulsing animation to the card when in local loading state
+  const loadingAnimation = isLocalLoading ? 'animate-pulse' : '';
+
   return (
     <div
       onClick={handleCardClick}
@@ -133,7 +160,7 @@ export default function PresetSongCard({
                  aria-disabled:hover:from-current aria-disabled:hover:to-current
                  aria-disabled:hover:hover:bg-white/5
                  transition-all duration-500 group flex items-start gap-4 backdrop-blur-sm bg-black/60
-                 bg-gradient-to-br hover:scale-[1.02]
+                 bg-gradient-to-br hover:scale-[1.02] ${loadingAnimation}
                  ${colors.gradientFrom} ${colors.gradientTo} ${colors.hoverFrom} ${colors.hoverTo}
                  hover:shadow-xl ${colors.shadowColor}`}
     >
@@ -172,7 +199,7 @@ export default function PresetSongCard({
                 <span className="inline-flex items-center text-xs bg-red-500/20 text-white
                                px-3 py-1.5 rounded-full ml-2 border border-red-500/20
                                shadow-lg z-10 whitespace-nowrap">
-                  <RefreshCw className="w-3 h-3 mr-1" />
+                  <RefreshCw className="w-3 h-3 mr-1 animate-spin-slow" />
                   {statusLabel}
                 </span>
               );

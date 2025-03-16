@@ -44,7 +44,9 @@ const PresetSongs: FC = () => {
     songs,
     handlePresetClick,
     handlePlay,
-    handleVariationChange
+    handleVariationChange,
+    localGeneratingTypes,
+    currentVariationIndices
   } = usePresetSongs();
   
   // Get current playing song from audio store
@@ -82,6 +84,8 @@ const PresetSongs: FC = () => {
               onPlayClick={(url) => handlePlay(url)}
               onGenerateClick={handlePresetClick}
               onVariationChange={handleVariationChange}
+              currentVariationIndex={currentVariationIndices[type] || 0}
+              localGeneratingTypes={localGeneratingTypes}
             />
           );
         })}

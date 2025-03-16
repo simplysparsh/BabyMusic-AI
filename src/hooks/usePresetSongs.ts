@@ -6,6 +6,9 @@ import { useAudioStore } from '../store/audioStore';
 import { useAuthStore } from '../store/authStore';
 import { PRESET_CONFIGS } from '../data/lyrics';
 
+// Debounce time to prevent multiple clicks
+const DEBOUNCE_TIME = 1000; // milliseconds
+
 export default function usePresetSongs() {
   const { user, profile } = useAuthStore();
   const { songs, generatingSongs, createSong } = useSongStore();
@@ -13,6 +16,17 @@ export default function usePresetSongs() {
   
   // Filter only preset songs
   const [presetSongs, setPresetSongs] = useState<Song[]>([]);
+  
+  // Track local generating state to prevent multiple clicks
+  const [localGeneratingTypes, setLocalGeneratingTypes] = useState<Set<PresetType>>(new Set());
+  
+  // Track current variation index for each preset type
+  const [variationIndices, setVariationIndices] = useState<Record<PresetType, number>>({
+    playing: 0,
+    sleeping: 0,
+    eating: 0,
+    pooping: 0
+  });
   
   // Generate song names based on baby name
   const songNames = profile?.babyName
@@ -33,6 +47,22 @@ export default function usePresetSongs() {
     
     setPresetSongs(filteredPresetSongs);
     
+    // Clear local generating state for any types that are no longer generating
+    setLocalGeneratingTypes(prev => {
+      const newSet = new Set(prev);
+      for (const type of prev) {
+        const isStillGenerating = Array.from(generatingSongs).some(id => {
+          const song = filteredPresetSongs.find(s => s.id === id);
+          return song && song.preset_type === type;
+        });
+        
+        if (!isStillGenerating) {
+          newSet.delete(type);
+        }
+      }
+      return newSet;
+    });
+    
     // Only log preset songs updates
     if (filteredPresetSongs.length > 0) {
       // Debug logging can be re-enabled if needed
@@ -41,7 +71,7 @@ export default function usePresetSongs() {
     }
   }, [songs, generatingSongs]);
 
-  // Handle preset card click
+  // Handle preset card click with debounce
   const handlePresetClick = useCallback((type: PresetType) => {
     // If user or profile is missing, we can't proceed
     if (!user?.id || !profile?.babyName) {
@@ -52,8 +82,8 @@ export default function usePresetSongs() {
     const currentSong = SongStateService.getSongForPresetType(songs, type);
     const isGenerating = SongStateService.isPresetTypeGenerating(songs, type);
     
-    // If the song is already generating, do nothing
-    if (isGenerating) {
+    // If the song is already generating or we're in local generating state, do nothing
+    if (isGenerating || localGeneratingTypes.has(type)) {
       return;
     }
     
@@ -61,7 +91,10 @@ export default function usePresetSongs() {
     if (currentSong && currentSong.audio_url) {
       playAudio(currentSong.audio_url);
     } else {
-      // Otherwise generate a new song
+      // Set local generating state to prevent multiple clicks
+      setLocalGeneratingTypes(prev => new Set([...prev, type]));
+      
+      // Generate a new song
       createSong({
         name: songNames[type as keyof typeof songNames],
         mood: PRESET_CONFIGS[type].mood,
@@ -70,8 +103,17 @@ export default function usePresetSongs() {
         lyrics: PRESET_CONFIGS[type].lyrics(profile.babyName),
         gender: profile.gender
       });
+      
+      // Clear local generating state after a timeout
+      setTimeout(() => {
+        setLocalGeneratingTypes(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(type);
+          return newSet;
+        });
+      }, DEBOUNCE_TIME);
     }
-  }, [songs, createSong, playAudio, user, profile, songNames]);
+  }, [songs, createSong, playAudio, user, profile, songNames, localGeneratingTypes]);
 
   const handlePlay = useCallback((audioUrl: string) => {
     playAudio(audioUrl);
@@ -89,23 +131,34 @@ export default function usePresetSongs() {
       type
     );
     
-    if (!variationCount || variationCount <= 1) return;
+    if (!variationCount || variationCount <= 1 || !song?.variations) return;
     
-    // Use index 0 as default since we don't have is_primary property
-    const currentVariation = 0;
+    // Get current index for this type
+    const currentIndex = variationIndices[type] || 0;
+    
+    // Calculate new index
     const newIndex = direction === 'next'
-      ? (currentVariation + 1) % variationCount
-      : (currentVariation - 1 + variationCount) % variationCount;
+      ? (currentIndex + 1) % variationCount
+      : (currentIndex - 1 + variationCount) % variationCount;
     
-    if (song?.variations?.[newIndex]?.audio_url) {
+    // Update variation index
+    setVariationIndices(prev => ({
+      ...prev,
+      [type]: newIndex
+    }));
+    
+    // Play the audio if available
+    if (song.variations[newIndex]?.audio_url) {
       playAudio(song.variations[newIndex].audio_url);
     }
-  }, [songs, playAudio]);
+  }, [songs, playAudio, variationIndices]);
 
   return {
     songs: presetSongs, // Return only preset songs
     handlePresetClick,
     handlePlay,
-    handleVariationChange
+    handleVariationChange,
+    localGeneratingTypes,
+    currentVariationIndices: variationIndices
   };
 }

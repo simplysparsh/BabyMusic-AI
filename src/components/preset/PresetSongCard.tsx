@@ -2,7 +2,6 @@ import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useState, useEff
 import { Play, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
-import { songAdapter } from '../../utils/songAdapter';
 import SongGenerationTimer from '../common/SongGenerationTimer';
 
 // Add a small delay to show loading state before actual generation starts
@@ -19,7 +18,7 @@ interface PresetCardProps {
   onGenerateClick: (type: PresetType) => void;
   onVariationChange: (e: MouseEvent<HTMLDivElement>, type: PresetType, direction: 'next' | 'prev') => void;
   currentVariationIndex: number;
-  localGeneratingTypes?: Set<PresetType>;
+  isPresetTypeGenerating: (type: PresetType) => boolean;
 }
 
 export default function PresetSongCard({
@@ -33,14 +32,12 @@ export default function PresetSongCard({
   onGenerateClick,
   onVariationChange,
   currentVariationIndex,
-  localGeneratingTypes = new Set()
+  isPresetTypeGenerating
 }: PresetCardProps) {
-  // Add local loading state to provide immediate feedback
+  // Local loading state to provide immediate UI feedback
   const [isLocalLoading, setIsLocalLoading] = useState(false);
-  // Add local retry state to maintain "Retry" label during transitions
-  const [isRetrying, setIsRetrying] = useState(false);
   
-  // Get song state metadata using the comprehensive helper method for preset types
+  // Get song state metadata using the helper method for preset types
   const {
     isGenerating: serviceIsGenerating,
     hasFailed,
@@ -56,47 +53,21 @@ export default function PresetSongCard({
     type
   );
   
-  // Reset states when song state changes
+  // Reset local loading state when song state changes
   useEffect(() => {
-    switch (songState) {
-      case SongState.GENERATING:
-        // Reset retry state when generation actually starts
-        setIsRetrying(false);
-        setIsLocalLoading(false);
-        break;
-        
-      case SongState.READY:
-        // Reset all states when song is ready
-        setIsRetrying(false);
-        setIsLocalLoading(false);
-        break;
-        
-      case SongState.FAILED:
-        // Keep retry state if we're already retrying
-        setIsLocalLoading(false);
-        break;
-        
-      default:
-        // No changes for initial state
-        break;
+    if (songState === SongState.GENERATING || songState === SongState.READY) {
+      setIsLocalLoading(false);
     }
   }, [songState]);
   
-  // Check both the service and local state for generating status
-  const isGenerating = serviceIsGenerating || localGeneratingTypes.has(type) || isLocalLoading;
+  // Combine generating states
+  const isGenerating = serviceIsGenerating || isPresetTypeGenerating(type) || isLocalLoading;
   
-  // Determine the status label based on combined generating state
-  let statusLabel = serviceStatusLabel;
-  if (isLocalLoading) {
-    statusLabel = isRetrying ? "Retrying..." : "Generating...";
-  } else if (isGenerating && !serviceIsGenerating) {
-    statusLabel = isRetrying ? "Retrying..." : "Generating...";
-  } else if (isRetrying) {
-    statusLabel = "Retry";
-  }
+  // Get status label
+  const statusLabel = isLocalLoading ? "Generating..." : serviceStatusLabel;
 
-  // Get the audio URL using the adapter
-  const audioUrl = currentSong ? songAdapter.getAudioUrl(currentSong) : undefined;
+  // Get the audio URL
+  const audioUrl = currentSong ? currentSong.audio_url : undefined;
 
   // Handle card click
   const handleCardClick = useCallback(() => {
@@ -111,9 +82,8 @@ export default function PresetSongCard({
         break;
         
       case SongState.FAILED:
-        // Set retry state if the song has failed and can be retried
+        // Handle retry if the song has failed and can be retried
         if (canRetry) {
-          setIsRetrying(true);
           setIsLocalLoading(true);
           
           // Add a small delay before actual generation to ensure UI updates
@@ -197,7 +167,6 @@ export default function PresetSongCard({
   // Render the status indicator based on song state
   const renderStatusIndicator = () => {
     if (isGenerating) {
-      // Use the same animation style for both generating and retrying
       return (
         <span className="inline-flex items-center text-xs bg-primary/20 text-white
                        px-3 py-1.5 rounded-full ml-2 border border-primary/20
@@ -208,17 +177,6 @@ export default function PresetSongCard({
             compact={true}
             className="!m-0 !p-0"
           />
-        </span>
-      );
-    }
-    
-    if (isRetrying) {
-      return (
-        <span className="inline-flex items-center text-xs bg-red-500/20 text-white
-                       px-3 py-1.5 rounded-full ml-2 border border-red-500/20
-                       shadow-lg z-10 whitespace-nowrap">
-          <RefreshCw className="w-3 h-3 mr-1 animate-spin-slow" />
-          {statusLabel}
         </span>
       );
     }
@@ -289,7 +247,7 @@ export default function PresetSongCard({
         <p className="text-xs text-white/60 group-hover:text-white/80 transition-colors">
           {isGenerating ? (
             <span className="text-primary animate-pulse">
-              {isRetrying ? "Retrying your special song..." : "Creating your special song..."}
+              Creating your special song...
             </span>
           ) : description}
         </p>

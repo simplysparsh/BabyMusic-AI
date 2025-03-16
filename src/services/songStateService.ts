@@ -12,6 +12,16 @@ interface SongErrorObject {
 }
 
 /**
+ * Enum representing the possible states of a song
+ */
+export enum SongState {
+  GENERATING = 'generating',
+  READY = 'ready',
+  FAILED = 'failed',
+  INITIAL = 'initial'
+}
+
+/**
  * SongStateService handles all logic related to determining a song's state
  * for consistent UI rendering and business logic throughout the application.
  * 
@@ -24,6 +34,20 @@ interface SongErrorObject {
  * 3. Failed: Song has an error
  */
 export class SongStateService {
+  /**
+   * Gets the current state of a song
+   * This is the single source of truth for song state
+   */
+  static getSongState(song: Song | undefined): SongState {
+    if (!song) return SongState.INITIAL;
+    
+    if (this.isReady(song)) return SongState.READY;
+    if (this.hasFailed(song)) return SongState.FAILED;
+    if (this.isGenerating(song)) return SongState.GENERATING;
+    
+    return SongState.INITIAL;
+  }
+
   /**
    * Determines if a song is currently generating
    * This is the single source of truth for generation state
@@ -299,6 +323,7 @@ export class SongStateService {
     statusLabel: string;
     isPresetSong: boolean;
     isCompleted: boolean;
+    state: SongState;
   } {
     // Determine state based on song properties
     const isGenerating = this.isGenerating(song);
@@ -310,6 +335,7 @@ export class SongStateService {
     const isPresetSong = this.isPresetSong(song);
     const statusLabel = this.getStatusLabel(song, isGenerating);
     const isCompleted = this.isCompleted(song);
+    const state = this.getSongState(song);
 
     return {
       isGenerating,
@@ -320,7 +346,8 @@ export class SongStateService {
       variationCount,
       statusLabel,
       isPresetSong,
-      isCompleted
+      isCompleted,
+      state
     };
   }
 
@@ -341,6 +368,7 @@ export class SongStateService {
     statusLabel: string;
     song: Song | undefined;
     isCompleted: boolean;
+    state: SongState;
   } {
     // Find the most relevant song for this preset type
     const song = this.getSongForPresetType(songs, presetType);
@@ -358,6 +386,7 @@ export class SongStateService {
     const variationCount = this.getVariationCount(song);
     const statusLabel = this.getStatusLabel(song, isGenerating);
     const isCompleted = this.isCompleted(song);
+    const state = this.getSongState(song);
 
     return {
       isGenerating,
@@ -368,7 +397,8 @@ export class SongStateService {
       variationCount,
       statusLabel,
       song,
-      isCompleted
+      isCompleted,
+      state
     };
   }
 

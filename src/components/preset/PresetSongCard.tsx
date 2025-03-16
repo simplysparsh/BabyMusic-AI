@@ -1,7 +1,7 @@
 import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useState, useEffect } from 'react';
 import { Play, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
-import { SongStateService } from '../../services/songStateService';
+import { SongStateService, SongState } from '../../services/songStateService';
 import { songAdapter } from '../../utils/songAdapter';
 import SongGenerationTimer from '../common/SongGenerationTimer';
 
@@ -49,18 +49,38 @@ export default function PresetSongCard({
     hasVariations,
     variationCount,
     statusLabel: serviceStatusLabel,
-    song: currentSong
+    song: currentSong,
+    state: songState
   } = SongStateService.getPresetTypeStateMetadata(
     songs,
     type
   );
   
-  // Reset retry state when song state changes
+  // Reset states when song state changes
   useEffect(() => {
-    if (serviceIsGenerating || isReady) {
-      setIsRetrying(false);
+    switch (songState) {
+      case SongState.GENERATING:
+        // Reset retry state when generation actually starts
+        setIsRetrying(false);
+        setIsLocalLoading(false);
+        break;
+        
+      case SongState.READY:
+        // Reset all states when song is ready
+        setIsRetrying(false);
+        setIsLocalLoading(false);
+        break;
+        
+      case SongState.FAILED:
+        // Keep retry state if we're already retrying
+        setIsLocalLoading(false);
+        break;
+        
+      default:
+        // No changes for initial state
+        break;
     }
-  }, [serviceIsGenerating, isReady]);
+  }, [songState]);
   
   // Check both the service and local state for generating status
   const isGenerating = serviceIsGenerating || localGeneratingTypes.has(type) || isLocalLoading;
@@ -68,19 +88,12 @@ export default function PresetSongCard({
   // Determine the status label based on combined generating state
   let statusLabel = serviceStatusLabel;
   if (isLocalLoading) {
-    statusLabel = "Generating...";
+    statusLabel = isRetrying ? "Retrying..." : "Generating...";
   } else if (isGenerating && !serviceIsGenerating) {
-    statusLabel = "Generating...";
+    statusLabel = isRetrying ? "Retrying..." : "Generating...";
   } else if (isRetrying) {
     statusLabel = "Retry";
   }
-
-  // Reset local loading state when service state changes
-  useEffect(() => {
-    if (serviceIsGenerating) {
-      setIsLocalLoading(false);
-    }
-  }, [serviceIsGenerating]);
 
   // Get the audio URL using the adapter
   const audioUrl = currentSong ? songAdapter.getAudioUrl(currentSong) : undefined;
@@ -89,23 +102,38 @@ export default function PresetSongCard({
   const handleCardClick = useCallback(() => {
     if (isGenerating) return;
     
-    if (isReady && audioUrl) {
-      onPlayClick(audioUrl, type);
-    } else {
-      // If this is a retry, set the retry state
-      if (hasFailed && canRetry) {
-        setIsRetrying(true);
-      }
-      
-      // Set local loading state immediately for visual feedback
-      setIsLocalLoading(true);
-      
-      // Add a small delay before actual generation to ensure UI updates
-      setTimeout(() => {
-        onGenerateClick(type);
-      }, LOADING_DELAY);
+    switch (songState) {
+      case SongState.READY:
+        // Play the song if it's ready and has an audio URL
+        if (audioUrl) {
+          onPlayClick(audioUrl, type);
+        }
+        break;
+        
+      case SongState.FAILED:
+        // Set retry state if the song has failed and can be retried
+        if (canRetry) {
+          setIsRetrying(true);
+          setIsLocalLoading(true);
+          
+          // Add a small delay before actual generation to ensure UI updates
+          setTimeout(() => {
+            onGenerateClick(type);
+          }, LOADING_DELAY);
+        }
+        break;
+        
+      default:
+        // For initial state or any other state, generate a new song
+        setIsLocalLoading(true);
+        
+        // Add a small delay before actual generation to ensure UI updates
+        setTimeout(() => {
+          onGenerateClick(type);
+        }, LOADING_DELAY);
+        break;
     }
-  }, [isGenerating, isReady, audioUrl, type, onPlayClick, onGenerateClick, hasFailed, canRetry]);
+  }, [songState, isGenerating, audioUrl, type, onPlayClick, onGenerateClick, canRetry]);
 
   // Get color scheme based on preset type
   const getColorScheme = () => {
@@ -166,6 +194,73 @@ export default function PresetSongCard({
   // Add a pulsing animation to the card when in local loading state
   const loadingAnimation = isLocalLoading ? 'animate-pulse' : '';
 
+  // Render the status indicator based on song state
+  const renderStatusIndicator = () => {
+    if (isGenerating) {
+      return (
+        <span className="inline-flex items-center text-xs bg-primary/20 text-white
+                       px-3 py-1.5 rounded-full ml-2 border border-primary/20
+                       shadow-lg z-10 whitespace-nowrap">
+          {isRetrying ? (
+            <>
+              <RefreshCw className="w-3 h-3 mr-1 animate-spin-slow" />
+              Retrying...
+            </>
+          ) : (
+            <SongGenerationTimer 
+              isGenerating={isGenerating}
+              showProgress={false}
+              compact={true}
+              className="!m-0 !p-0"
+            />
+          )}
+        </span>
+      );
+    }
+    
+    if (isRetrying) {
+      return (
+        <span className="inline-flex items-center text-xs bg-red-500/20 text-white
+                       px-3 py-1.5 rounded-full ml-2 border border-red-500/20
+                       shadow-lg z-10 whitespace-nowrap">
+          <RefreshCw className="w-3 h-3 mr-1 animate-spin-slow" />
+          {statusLabel}
+        </span>
+      );
+    }
+    
+    if (hasFailed) {
+      return (
+        <span className="inline-flex items-center text-xs bg-red-500/20 text-white
+                       px-3 py-1.5 rounded-full ml-2 border border-red-500/20
+                       shadow-lg z-10 whitespace-nowrap">
+          <RefreshCw className="w-3 h-3 mr-1" />
+          {statusLabel}
+        </span>
+      );
+    }
+    
+    if (isReady) {
+      return (
+        <span className="inline-flex items-center text-xs bg-green-500/20 text-white
+                       px-3 py-1.5 rounded-full ml-2 border border-green-500/20
+                       shadow-lg z-10 whitespace-nowrap">
+          <Play className="w-3 h-3 mr-1" />
+          {statusLabel}
+        </span>
+      );
+    }
+    
+    return (
+      <span className="inline-flex items-center text-xs bg-white/20 text-white
+                     px-3 py-1.5 rounded-full ml-2 border border-white/20
+                     shadow-lg z-10 whitespace-nowrap">
+        <Wand2 className="w-3 h-3 mr-1" />
+        {statusLabel}
+      </span>
+    );
+  };
+
   return (
     <div
       onClick={handleCardClick}
@@ -195,68 +290,13 @@ export default function PresetSongCard({
           {title}
           <span className="text-base">{colors.emoji}</span>
           {/* Status indicator */}
-          {(() => {
-            if (isGenerating) {
-              return (
-                <span className="inline-flex items-center text-xs bg-primary/20 text-white
-                               px-3 py-1.5 rounded-full ml-2 border border-primary/20
-                               shadow-lg z-10 whitespace-nowrap">
-                  <SongGenerationTimer 
-                    isGenerating={isGenerating}
-                    showProgress={false}
-                    compact={true}
-                    className="!m-0 !p-0"
-                  />
-                </span>
-              );
-            }
-            
-            if (isRetrying) {
-              return (
-                <span className="inline-flex items-center text-xs bg-red-500/20 text-white
-                               px-3 py-1.5 rounded-full ml-2 border border-red-500/20
-                               shadow-lg z-10 whitespace-nowrap">
-                  <RefreshCw className="w-3 h-3 mr-1 animate-spin-slow" />
-                  {statusLabel}
-                </span>
-              );
-            }
-            
-            if (hasFailed) {
-              return (
-                <span className="inline-flex items-center text-xs bg-red-500/20 text-white
-                               px-3 py-1.5 rounded-full ml-2 border border-red-500/20
-                               shadow-lg z-10 whitespace-nowrap">
-                  <RefreshCw className="w-3 h-3 mr-1" />
-                  {statusLabel}
-                </span>
-              );
-            }
-            
-            if (isReady) {
-              return (
-                <span className="inline-flex items-center text-xs bg-green-500/20 text-white
-                               px-3 py-1.5 rounded-full ml-2 border border-green-500/20
-                               shadow-lg z-10 whitespace-nowrap">
-                  <Play className="w-3 h-3 mr-1" />
-                  {statusLabel}
-                </span>
-              );
-            }
-            
-            return (
-              <span className="inline-flex items-center text-xs bg-white/20 text-white
-                             px-3 py-1.5 rounded-full ml-2 border border-white/20
-                             shadow-lg z-10 whitespace-nowrap">
-                <Wand2 className="w-3 h-3 mr-1" />
-                {statusLabel}
-              </span>
-            );
-          })()}
+          {renderStatusIndicator()}
         </h3>
         <p className="text-xs text-white/60 group-hover:text-white/80 transition-colors">
           {isGenerating ? (
-            <span className="text-primary animate-pulse">Creating your special song...</span>
+            <span className="text-primary animate-pulse">
+              {isRetrying ? "Retrying your special song..." : "Creating your special song..."}
+            </span>
           ) : description}
         </p>
         {hasVariations && !isGenerating && currentSong && (

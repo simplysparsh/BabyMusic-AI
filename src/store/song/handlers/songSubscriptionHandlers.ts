@@ -6,8 +6,7 @@
 import type { Song } from '../../../types';
 import type { SongState } from '../types';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { songAdapter } from '../../../utils/songAdapter';
-import { SongStateService } from '../../../services/songStateService';
+import { SongStateService, SongState as SongStateEnum } from '../../../services/songStateService';
 
 interface SongPayload {
   id: string;
@@ -22,6 +21,10 @@ interface SongPayload {
 type SetState = (state: Partial<SongState>) => void;
 type GetState = () => SongState;
 
+/**
+ * Handles song updates from the Supabase realtime subscription
+ * This is the central handler for all song state changes
+ */
 export async function handleSongUpdate(
   newSong: SongPayload,
   oldSong: SongPayload,
@@ -29,24 +32,34 @@ export async function handleSongUpdate(
   get: GetState,
   supabase: SupabaseClient
 ) {
-  // Only log state transitions, not every update
+  // Detect significant state changes
   const hasNewError = !oldSong.error && newSong.error;
   const hasNewAudio = !oldSong.audio_url && newSong.audio_url;
   const hasTaskIdChange = oldSong.task_id !== newSong.task_id;
+  const hasSignificantChange = hasNewError || hasNewAudio || hasTaskIdChange;
   
-  // Only log significant changes to reduce console spam
-  if (hasNewError || hasNewAudio || hasTaskIdChange) {
-    console.log(`Song update received for ${newSong.name} (${newSong.id}):`, {
+  // Log significant state transitions
+  if (hasSignificantChange) {
+    console.log(`Song state change for ${newSong.name} (${newSong.id}):`, {
       song_type: newSong.song_type,
       preset_type: (newSong as any).preset_type,
-      old_audio_url: oldSong.audio_url ? 'present' : 'none',
-      new_audio_url: newSong.audio_url ? 'present' : 'none',
-      old_error: oldSong.error,
-      new_error: newSong.error,
-      old_task_id: oldSong.task_id,
-      new_task_id: newSong.task_id,
-      hasNewError,
-      hasNewAudio
+      audio_url: {
+        before: oldSong.audio_url ? 'present' : 'none',
+        after: newSong.audio_url ? 'present' : 'none'
+      },
+      error: {
+        before: oldSong.error,
+        after: newSong.error
+      },
+      task_id: {
+        before: oldSong.task_id,
+        after: newSong.task_id
+      },
+      changes: {
+        hasNewError,
+        hasNewAudio,
+        hasTaskIdChange
+      }
     });
   }
 
@@ -100,27 +113,53 @@ export async function handleSongUpdate(
     return;
   }
 
-  // Clear generating state when song is complete or has error
-  if (SongStateService.isCompleted(updatedSong) || SongStateService.hasFailed(updatedSong)) {
-    const newGenerating = new Set(get().generatingSongs);
-    newGenerating.delete(updatedSong.id);
-
-    // Clear from task processing queue if applicable
-    const newProcessingTaskIds = new Set(get().processingTaskIds);
-    if (updatedSong.task_id) {
-      newProcessingTaskIds.delete(updatedSong.task_id);
-    }
-    
-    // Clear retrying state if applicable
-    const newRetrying = new Set(get().retryingSongs);
-    newRetrying.delete(updatedSong.id);
-    
-    set({ 
-      generatingSongs: newGenerating,
-      processingTaskIds: newProcessingTaskIds,
-      retryingSongs: newRetrying,
-      error: updatedSong.error || null
-    });
+  // Get the song's current state using the enhanced SongStateService
+  const songState = SongStateService.getSongState(updatedSong as Song);
+  
+  // Handle state-specific updates
+  switch (songState) {
+    case SongStateEnum.READY:
+      // Song is ready to play (has audio_url)
+      if (hasNewAudio) {
+        console.log(`Song ${updatedSong.id} is now ready to play with audio_url: ${updatedSong.audio_url}`);
+      }
+      
+      // Clear all processing states
+      updateSongProcessingState(updatedSong.id, updatedSong.task_id, false, false, set, get);
+      break;
+      
+    case SongStateEnum.FAILED:
+      // Song has failed (has error)
+      if (hasNewError) {
+        console.log(`Song ${updatedSong.id} has failed with error: ${updatedSong.error}`);
+      }
+      
+      // Clear generating state but keep retryable if applicable
+      updateSongProcessingState(updatedSong.id, updatedSong.task_id, false, !!updatedSong.retryable, set, get);
+      
+      // Set error state
+      set({ error: updatedSong.error || null });
+      break;
+      
+    case SongStateEnum.GENERATING:
+      // Song is generating (has task_id)
+      if (hasTaskIdChange && updatedSong.task_id) {
+        console.log(`Song ${updatedSong.id} is now generating with task_id: ${updatedSong.task_id}`);
+        
+        // Add to generating songs if not already there
+        if (!get().generatingSongs.has(updatedSong.id)) {
+          set({
+            generatingSongs: new Set([...get().generatingSongs, updatedSong.id])
+          });
+        }
+      }
+      break;
+      
+    default:
+      // Initial or unknown state
+      // Clear generating state to be safe
+      updateSongProcessingState(updatedSong.id, updatedSong.task_id, false, false, set, get);
+      break;
   }
 
   // Update the song in the songs array
@@ -128,5 +167,50 @@ export async function handleSongUpdate(
     songs: get().songs.map((song) =>
       song.id === oldSong.id ? updatedSong as Song : song
     )
+  });
+}
+
+/**
+ * Helper function to update a song's processing state
+ */
+function updateSongProcessingState(
+  songId: string,
+  taskId: string | null | undefined,
+  isGenerating: boolean,
+  isRetrying: boolean,
+  set: SetState,
+  get: GetState
+): void {
+  // Update generating state
+  const newGenerating = new Set(get().generatingSongs);
+  if (isGenerating) {
+    newGenerating.add(songId);
+  } else {
+    newGenerating.delete(songId);
+  }
+  
+  // Update retrying state
+  const newRetrying = new Set(get().retryingSongs);
+  if (isRetrying) {
+    newRetrying.add(songId);
+  } else {
+    newRetrying.delete(songId);
+  }
+  
+  // Update task processing state
+  const newProcessingTaskIds = new Set(get().processingTaskIds);
+  if (taskId) {
+    if (isGenerating) {
+      newProcessingTaskIds.add(taskId);
+    } else {
+      newProcessingTaskIds.delete(taskId);
+    }
+  }
+  
+  // Update all states at once
+  set({
+    generatingSongs: newGenerating,
+    retryingSongs: newRetrying,
+    processingTaskIds: newProcessingTaskIds
   });
 }

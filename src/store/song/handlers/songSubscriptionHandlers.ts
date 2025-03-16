@@ -29,13 +29,18 @@ export async function handleSongUpdate(
   get: GetState,
   supabase: SupabaseClient
 ) {
-  // Log for debugging
-  console.log(`Song update for ${newSong.name}:`, {
-    song_type: newSong.song_type,
-    audioUrl: !!newSong.audio_url,
-    error: !!newSong.error,
-    task_id: newSong.task_id
-  });
+  // Only log state transitions, not every update
+  const hasNewError = !oldSong.error && newSong.error;
+  const hasNewAudio = !oldSong.audio_url && newSong.audio_url;
+  
+  if (hasNewError || hasNewAudio) {
+    console.log(`Song update for ${newSong.name}:`, {
+      song_type: newSong.song_type,
+      audioUrl: !!newSong.audio_url,
+      error: !!newSong.error,
+      task_id: newSong.task_id
+    });
+  }
 
   // Track task IDs for processing state
   if (newSong.task_id && !get().processingTaskIds.has(newSong.task_id)) {

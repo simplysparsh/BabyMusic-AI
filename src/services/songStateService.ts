@@ -140,6 +140,14 @@ export class SongStateService {
     
     // If the song has an error, it has failed (error overrides everything)
     if (song.error) {
+      // Log the error when we first detect it (this will only happen once per song)
+      if (song.task_id) {
+        // If the song still has a task_id, this is likely the first time we're seeing the error
+        this.getFailureMessage(song, true); // Log the error with shouldLog=true
+        
+        // Clear the task_id to prevent repeated logging
+        this.updateSongWithError(song.id, typeof song.error === 'string' ? song.error : "Generation failed. Please try again.");
+      }
       return true;
     }
     
@@ -160,13 +168,15 @@ export class SongStateService {
   /**
    * Provides a user-friendly failure message based on the error details
    */
-  static getFailureMessage(song: Song | undefined): string | undefined {
+  static getFailureMessage(song: Song | undefined, shouldLog: boolean = false): string | undefined {
     if (!song || !song.error) return undefined;
     
     // For preset songs, always show "Retry" in the UI
     if (this.isPresetSong(song)) {
-      // Log the detailed error to console for debugging
-      console.error('Song generation failed:', song.error);
+      // Log the detailed error to console for debugging, but only when explicitly requested
+      if (shouldLog) {
+        console.error('Song generation failed:', song.error);
+      }
       return 'Retry';
     }
     
@@ -176,8 +186,10 @@ export class SongStateService {
       if ('code' in song.error) {
         const errorObj = song.error as SongErrorObject;
         
-        // Log the detailed error to console
-        console.error('Song generation failed:', errorObj);
+        // Log the detailed error to console, but only when explicitly requested
+        if (shouldLog) {
+          console.error('Song generation failed:', errorObj);
+        }
         
         // Check for artist name error in raw_message
         if (errorObj.raw_message && typeof errorObj.raw_message === 'string') {
@@ -189,8 +201,10 @@ export class SongStateService {
     }
     // Handle error as string
     else if (typeof song.error === 'string') {
-      // Log the detailed error to console
-      console.error('Song generation failed:', song.error);
+      // Log the detailed error to console, but only when explicitly requested
+      if (shouldLog) {
+        console.error('Song generation failed:', song.error);
+      }
       
       if (song.error.includes('Tags contained artist name:')) {
         return 'The song failed to generate because the tags contained an artist name. Please provide an alternative spelling for the artist name.';

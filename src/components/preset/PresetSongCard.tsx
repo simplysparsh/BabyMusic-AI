@@ -1,5 +1,5 @@
 import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useState, useEffect } from 'react';
-import { Play, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, RefreshCw, Wand2, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
 import { songAdapter } from '../../utils/songAdapter';
@@ -197,23 +197,17 @@ export default function PresetSongCard({
   // Render the status indicator based on song state
   const renderStatusIndicator = () => {
     if (isGenerating) {
+      // Use the same animation style for both generating and retrying
       return (
         <span className="inline-flex items-center text-xs bg-primary/20 text-white
                        px-3 py-1.5 rounded-full ml-2 border border-primary/20
                        shadow-lg z-10 whitespace-nowrap">
-          {isRetrying ? (
-            <>
-              <RefreshCw className="w-3 h-3 mr-1 animate-spin-slow" />
-              Retrying...
-            </>
-          ) : (
-            <SongGenerationTimer 
-              isGenerating={isGenerating}
-              showProgress={false}
-              compact={true}
-              className="!m-0 !p-0"
-            />
-          )}
+          <SongGenerationTimer 
+            isGenerating={isGenerating}
+            showProgress={false}
+            compact={true}
+            className="!m-0 !p-0"
+          />
         </span>
       );
     }

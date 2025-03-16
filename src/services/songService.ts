@@ -11,9 +11,8 @@ import type {
   Tempo,
   VoiceType,
   AgeGroup,
-  MusicGenerationParams
+  SongVariation
 } from '../types';
-import { SongStateService } from '../services/songStateService';
 import { TimeoutService } from '../services/timeoutService';
 
 // Define a type to bridge database schema columns and Song interface
@@ -35,8 +34,21 @@ type DatabaseSong = {
   retryable?: boolean;
   error?: string | null;
   task_id?: string | null;
-  variations?: any[];
+  variations?: DatabaseSongVariation[];
   status?: string;
+};
+
+// Define a type for database song variations
+type DatabaseSongVariation = {
+  id: string;
+  song_id: string;
+  audio_url: string;
+  title?: string;
+  created_at: string;
+  metadata?: {
+    tags?: string;
+    prompt?: string;
+  };
 };
 
 /**
@@ -45,6 +57,16 @@ type DatabaseSong = {
  * @returns A song that matches the Song interface
  */
 function mapDatabaseSongToSong(dbSong: DatabaseSong): Song {
+  // Convert database variations to SongVariation format if present
+  const variations: SongVariation[] | undefined = dbSong.variations?.map(v => ({
+    id: v.id,
+    songId: v.song_id,
+    audio_url: v.audio_url,
+    title: v.title,
+    created_at: new Date(v.created_at),
+    metadata: v.metadata
+  }));
+
   return {
     id: dbSong.id,
     name: dbSong.name,
@@ -56,7 +78,7 @@ function mapDatabaseSongToSong(dbSong: DatabaseSong): Song {
     createdAt: new Date(dbSong.created_at),
     userId: dbSong.user_id,
     retryable: dbSong.retryable,
-    variations: dbSong.variations,
+    variations,
     error: dbSong.error || undefined,
     task_id: dbSong.task_id || undefined,
     song_type: dbSong.song_type,

@@ -152,4 +152,32 @@ BEGIN
   AND s.created_at < NOW() - INTERVAL '1 hour'
   ORDER BY s.created_at DESC;
 END;
-$func$ LANGUAGE plpgsql; 
+$func$ LANGUAGE plpgsql;
+
+-- Comprehensive cleanup of all legacy status-related items
+
+-- Drop triggers and functions related to the old status system
+DROP TRIGGER IF EXISTS webhook_status_logger ON songs;
+DROP TRIGGER IF EXISTS song_state_logger ON songs;
+DROP FUNCTION IF EXISTS log_webhook_status();
+DROP FUNCTION IF EXISTS log_status_changes();
+DROP FUNCTION IF EXISTS log_song_state_changes();
+
+-- Drop unused status columns from songs table
+ALTER TABLE songs DROP COLUMN IF EXISTS status;
+ALTER TABLE songs DROP COLUMN IF EXISTS webhook_status;
+ALTER TABLE songs DROP COLUMN IF EXISTS webhook_received_at;
+ALTER TABLE songs DROP COLUMN IF EXISTS error_message; -- App now uses 'error' column
+
+-- Clean up song_variations table
+ALTER TABLE song_variations DROP COLUMN IF EXISTS status;
+ALTER TABLE song_variations DROP COLUMN IF EXISTS webhook_status;
+ALTER TABLE song_variations DROP COLUMN IF EXISTS webhook_received_at;
+
+-- Clean up or drop unused tables
+-- The song_generations table is not actively used by the application code
+DROP TABLE IF EXISTS song_generations;
+
+-- Drop enum types that are no longer needed
+DROP TYPE IF EXISTS song_status;
+DROP TYPE IF EXISTS status; -- Old enum from baseline schema 

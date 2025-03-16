@@ -40,6 +40,7 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
   const [ageGroup, setAgeGroup] = useState<AgeGroup>('0-6');
   const [gender, setGender] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [birthDateError, setBirthDateError] = useState<string | null>(null);
   const { updateProfile } = useAuthStore();
 
   useEffect(() => {
@@ -60,16 +61,44 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
   if (!isOpen) return null;
 
   const handleNext = () => {
+    // Reset errors
+    setError(null);
+    setBirthDateError(null);
+    
+    // Validate birth date (UI only)
+    const currentDate = new Date();
+    const selectedDate = new Date(birthYear, birthMonth - 1);
+    
+    if (selectedDate > currentDate) {
+      setBirthDateError("Birth date cannot be in the future");
+      return;
+    }
+    
+    // Validate gender
     if (!gender) {
       setError("Please select your baby's gender");
       return;
     }
+    
     console.log('Moving to step 2 with gender:', gender);
-    setError(null);
     setStep(2);
   };
 
   const handleComplete = async () => {
+    // Reset errors
+    setError(null);
+    setBirthDateError(null);
+    
+    // Validate birth date (UI only)
+    const currentDate = new Date();
+    const selectedDate = new Date(birthYear, birthMonth - 1);
+    
+    if (selectedDate > currentDate) {
+      setBirthDateError("Birth date cannot be in the future");
+      return;
+    }
+    
+    // Validate gender
     if (!gender) {
       setError("Please select your baby's gender");
       return;
@@ -84,7 +113,6 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
         gender
       });
       setIsUpdating(true);
-      setError(null);
       
       // Update profile with birth data
       const updatedProfile = await updateProfile({
@@ -139,13 +167,15 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
               <div>
                 <label className="block text-sm font-medium text-white/90 mb-2">
                   When was {babyName} born?
+                  <span className="text-primary ml-1" title="Required">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <select
                       value={birthMonth}
                       onChange={(e) => setBirthMonth(parseInt(e.target.value))}
-                      className="input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors"
+                      className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${birthDateError ? 'border-red-400' : ''}`}
+                      required
                     >
                       {Array.from({ length: 12 }, (_, i) => (
                         <option key={i + 1} value={i + 1}>
@@ -159,7 +189,8 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
                     <select
                       value={birthYear}
                       onChange={(e) => setBirthYear(parseInt(e.target.value))}
-                      className="input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors"
+                      className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${birthDateError ? 'border-red-400' : ''}`}
+                      required
                     >
                       {AGE_OPTIONS.map(({ value, label }) => (
                         <option key={value} value={value}>{label}</option>
@@ -172,6 +203,7 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
                   <Calendar className="w-3 h-3" />
                   We use age to customize songs for your child's developmental stage
                 </p>
+                {birthDateError && <p className="text-red-400 text-sm mt-1">{birthDateError}</p>}
               </div>
 
               <div>

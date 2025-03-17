@@ -16,6 +16,8 @@ interface SongPayload {
   audio_url?: string | null;
   task_id?: string;
   user_id: string;
+  preset_type?: string;
+  retryable?: boolean;
 }
 
 type SetState = (state: Partial<SongState>) => void;
@@ -60,7 +62,7 @@ export async function handleSongUpdate(
         after: newSong.task_id || 'none',
         cleared: hasTaskIdCleared
       },
-      preset_type: (newSong as SongPayload & { preset_type?: string }).preset_type || 'n/a'
+      preset_type: newSong.preset_type || 'n/a'
     });
   }
 
@@ -78,40 +80,83 @@ export async function handleSongUpdate(
     });
   }
 
-  // Fetch the complete song with variations
-  const { data: updatedSong, error: fetchError } = await supabase
-    .from('songs')
-    .select('*, variations:song_variations(*)')
-    .eq('id', oldSong.id)
-    .single();
+  // Determine if we need to fetch variations
+  // Only fetch the complete song if we actually need the variations
+  // or if this is a critical state change that might have complex data
+  const needsCompleteData = hasNewAudio || // We need variations for newly ready songs
+                           hasNewError || // We need error details
+                           get().songs.findIndex(s => s.id === newSong.id) === -1; // New song
   
-  // Handle case where song might have been deleted
-  if (fetchError || !updatedSong) {
-    console.log(`Song ${oldSong.id} not found in database, cleaning up UI state`);
+  let updatedSong;
+  
+  if (needsCompleteData) {
+    // Fetch the complete song with variations
+    const { data: fetchedSong, error: fetchError } = await supabase
+      .from('songs')
+      .select('*, variations:song_variations(*)')
+      .eq('id', newSong.id)
+      .single();
     
-    // Clean up UI state for this song
-    const newGenerating = new Set(get().generatingSongs);
-    newGenerating.delete(oldSong.id);
-    
-    // Clean up task IDs if applicable
-    const newProcessingTaskIds = new Set(get().processingTaskIds);
-    if (oldSong.task_id) {
-      newProcessingTaskIds.delete(oldSong.task_id);
+    // Handle case where song might have been deleted
+    if (fetchError || !fetchedSong) {
+      console.log(`Song ${newSong.id} not found in database, cleaning up UI state`);
+      
+      // Clean up UI state for this song
+      const newGenerating = new Set(get().generatingSongs);
+      newGenerating.delete(newSong.id);
+      
+      // Clean up task IDs if applicable
+      const newProcessingTaskIds = new Set(get().processingTaskIds);
+      if (newSong.task_id) {
+        newProcessingTaskIds.delete(newSong.task_id);
+      }
+      
+      // Clean up retrying state if applicable
+      const newRetrying = new Set(get().retryingSongs);
+      newRetrying.delete(newSong.id);
+      
+      // Remove song from songs array
+      set({
+        songs: get().songs.filter(song => song.id !== newSong.id),
+        generatingSongs: newGenerating,
+        processingTaskIds: newProcessingTaskIds,
+        retryingSongs: newRetrying
+      });
+      
+      return;
     }
     
-    // Clean up retrying state if applicable
-    const newRetrying = new Set(get().retryingSongs);
-    newRetrying.delete(oldSong.id);
+    updatedSong = fetchedSong;
+  } else {
+    // Use the existing song from state but update fields from the payload
+    const existingSong = get().songs.find(s => s.id === newSong.id);
     
-    // Remove song from songs array
-    set({
-      songs: get().songs.filter(song => song.id !== oldSong.id),
-      generatingSongs: newGenerating,
-      processingTaskIds: newProcessingTaskIds,
-      retryingSongs: newRetrying
-    });
-    
-    return;
+    if (existingSong) {
+      // Create a merged song object that preserves existing state but updates changed fields
+      updatedSong = {
+        ...existingSong,
+        // Update the fields that might have changed
+        task_id: newSong.task_id,
+        audio_url: newSong.audio_url,
+        error: newSong.error,
+        retryable: newSong.retryable
+      };
+    } else {
+      // If we couldn't find the song, fetch it as a fallback
+      console.log(`Song ${newSong.id} not found in state, fetching complete data`);
+      const { data: fetchedSong, error: fetchError } = await supabase
+        .from('songs')
+        .select('*, variations:song_variations(*)')
+        .eq('id', newSong.id)
+        .single();
+        
+      if (fetchError || !fetchedSong) {
+        console.log(`Song ${newSong.id} not found in database, skipping update`);
+        return;
+      }
+      
+      updatedSong = fetchedSong;
+    }
   }
 
   // Get the song's current state using the enhanced SongStateService
@@ -187,11 +232,22 @@ export async function handleSongUpdate(
   }
 
   // Update the song in the songs array
-  set({
-    songs: get().songs.map((song) =>
-      song.id === oldSong.id ? updatedSong as Song : song
-    )
-  });
+  // Find if the song already exists in the state
+  const songExists = get().songs.some(song => song.id === updatedSong.id);
+  
+  if (songExists) {
+    // Update existing song
+    set({
+      songs: get().songs.map((song) =>
+        song.id === updatedSong.id ? updatedSong as Song : song
+      )
+    });
+  } else {
+    // Add new song
+    set({
+      songs: [...get().songs, updatedSong as Song]
+    });
+  }
 }
 
 /**

@@ -119,30 +119,62 @@ serve(async (req) => {
       
       console.log('Processing audio clips:', {
         songId: songs.id,
-        hasAudio: !!clip?.audio_url
+        hasAudio: !!clip?.audio_url,
+        audioUrl: clip?.audio_url ? clip.audio_url.substring(0, 30) + '...' : 'none'
       });
       
       if (clip?.audio_url) {
-        // Update the main song with the first clip's audio URL
-        const { error: updateError } = await supabase
-          .from('songs')
-          .update({ 
-            audio_url: clip.audio_url,
-            error: null,
-            task_id: null // Clear task_id to indicate it's no longer in the queue
-          })
-          .eq('id', songs.id)
-          .eq('task_id', task_id.toString());
+        try {
+          // First, check the current state of the song to avoid race conditions
+          const { data: currentSong, error: checkError } = await supabase
+            .from('songs')
+            .select('id, task_id, audio_url, error')
+            .eq('id', songs.id)
+            .single();
+            
+          if (checkError) {
+            console.error('Error checking song current state:', checkError);
+            throw checkError;
+          }
+          
+          // If the song already has an audio URL, don't update it
+          if (currentSong?.audio_url) {
+            console.log(`Song ${songs.id} already has audio URL, skipping update`);
+            return new Response(JSON.stringify({ success: true, status: 'already_updated' }), {
+              headers: { 'Content-Type': 'application/json' },
+              status: 200
+            });
+          }
+          
+          // Update the song with the audio URL - condition ONLY on song ID for reliability
+          // This ensures the update happens even if task_id changed
+          console.log(`Updating song ${songs.id} with audio URL`);
+          const { error: updateError } = await supabase
+            .from('songs')
+            .update({ 
+              audio_url: clip.audio_url,
+              error: null,
+              task_id: null // Clear task_id to indicate it's no longer in the queue
+            })
+            .eq('id', songs.id);
 
-        if (updateError) {
-          throw updateError;
+          if (updateError) {
+            console.error('Failed to update song with audio URL:', updateError);
+            throw updateError;
+          }
+          
+          console.log('Successfully updated song with audio URL:', {
+            songId: songs.id,
+            taskId: task_id,
+            state: 'completed'
+          });
+        } catch (err) {
+          console.error('Error processing audio URL update:', err);
+          // Don't rethrow - we want to return success even if there was an error
+          // This prevents the API from retrying the webhook call
         }
-        
-        console.log('Successfully processed song and variations:', {
-          songId: songs.id,
-          taskId: task_id,
-          state: 'completed'
-        });
+      } else {
+        console.warn(`Task completed but no audio URL found for song ${songs.id}`);
       }
     }
     else if (taskError) {
@@ -166,30 +198,49 @@ serve(async (req) => {
         retryable
       });
 
-      const { error: updateError } = await supabase
-        .from('songs')
-        .update({ 
-          error: errorMsg,
-          retryable,
-          audio_url: null,
-          task_id: null // Clear task_id to indicate it's no longer in the queue
-        })
-        .eq('id', songs.id)
-        .eq('task_id', task_id.toString());
+      try {
+        // First check if the song already has an audio URL
+        const { data: currentSong, error: checkError } = await supabase
+          .from('songs')
+          .select('id, audio_url')
+          .eq('id', songs.id)
+          .single();
+          
+        if (checkError) {
+          console.error('Error checking song before marking as failed:', checkError);
+          throw checkError;
+        }
+        
+        // If the song already has an audio URL, don't mark it as failed
+        if (currentSong?.audio_url) {
+          console.log(`Song ${songs.id} already has audio URL, not marking as failed`);
+          return new Response(JSON.stringify({ success: true, status: 'already_completed' }), {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200
+          });
+        }
 
-      // Also update any variations to failed state
-      const { error: variationError } = await supabase
-        .from('song_variations')
-        .update({
-          retryable
-        })
-        .eq('song_id', songs.id);
+        // Update the song with the error
+        console.log(`Marking song ${songs.id} as failed with error: ${errorMsg}`);
+        const { error: updateError } = await supabase
+          .from('songs')
+          .update({ 
+            error: errorMsg,
+            retryable,
+            audio_url: null,
+            task_id: null // Clear task_id to indicate it's no longer in the queue
+          })
+          .eq('id', songs.id);
 
-      if (variationError) {
-        throw variationError;
-      }
-      if (updateError) {
-        throw updateError;
+        if (updateError) {
+          console.error('Failed to update song with error:', updateError);
+          throw updateError;
+        }
+        
+        console.log(`Successfully marked song ${songs.id} as failed`);
+      } catch (err) {
+        console.error('Error handling song failure:', err);
+        // Don't rethrow to ensure the webhook doesn't retry
       }
     }
     else {
@@ -205,10 +256,15 @@ serve(async (req) => {
     console.error('Webhook error:', {
       error: errorMessage,
       stack: err instanceof Error ? err.stack : undefined,
+      details: err,
       timestamp: new Date().toISOString()
     });
     
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    // Don't expose detailed error information in the response
+    return new Response(JSON.stringify({ 
+      error: 'An error occurred processing the webhook',
+      status: 'error'
+    }), {
       headers: { 'Content-Type': 'application/json' },
       status: err instanceof Error && err.message.includes('not found') ? 404 : 500
     });

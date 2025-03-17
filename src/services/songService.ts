@@ -96,17 +96,19 @@ export class SongService {
     if (!songId) return;
     
     try {
-      const { error } = await supabase
-        .from('songs')
-        .update({
-          error: errorMessage,
-          retryable: retryable,
-          task_id: null // Clear task_id to indicate it's no longer in the queue
-        })
-        .eq('id', songId);
+      const result = await withRetry(() => 
+        supabase
+          .from('songs')
+          .update({
+            error: errorMessage,
+            retryable: retryable,
+            task_id: null // Clear task_id to indicate it's no longer in the queue
+          })
+          .eq('id', songId)
+      );
         
-      if (error) {
-        console.error(`Failed to update song ${songId} with error:`, error);
+      if (result.error) {
+        console.error(`Failed to update song ${songId} with error:`, result.error);
       }
     } catch (err) {
       console.error(`Error updating song ${songId} with error:`, err);
@@ -130,14 +132,16 @@ export class SongService {
       let gender: string | undefined;
       
       if (dbSong.user_id) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('age_group, gender')
-          .eq('id', dbSong.user_id)
-          .single();
+        const profileResult = await withRetry(() => 
+          supabase
+            .from('profiles')
+            .select('age_group, gender')
+            .eq('id', dbSong.user_id)
+            .single()
+        );
           
-        ageGroup = profile?.age_group as AgeGroup | undefined;
-        gender = profile?.gender as string | undefined;
+        ageGroup = profileResult.data?.age_group as AgeGroup | undefined;
+        gender = profileResult.data?.gender as string | undefined;
       }
       
       // Create task
@@ -160,17 +164,19 @@ export class SongService {
       }
       
       // Update song with task ID
-      const { error: updateError } = await supabase
-        .from('songs')
-        .update({
-          task_id: taskId,
-          error: null,
-          retryable: false
-        })
-        .eq('id', dbSong.id);
+      const updateResult = await withRetry(() => 
+        supabase
+          .from('songs')
+          .update({
+            task_id: taskId,
+            error: null,
+            retryable: false
+          })
+          .eq('id', dbSong.id)
+      );
         
-      if (updateError) {
-        throw updateError;
+      if (updateResult.error) {
+        throw updateResult.error;
       }
       
       return taskId;
@@ -192,21 +198,23 @@ export class SongService {
       throw new Error('User ID is required');
     }
 
-    const { data: dbSongs, error } = await supabase
-      .from('songs')
-      .select(
+    const result = await withRetry(() =>
+      supabase
+        .from('songs')
+        .select(
+          `
+          *,
+          variations:song_variations(*)
         `
-        *,
-        variations:song_variations(*)
-      `
-      )
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+        )
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+    );
 
-    if (error) throw error;
+    if (result.error) throw result.error;
     
     // Convert database songs to Song interface format
-    return (dbSongs || []).map(dbSong => mapDatabaseSongToSong(dbSong as DatabaseSong));
+    return (result.data || []).map(dbSong => mapDatabaseSongToSong(dbSong as DatabaseSong));
   }
 
   static async deleteUserSongs(userId: string): Promise<void> {
@@ -215,24 +223,28 @@ export class SongService {
     }
 
     // First get all songs for this user to clear their timeouts
-    const { data: songs, error: fetchError } = await supabase
-      .from('songs')
-      .select('id')
-      .eq('user_id', userId);
+    const fetchResult = await withRetry(() => 
+      supabase
+        .from('songs')
+        .select('id')
+        .eq('user_id', userId)
+    );
 
-    if (fetchError) {
-      console.error('Failed to fetch songs for timeout clearing:', fetchError);
-    } else if (songs && songs.length > 0) {
+    if (fetchResult.error) {
+      console.error('Failed to fetch songs for timeout clearing:', fetchResult.error);
+    } else if (fetchResult.data && fetchResult.data.length > 0) {
       // No need to clear timeouts anymore
-      console.log(`Deleting ${songs.length} songs for user ${userId}`);
+      console.log(`Deleting ${fetchResult.data.length} songs for user ${userId}`);
     }
 
-    const { error } = await supabase
-      .from('songs')
-      .delete()
-      .eq('user_id', userId);
+    const deleteResult = await withRetry(() =>
+      supabase
+        .from('songs')
+        .delete()
+        .eq('user_id', userId)
+    );
 
-    if (error) throw error;
+    if (deleteResult.error) throw deleteResult.error;
   }
 
   /**
@@ -313,6 +325,43 @@ export class SongService {
     return mood || undefined;
   }
 
+  /**
+   * Creates a new song record directly in the database with retry logic
+   * @param song The song data to insert
+   * @returns The created database song
+   */
+  static async createSongRecord(song: any): Promise<DatabaseSong> {
+    console.log('Creating song record:', song);
+    
+    try {
+      // Create the song in the database with retry
+      const result = await withRetry(() => 
+        supabase
+          .from('songs')
+          .insert(song)
+          .select('*')
+          .single()
+      );
+      
+      const createdSong = result.data;
+      const error = result.error;
+        
+      if (error) {
+        console.error('Error creating song record:', error);
+        throw new Error('Failed to create song record');
+      }
+        
+      if (!createdSong) {
+        throw new Error('Created song record not found');
+      }
+        
+      return createdSong as DatabaseSong;
+    } catch (error) {
+      console.error('Error in createSongRecord:', error);
+      throw error;
+    }
+  }
+
   static async createSong(params: {
     userId: string;
     name: string;
@@ -386,38 +435,20 @@ export class SongService {
     });
 
     // Create initial song record
-    const { data: dbSong, error: createError } = await supabase
-      .from('songs')
-      .insert([{
-        name,
-        theme,
-        mood: determinedMood || undefined,
-        voice_type: isInstrumental ? null : voice,
-        tempo,
-        song_type: songType,
-        lyrics: undefined,
-        user_lyric_input: userInput || undefined,
-        preset_type: presetType || undefined,
-        is_instrumental: isInstrumental || false,
-        user_id: userId,
-        retryable: false, // Only set to true when an error occurs
-      }])
-      .select()
-      .single();
-
-    if (createError) {
-      console.error('Failed to create song record:', {
-        error: createError,
-        params: {
-          name,
-          theme,
-          mood: determinedMood,
-          songType,
-          hasUserInput: !!userInput
-        }
-      });
-      throw createError;
-    }
+    const dbSong = await this.createSongRecord({
+      name,
+      theme,
+      mood: determinedMood || undefined,
+      voice_type: isInstrumental ? null : voice,
+      tempo,
+      song_type: songType,
+      lyrics: undefined,
+      user_lyric_input: userInput || undefined,
+      preset_type: presetType || undefined,
+      is_instrumental: isInstrumental || false,
+      user_id: userId,
+      retryable: false, // Only set to true when an error occurs
+    });
 
     console.log('Created song record:', {
       id: dbSong.id,
@@ -451,13 +482,15 @@ export class SongService {
 
     try {
       // Delete existing preset songs first
-      const { error: deleteError } = await supabase
-        .from('songs')
-        .delete()
-        .eq('user_id', userId)
-        .or('name.ilike.%playtime%,name.ilike.%mealtime%,name.ilike.%bedtime%,name.ilike.%potty%');
+      const deleteResult = await withRetry(() => 
+        supabase
+          .from('songs')
+          .delete()
+          .eq('user_id', userId)
+          .or('name.ilike.%playtime%,name.ilike.%mealtime%,name.ilike.%bedtime%,name.ilike.%potty%')
+      );
 
-      if (deleteError) throw deleteError;
+      if (deleteResult.error) throw deleteResult.error;
 
       // Create new preset songs in parallel
       const presetPromises = Object.entries(PRESET_CONFIGS).map(([type, config]) => 
@@ -634,13 +667,19 @@ export class SongService {
       };
 
       // Update the song with reset fields
-      const { data: updatedSong, error: updateError } = await supabase
-        .from('songs')
-        .update(updateFields)
-        .eq('id', songId)
-        .select('*')
-        .single();
+      const result = await withRetry(() => 
+        supabase
+          .from('songs')
+          .update(updateFields)
+          .eq('id', songId)
+          .select('*')
+          .single()
+      );
         
+      // Extract data and error from result
+      const updatedSong = result.data;
+      const updateError = result.error;
+      
       if (updateError) {
         console.error('Error resetting song state:', updateError);
         throw new Error('Failed to reset song state');
@@ -658,7 +697,7 @@ export class SongService {
   }
 
   /**
-   * Deletes all variations associated with a song
+   * Clears any variations for a song
    * @param songId The ID of the song to clear variations for
    */
   static async clearSongVariations(songId: string): Promise<void> {
@@ -666,27 +705,31 @@ export class SongService {
     
     try {
       // Check if variations exist
-      const { data: variations, error: variationsError } = await supabase
-        .from('song_variations')
-        .select('id')
-        .eq('song_id', songId);
+      const variationsResult = await withRetry(() => 
+        supabase
+          .from('song_variations')
+          .select('id')
+          .eq('song_id', songId)
+      );
         
-      if (variationsError) {
-        console.error(`Error checking variations for song ${songId}:`, variationsError);
+      if (variationsResult.error) {
+        console.error(`Error checking variations for song ${songId}:`, variationsResult.error);
         throw new Error('Failed to check for existing variations');
       }
 
       // If variations exist, delete them
-      if (variations && variations.length > 0) {
-        console.log(`Deleting ${variations.length} variations for song ${songId}`);
+      if (variationsResult.data && variationsResult.data.length > 0) {
+        console.log(`Deleting ${variationsResult.data.length} variations for song ${songId}`);
         
-        const { error: deleteVariationsError } = await supabase
-          .from('song_variations')
-          .delete()
-          .eq('song_id', songId);
+        const deleteResult = await withRetry(() => 
+          supabase
+            .from('song_variations')
+            .delete()
+            .eq('song_id', songId)
+        );
         
-        if (deleteVariationsError) {
-          console.error(`Error deleting variations for song ${songId}:`, deleteVariationsError);
+        if (deleteResult.error) {
+          console.error(`Error deleting variations for song ${songId}:`, deleteResult.error);
           throw new Error('Failed to delete variations');
         }
       }
@@ -718,22 +761,23 @@ export class SongService {
   }
 
   /**
-   * Updates a song with a task ID for tracking the generation
+   * Updates a song with a task ID
    * @param songId The ID of the song to update
    * @param taskId The task ID to set
-   * @returns The updated song
    */
   static async updateSongWithTaskId(songId: string, taskId: string): Promise<void> {
     console.log(`Updating song ${songId} with task ID ${taskId}`);
     
     try {
-      const { error } = await supabase
-        .from('songs')
-        .update({ task_id: taskId })
-        .eq('id', songId);
+      const result = await withRetry(() =>
+        supabase
+          .from('songs')
+          .update({ task_id: taskId })
+          .eq('id', songId)
+      );
         
-      if (error) {
-        console.error(`Error updating song ${songId} with task ID:`, error);
+      if (result.error) {
+        console.error(`Error updating song ${songId} with task ID:`, result.error);
         throw new Error('Failed to update song with task ID');
       }
     } catch (error) {
@@ -742,3 +786,43 @@ export class SongService {
     }
   }
 }
+
+/**
+ * Utility function for robust database operations with retry logic
+ * @param operation The database operation to perform
+ * @param maxRetries Maximum number of retry attempts (default: 3)
+ * @returns The result of the operation
+ */
+const withRetry = async <T>(operation: () => Promise<T> | T, maxRetries = 3): Promise<T> => {
+  let lastError: any;
+  let retryCount = 0;
+  
+  while (retryCount <= maxRetries) {
+    try {
+      const result = await operation();
+      return result;
+    } catch (error: any) {
+      lastError = error;
+      
+      // If this is a non-retriable error, throw immediately
+      if (error?.code === 'PGRST116' || error?.code === '23505') {
+        console.error('Non-retriable database error:', error);
+        throw error;
+      }
+      
+      if (retryCount >= maxRetries) {
+        break;
+      }
+      
+      // Exponential backoff
+      const delay = 500 * Math.pow(2, retryCount);
+      console.warn(`Database operation failed, retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries}):`, error);
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+      retryCount++;
+    }
+  }
+  
+  console.error(`All ${maxRetries} retry attempts failed for database operation:`, lastError);
+  throw lastError;
+};

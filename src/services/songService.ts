@@ -334,7 +334,17 @@ export class SongService {
     console.log('Creating song record:', song);
     
     try {
+      // Check current session to debug permission issues
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      console.log('Current Supabase session:', {
+        hasSession: !!sessionData?.session,
+        isExpired: sessionData?.session?.expires_at ? new Date(sessionData.session.expires_at * 1000) < new Date() : 'unknown',
+        user: sessionData?.session?.user?.id || 'none',
+        error: sessionError || 'none'
+      });
+      
       // Create the song in the database with retry
+      console.log('About to insert song into database:', JSON.stringify(song));
       const result = await withRetry(() => 
         supabase
           .from('songs')
@@ -348,16 +358,27 @@ export class SongService {
         
       if (error) {
         console.error('Error creating song record:', error);
-        throw new Error('Failed to create song record');
+        console.error('Full error details:', JSON.stringify(error));
+        throw new Error(`Failed to create song record: ${error.message || 'Unknown error'}`);
       }
         
       if (!createdSong) {
+        console.error('Created song record not found in result');
+        console.error('Full result:', JSON.stringify(result));
         throw new Error('Created song record not found');
       }
+      
+      console.log('Successfully created song record:', {
+        id: createdSong.id,
+        name: createdSong.name,
+        preset_type: createdSong.preset_type
+      });
         
       return createdSong as DatabaseSong;
     } catch (error) {
       console.error('Error in createSongRecord:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack available');
+      console.error('Song data attempted:', JSON.stringify(song, null, 2));
       throw error;
     }
   }

@@ -73,14 +73,17 @@ serve(async (req) => {
     
     // Log status update in a clear format
     console.log('\n##### Status now:', status, '#####\n');
-    const errorMessage = taskError?.message || body?.error_message;
+    
+    // Check for errors only when the error object has a non-zero code and a message
+    const hasError = taskError && taskError.code !== 0 && (taskError.message || taskError.raw_message);
 
     // Log status for debugging
     console.log('Task status update:', {
       taskId: task_id,
       status,
       hasOutput: !!output,
-      hasError: !!taskError || !!errorMessage,
+      hasError: !!hasError,
+      errorDetails: taskError ? `code: ${taskError.code}, message: ${taskError.message || taskError.raw_message}` : 'none',
       progress: output?.progress
     });
 
@@ -224,11 +227,12 @@ serve(async (req) => {
         console.warn(`Task received but no audio URL found for song ${songs.id}`);
       }
     }
-    // SIMPLIFIED ERROR HANDLING: Only handle errors when an explicit error object is provided
-    else if (taskError) {
-      console.log('Error object received from API');
+    // SIMPLIFIED ERROR HANDLING: Only handle errors when the error object has a non-zero code and a message
+    else if (taskError && taskError.code !== 0 && (taskError.message || taskError.raw_message)) {
+      console.log('Error object received from API:', taskError);
       
-      let errorMsg = taskError.message || 'Music generation failed';
+      // Use message or raw_message from the error object
+      let errorMsg = taskError.message || taskError.raw_message || 'Music generation failed';
       let retryable = false;
 
       // Handle specific error cases

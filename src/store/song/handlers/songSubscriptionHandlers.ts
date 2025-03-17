@@ -37,7 +37,6 @@ export async function handleSongUpdate(
   const hasNewAudio = oldSong.audio_url !== newSong.audio_url && !!newSong.audio_url;
   const hasTaskIdChange = oldSong.task_id !== newSong.task_id;
   const hasTaskIdCleared = oldSong.task_id && !newSong.task_id;
-  const hasSignificantChange = hasNewError || hasNewAudio || hasTaskIdChange;
   
   // Log task_id changes specifically
   if (hasTaskIdChange) {

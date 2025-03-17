@@ -180,12 +180,13 @@ export async function handleSongUpdate(
           hasError: !!updatedSong.error
         });
         
-        // We don't need to call updateSongProcessingState here since we've already updated everything
+        // Clear all processing states
+        updateSongProcessingState(updatedSong.id, updatedSong.task_id, false, false, get);
         return;
       }
       
       // Clear all processing states
-      updateSongProcessingState(updatedSong.id, updatedSong.task_id, false, false, set, get);
+      updateSongProcessingState(updatedSong.id, updatedSong.task_id, false, false, get);
       break;
       
     case SongStateEnum.FAILED:
@@ -260,7 +261,6 @@ function updateSongProcessingState(
   taskId: string | null | undefined,
   isGenerating: boolean,
   isRetrying: boolean,
-  set: SetState,
   get: GetState
 ): void {
   // Use batch update to ensure atomic update of all related state

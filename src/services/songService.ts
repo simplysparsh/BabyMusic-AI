@@ -55,7 +55,7 @@ type DatabaseSongVariation = {
  * @param dbSong The database song record
  * @returns A song that matches the Song interface
  */
-function mapDatabaseSongToSong(dbSong: DatabaseSong): Song {
+export function mapDatabaseSongToSong(dbSong: DatabaseSong): Song {
   // Convert database variations to SongVariation format if present
   const variations: SongVariation[] | undefined = dbSong.variations?.map(v => ({
     id: v.id,
@@ -236,7 +236,7 @@ export class SongService {
   }
 
   /**
-   * Retry a failed song generation
+   * Retries generation for a failed song
    * @param songId The ID of the song to retry
    * @param userId The user ID
    * @param babyName The baby's name
@@ -257,17 +257,21 @@ export class SongService {
         console.error('Failed to fetch song for retry:', fetchError);
         throw new Error('Failed to fetch song details');
       }
+
+      // 1. Reset the song state and clear variations
+      const resetSong = await this.prepareForRegeneration(songId);
       
-      // Start song generation
-      const taskId = await this.startSongGeneration(dbSong as DatabaseSong, babyName);
+      // 2. Start song generation
+      const taskId = await this.startSongGeneration(resetSong as DatabaseSong, babyName);
       
-      // Convert to Song interface with updated task ID
-      const song = mapDatabaseSongToSong(dbSong as DatabaseSong);
+      // 3. Update the song with the new task ID
+      await this.updateSongWithTaskId(songId, taskId);
       
+      // 4. Return updated song object
       return {
-        ...song,
-        error: undefined,
+        ...mapDatabaseSongToSong(resetSong),
         task_id: taskId,
+        error: undefined,
         retryable: false
       };
     } catch (error) {
@@ -603,5 +607,139 @@ export class SongService {
         });
       });
     }, 100);
+  }
+
+  /**
+   * Updates a song's basic state fields to reset it
+   * @param songId The ID of the song to reset
+   * @param customFields Optional custom fields to update along with the reset
+   * @returns The updated database song
+   */
+  static async resetSongState(songId: string, customFields: Partial<DatabaseSong> = {}): Promise<DatabaseSong> {
+    console.log(`Resetting song state for song ${songId}`);
+    
+    try {
+      // Standard reset fields that clear the song state
+      const resetFields = {
+        error: null,
+        retryable: false,
+        audio_url: null,
+        task_id: null, // Clear this so we don't think it's still generating
+        status: null
+      };
+
+      // Combine reset fields with any custom fields
+      const updateFields = {
+        ...resetFields,
+        ...customFields
+      };
+
+      // Update the song with reset fields
+      const { data: updatedSong, error: updateError } = await supabase
+        .from('songs')
+        .update(updateFields)
+        .eq('id', songId)
+        .select('*')
+        .single();
+        
+      if (updateError) {
+        console.error('Error resetting song state:', updateError);
+        throw new Error('Failed to reset song state');
+      }
+
+      if (!updatedSong) {
+        throw new Error('Song not found after reset');
+      }
+      
+      return updatedSong as DatabaseSong;
+    } catch (error) {
+      console.error(`Error in resetSongState for song ${songId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deletes all variations associated with a song
+   * @param songId The ID of the song to clear variations for
+   */
+  static async clearSongVariations(songId: string): Promise<void> {
+    console.log(`Clearing variations for song ${songId}`);
+    
+    try {
+      // Check if variations exist
+      const { data: variations, error: variationsError } = await supabase
+        .from('song_variations')
+        .select('id')
+        .eq('song_id', songId);
+        
+      if (variationsError) {
+        console.error(`Error checking variations for song ${songId}:`, variationsError);
+        throw new Error('Failed to check for existing variations');
+      }
+
+      // If variations exist, delete them
+      if (variations && variations.length > 0) {
+        console.log(`Deleting ${variations.length} variations for song ${songId}`);
+        
+        const { error: deleteVariationsError } = await supabase
+          .from('song_variations')
+          .delete()
+          .eq('song_id', songId);
+        
+        if (deleteVariationsError) {
+          console.error(`Error deleting variations for song ${songId}:`, deleteVariationsError);
+          throw new Error('Failed to delete variations');
+        }
+      }
+    } catch (error) {
+      console.error(`Error in clearSongVariations for song ${songId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Prepares a song for regeneration by resetting state and clearing variations
+   * @param songId The ID of the song to prepare
+   * @param customFields Optional custom fields to update
+   * @returns The updated song
+   */
+  static async prepareForRegeneration(songId: string, customFields: Partial<DatabaseSong> = {}): Promise<DatabaseSong> {
+    try {
+      // First reset the song state
+      const updatedSong = await this.resetSongState(songId, customFields);
+      
+      // Then clear any variations
+      await this.clearSongVariations(songId);
+      
+      return updatedSong;
+    } catch (error) {
+      console.error(`Error preparing song ${songId} for regeneration:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Updates a song with a task ID for tracking the generation
+   * @param songId The ID of the song to update
+   * @param taskId The task ID to set
+   * @returns The updated song
+   */
+  static async updateSongWithTaskId(songId: string, taskId: string): Promise<void> {
+    console.log(`Updating song ${songId} with task ID ${taskId}`);
+    
+    try {
+      const { error } = await supabase
+        .from('songs')
+        .update({ task_id: taskId })
+        .eq('id', songId);
+        
+      if (error) {
+        console.error(`Error updating song ${songId} with task ID:`, error);
+        throw new Error('Failed to update song with task ID');
+      }
+    } catch (error) {
+      console.error(`Error in updateSongWithTaskId for song ${songId}:`, error);
+      throw error;
+    }
   }
 }

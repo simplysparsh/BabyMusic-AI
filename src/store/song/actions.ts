@@ -11,6 +11,7 @@ import { SongStateService } from '../../services/songStateService';
 import type { Song, PresetType } from '../../types';
 import type { SongState, CreateSongParams } from './types';
 import { getPresetType as _getPresetType } from '../../utils/presetUtils';
+import { mapDatabaseSongToSong } from '../../services/songService';
 
 // Create a typed setter and getter for the zustand store
 type SetState = (state: Partial<SongState>) => void;
@@ -131,78 +132,60 @@ export const createSongActions = (set: SetState, get: GetState) => ({
           throw new Error(`${currentPresetType} song is already being generated`);
         }
 
-        // Delete any existing songs of this preset type
+        // Instead of deleting, update the existing song if it exists
         if (existingSongs.length > 0) {
-          console.log(`Deleting ${existingSongs.length} existing songs for preset type ${currentPresetType}:`, 
-            existingSongs.map(s => ({ 
-              id: s.id, 
-              name: s.name, 
-              hasAudio: !!s.audio_url, 
-              hasError: !!s.error, 
-              hasTaskId: !!s.task_id 
-            })));
+          // Get the most recent song for this preset type
+          const existingSong = existingSongs.sort((a, b) => {
+            const dateA = new Date(a.createdAt || 0);
+            const dateB = new Date(b.createdAt || 0);
+            return dateB.getTime() - dateA.getTime();
+          })[0];
+
+          console.log(`Updating existing song ${existingSong.id} (${existingSong.name}) for preset type ${currentPresetType}`);
           
-          // Delete songs one by one to avoid transaction issues
-          for (const song of existingSongs) {
-            try {
-              console.log(`Deleting song ${song.id} (${song.name})`);
-              
-              // 1. First check if the song has variations that need to be deleted
-              const { data: variations, error: variationsError } = await supabase
-                .from('song_variations')
-                .select('id')
-                .eq('song_id', song.id);
-                
-              if (variationsError) {
-                console.error(`Error checking variations for song ${song.id}:`, variationsError);
-              } else if (variations && variations.length > 0) {
-                console.log(`Deleting ${variations.length} variations for song ${song.id}`);
-                
-                // Delete variations first
-                const { error: deleteVariationsError } = await supabase
-                  .from('song_variations')
-                  .delete()
-                  .eq('song_id', song.id);
-                
-                if (deleteVariationsError) {
-                  console.error(`Error deleting variations for song ${song.id}:`, deleteVariationsError);
-                }
-              }
-              
-              // 2. Now delete the song itself with a timeout
-              const deleteSongPromise = supabase
-                .from('songs')
-                .delete()
-                .eq('id', song.id)
-                .select();
-                
-              // Create a timeout promise
-              const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Song deletion timed out')), 5000);
-              });
-              
-              // Race the deletion against the timeout
-              const { data: deletedSong, error: deleteSongError } = await Promise.race([
-                deleteSongPromise,
-                timeoutPromise
-              ]) as any;
-              
-              if (deleteSongError) {
-                console.error(`Error deleting song ${song.id}:`, deleteSongError);
-              } else {
-                console.log(`Successfully deleted song ${song.id}`);
-              }
-              
-            } catch (error) {
-              console.error(`Exception during deletion of song ${song.id}:`, error);
-              // Continue with next song even if this one fails
-            }
+          try {
+            // Create database song format with the correct fields for updates
+            const customFields = {
+              name: name || existingSong.name,
+              theme: theme || existingSong.theme,
+              mood: mood || existingSong.mood
+            };
+            
+            // 1. Reset the song state and clear variations using SongService
+            const resetSong = await SongService.prepareForRegeneration(existingSong.id, customFields);
+            
+            // 2. Create database song format with the correct fields for generation
+            const dbSongForGeneration = {
+              ...resetSong,
+              tempo: tempo || (resetSong as any).tempo,
+              is_instrumental: isInstrumental !== undefined ? isInstrumental : (resetSong as any).is_instrumental,
+              voice_type: voice || (resetSong as any).voice_type,
+              user_lyric_input: userInput || (resetSong as any).user_lyric_input
+            };
+            
+            // 3. Start generation
+            const taskId = await SongService.startSongGeneration(dbSongForGeneration as any, profile.babyName);
+            
+            // 4. Update the task ID
+            await SongService.updateSongWithTaskId(existingSong.id, taskId);
+            
+            // 5. Convert to Song format
+            const updatedSong = {
+              ...mapDatabaseSongToSong(resetSong),
+              task_id: taskId
+            };
+            
+            // 6. Update UI state
+            set({
+              songs: get().songs.map(s => s.id === existingSong.id ? updatedSong : s),
+              generatingSongs: new Set([...get().generatingSongs, existingSong.id])
+            });
+            
+            return updatedSong;
+          } catch (error) {
+            console.error(`Error updating preset song ${existingSong.id}:`, error);
+            throw new Error(`Failed to update preset song: ${error}`);
           }
-          
-          // Update local state to remove all deleted songs
-          set({
-            songs: get().songs.filter(s => !existingSongs.find(es => es.id === s.id))
-          });
         }
       }
 

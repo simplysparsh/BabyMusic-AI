@@ -132,7 +132,7 @@ export async function handleSongUpdate(
         // Force immediate UI update for audio URL changes
         set({
           songs: get().songs.map((song) =>
-            song.id === oldSong.id ? {...song, audio_url: updatedSong.audio_url} : song
+            song.id === updatedSong.id ? {...song, audio_url: updatedSong.audio_url} : song
           )
         });
       }

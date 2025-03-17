@@ -11,8 +11,6 @@ interface SongItemProps {
   song: Song;
   currentSong: string | null;
   isPlaying: boolean;
-  _generatingSongs: Set<string>;
-  _processingTaskIds: Set<string>;
   onPlayClick: (audioUrl: string, songId: string) => void;
   onDownloadClick: (audioUrl: string, title: string) => void;
 }
@@ -21,8 +19,6 @@ export default function SongItem({
   song,
   currentSong,
   isPlaying,
-  _generatingSongs,
-  _processingTaskIds,
   onPlayClick,
   onDownloadClick
 }: SongItemProps) {
@@ -34,11 +30,8 @@ export default function SongItem({
   const isGenerating = SongStateService.isGenerating(song);
   const hasFailed = SongStateService.hasFailed(song);
   const hasVariations = SongStateService.hasVariations(song);
-  const _variationCount = SongStateService.getVariationCount(song);
-  const canRetry = SongStateService.canRetry(song);
-
-  // Additional check for completed status
   const isCompleted = SongStateService.isCompleted(song);
+  const canRetry = SongStateService.canRetry(song);
 
   // Check if the song is currently being retried
   const isRetrying = retryingSongs.has(song.id);

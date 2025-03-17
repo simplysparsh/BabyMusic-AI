@@ -1,5 +1,5 @@
 import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useState, useEffect } from 'react';
-import { Play, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
 import SongGenerationTimer from '../common/SongGenerationTimer';
@@ -27,7 +27,7 @@ export default function PresetSongCard({
   description,
   iconComponent: Icon,
   songs,
-  isPlaying: _isPlaying,
+  isPlaying,
   onPlayClick,
   onGenerateClick,
   onVariationChange,
@@ -194,11 +194,15 @@ export default function PresetSongCard({
     
     if (isReady) {
       return (
-        <span className="inline-flex items-center text-xs bg-green-500/20 text-white
-                       px-3 py-1.5 rounded-full ml-2 border border-green-500/20
+        <span className="inline-flex items-center text-xs bg-gradient-to-br from-black/80 to-black/90 text-green-400
+                       px-3 py-1.5 rounded-full ml-2 border border-green-500/30
                        shadow-lg z-10 whitespace-nowrap">
-          <Play className="w-3 h-3 mr-1" />
-          {statusLabel}
+          {isPlaying ? (
+            <Pause className="w-3 h-3 mr-1" />
+          ) : (
+            <Play className="w-3 h-3 mr-1" />
+          )}
+          {isPlaying ? "Pause" : statusLabel}
         </span>
       );
     }

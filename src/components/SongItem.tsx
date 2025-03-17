@@ -87,8 +87,10 @@ export default function SongItem({
           <button
             onClick={() => isPlayable && audioUrl && onPlayClick(audioUrl, song.id)}
             disabled={!isPlayable}
-            className="text-white/60 hover:text-primary disabled:opacity-50
-                     transition-all duration-300 group"
+            className={`transition-all duration-300 group flex items-center justify-center
+                     ${isPlaying && currentSong === audioUrl 
+                        ? 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-lg rounded-full p-2.5' 
+                        : 'text-white/60 hover:text-primary disabled:opacity-50 p-2.5'}`}
           >
             {isPlaying && currentSong === audioUrl ? (
               <Pause className="w-5 h-5" />
@@ -130,7 +132,10 @@ export default function SongItem({
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => variation.audio_url && onPlayClick(variation.audio_url, song.id)}
-                  className="text-white/60 hover:text-primary transition-all duration-300"
+                  className={`transition-all duration-300 flex items-center justify-center
+                           ${isPlaying && currentSong === variation.audio_url 
+                              ? 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-sm rounded-full p-1.5' 
+                              : 'text-white/60 hover:text-primary p-1.5'}`}
                 >
                   {isPlaying && currentSong === variation.audio_url ? (
                     <Pause className="w-4 h-4" />

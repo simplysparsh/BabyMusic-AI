@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Music2, Settings } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import AuthModal from './auth/AuthModal';
@@ -18,14 +18,9 @@ export default function Header() {
   // Check for 'true' or 'TRUE' case-insensitively
   const isSignupDisabled = import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true';
   
-  console.log('VITE_DISABLE_SIGNUP:', import.meta.env.VITE_DISABLE_SIGNUP);
-  console.log('isSignupDisabled:', isSignupDisabled);
-  console.log('isEmailSignupOpen:', isEmailSignupOpen);
-
   // Force open the email signup form for testing
   useEffect(() => {
     if (isSignupDisabled && !user) {
-      console.log('Forcing open email signup form for testing');
       // Wait a bit to make sure everything is loaded
       const timer = setTimeout(() => {
         handleOpenEmailSignup();
@@ -36,7 +31,7 @@ export default function Header() {
 
   useEffect(() => {
     if (authError) {
-      console.error('Auth error detected:', authError);
+      console.error('Auth error:', authError);
     }
   }, [authError]);
 

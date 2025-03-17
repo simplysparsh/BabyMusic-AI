@@ -153,39 +153,27 @@ serve(async (req) => {
           console.log(`Updating song ${songs.id} with audio URL - START`, new Date().toISOString());
           const updateStart = Date.now();
           
-          // PRIORITY UPDATE: First update just the audio_url field to ensure it's set ASAP
-          const { error: quickUpdateError } = await supabase
-            .from('songs')
-            .update({ audio_url: clip.audio_url })
-            .eq('id', songs.id);
-            
-          if (quickUpdateError) {
-            console.error('Failed quick audio URL update:', quickUpdateError);
-            throw quickUpdateError;
-          }
-          
-          console.log(`Quick audio URL update completed in ${Date.now() - updateStart}ms`, new Date().toISOString());
-          
-          // Then update the remaining fields in a separate call
+          // ATOMIC UPDATE: Update all fields in a single operation to prevent race conditions
           const { error: updateError } = await supabase
             .from('songs')
             .update({ 
+              audio_url: clip.audio_url,
               error: null,
               task_id: null // Clear task_id to indicate it's no longer in the queue
             })
             .eq('id', songs.id);
-
-          if (updateError) {
-            console.error('Failed to update song state fields:', updateError);
-            // Don't throw here - audio URL was already updated
-          }
-          
-          console.log(`Successfully updated song with audio URL in ${Date.now() - updateStart}ms:`, {
-            songId: songs.id,
-            taskId: task_id,
-            state: 'completed',
-            timestamp: new Date().toISOString()
-          });
+            
+            if (updateError) {
+              console.error('Failed to update song with audio URL:', updateError);
+              throw updateError;
+            }
+            
+            console.log(`Successfully updated song with audio URL in ${Date.now() - updateStart}ms:`, {
+              songId: songs.id,
+              taskId: task_id,
+              state: 'completed',
+              timestamp: new Date().toISOString()
+            });
         } catch (err) {
           console.error('Error processing audio URL update:', err);
           // Don't rethrow - we want to return success even if there was an error

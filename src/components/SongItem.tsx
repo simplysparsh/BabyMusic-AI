@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Play, Pause, Download, Share2, ChevronDown, RefreshCw } from 'lucide-react';
 import { SongStateService } from '../services/songStateService';
 import type { Song } from '../types';
@@ -26,7 +26,7 @@ export default function SongItem({
   const { retryingSongs, setRetrying } = useSongStore();
   const { user } = useAuthStore();
 
-  // Get song state information using SongStateService
+  // Get all the song state information from SongStateService
   const isGenerating = SongStateService.isGenerating(song);
   const hasFailed = SongStateService.hasFailed(song);
   const hasVariations = SongStateService.hasVariations(song);
@@ -36,16 +36,23 @@ export default function SongItem({
   // Check if the song is currently being retried
   const isRetrying = retryingSongs.has(song.id);
 
+  // Get the audio URL and check if it's actually available
+  const audioUrl = song.audio_url;
+  const isPlayable = !!audioUrl; // A song is playable if it has an audio URL
+
+  // Effect to clear retrying state when song state changes
+  useEffect(() => {
+    if (isPlayable && isRetrying) {
+      setRetrying(song.id, false);
+    }
+  }, [isPlayable, isRetrying, song.id, setRetrying]);
+
   // Handle toggling variations display
   const toggleExpand = () => {
     if (hasVariations) {
       setExpandedVariations(!expandedVariations);
     }
   };
-
-  // Get the audio URL and check if it's actually available
-  const audioUrl = song.audio_url;
-  const isPlayable = !!audioUrl; // A song is playable if it has an audio URL
 
   // Handle retry button click
   const handleRetry = async () => {

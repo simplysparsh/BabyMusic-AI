@@ -125,6 +125,8 @@ serve(async (req) => {
       
       if (clip?.audio_url) {
         try {
+          console.log(`Received audio URL from API for song with task: ${task_id}`, new Date().toISOString());
+          
           // First, check the current state of the song to avoid race conditions
           const { data: currentSong, error: checkError } = await supabase
             .from('songs')
@@ -148,25 +150,41 @@ serve(async (req) => {
           
           // Update the song with the audio URL - condition ONLY on song ID for reliability
           // This ensures the update happens even if task_id changed
-          console.log(`Updating song ${songs.id} with audio URL`);
+          console.log(`Updating song ${songs.id} with audio URL - START`, new Date().toISOString());
+          const updateStart = Date.now();
+          
+          // PRIORITY UPDATE: First update just the audio_url field to ensure it's set ASAP
+          const { error: quickUpdateError } = await supabase
+            .from('songs')
+            .update({ audio_url: clip.audio_url })
+            .eq('id', songs.id);
+            
+          if (quickUpdateError) {
+            console.error('Failed quick audio URL update:', quickUpdateError);
+            throw quickUpdateError;
+          }
+          
+          console.log(`Quick audio URL update completed in ${Date.now() - updateStart}ms`, new Date().toISOString());
+          
+          // Then update the remaining fields in a separate call
           const { error: updateError } = await supabase
             .from('songs')
             .update({ 
-              audio_url: clip.audio_url,
               error: null,
               task_id: null // Clear task_id to indicate it's no longer in the queue
             })
             .eq('id', songs.id);
 
           if (updateError) {
-            console.error('Failed to update song with audio URL:', updateError);
-            throw updateError;
+            console.error('Failed to update song state fields:', updateError);
+            // Don't throw here - audio URL was already updated
           }
           
-          console.log('Successfully updated song with audio URL:', {
+          console.log(`Successfully updated song with audio URL in ${Date.now() - updateStart}ms:`, {
             songId: songs.id,
             taskId: task_id,
-            state: 'completed'
+            state: 'completed',
+            timestamp: new Date().toISOString()
           });
         } catch (err) {
           console.error('Error processing audio URL update:', err);

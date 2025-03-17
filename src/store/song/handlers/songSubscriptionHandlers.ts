@@ -34,7 +34,7 @@ export async function handleSongUpdate(
 ) {
   // Detect significant state changes
   const hasNewError = !oldSong.error && newSong.error;
-  const hasNewAudio = !oldSong.audio_url && newSong.audio_url;
+  const hasNewAudio = oldSong.audio_url !== newSong.audio_url && !!newSong.audio_url;
   const hasTaskIdChange = oldSong.task_id !== newSong.task_id;
   const hasSignificantChange = hasNewError || hasNewAudio || hasTaskIdChange;
   
@@ -116,12 +116,25 @@ export async function handleSongUpdate(
   // Get the song's current state using the enhanced SongStateService
   const songState = SongStateService.getSongState(updatedSong as Song);
   
+  // Always clear retrying state if song has a new audio_url or error
+  if (hasNewAudio || hasNewError) {
+    const newRetrying = new Set(get().retryingSongs);
+    newRetrying.delete(updatedSong.id);
+    set({ retryingSongs: newRetrying });
+  }
+  
   // Handle state-specific updates
   switch (songState) {
     case SongStateEnum.READY:
       // Song is ready to play (has audio_url)
       if (hasNewAudio) {
         console.log(`Song ${updatedSong.id} is now ready to play with audio_url: ${updatedSong.audio_url}`);
+        // Force immediate UI update for audio URL changes
+        set({
+          songs: get().songs.map((song) =>
+            song.id === oldSong.id ? {...song, audio_url: updatedSong.audio_url} : song
+          )
+        });
       }
       
       // Clear all processing states

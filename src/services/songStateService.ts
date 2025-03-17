@@ -8,7 +8,8 @@ export enum SongState {
   GENERATING = 'generating',
   READY = 'ready',
   FAILED = 'failed',
-  INITIAL = 'initial'
+  INITIAL = 'initial',
+  PARTIALLY_READY = 'partially_ready'
 }
 
 /**
@@ -21,6 +22,8 @@ export class SongStateService {
    */
   static getSongState(song: Song | undefined): SongState {
     if (!song) return SongState.INITIAL;
+    
+    if (song.audio_url && song.task_id) return SongState.PARTIALLY_READY;
     
     if (song.audio_url) return SongState.READY;
     if (song.error || song.retryable) return SongState.FAILED;
@@ -160,7 +163,10 @@ export class SongStateService {
   }
 
   /**
-   * Gets UI metadata for preset type state
+   * Gets the state metadata for a preset type
+   * @param songs All songs
+   * @param presetType The preset type to get metadata for
+   * @returns State metadata including various boolean flags and the relevant song
    */
   static getPresetTypeStateMetadata(
     songs: Song[],
@@ -176,21 +182,24 @@ export class SongStateService {
     song: Song | undefined;
     isCompleted: boolean;
     state: SongState;
+    isPartiallyReady: boolean;
   } {
-    // Find the most relevant song for this preset type
     const song = this.getSongForPresetType(songs, presetType);
     
-    // Determine states
-    const isGenerating = song ? this.isGenerating(song) : false;
+    // Get state first
+    const state = this.getSongState(song);
+    
+    // Compute metadata flags
+    const isGenerating = this.isGenerating(song);
     const hasFailed = this.hasFailed(song);
     const canRetry = this.canRetry(song);
     const isReady = this.isReady(song);
+    const isCompleted = this.isCompleted(song);
+    const isPartiallyReady = this.isPartiallyReady(song);
     const hasVariations = this.hasVariations(song);
     const variationCount = this.getVariationCount(song);
     const statusLabel = this.getStatusLabel(song, isGenerating);
-    const isCompleted = this.isCompleted(song);
-    const state = this.getSongState(song);
-
+    
     return {
       isGenerating,
       hasFailed,
@@ -201,7 +210,8 @@ export class SongStateService {
       statusLabel,
       song,
       isCompleted,
-      state
+      state,
+      isPartiallyReady
     };
   }
 
@@ -227,5 +237,25 @@ export class SongStateService {
     } catch (err) {
       console.error(`Error updating song ${songId} with error:`, err);
     }
+  }
+
+  /**
+   * Determines if a song is partially ready (has audio but still generating)
+   */
+  static isPartiallyReady(song: Song | undefined): boolean {
+    if (!song) return false;
+    
+    // A song is partially ready if it has an audio_url AND still has a task_id
+    return !!song.audio_url && !!song.task_id;
+  }
+  
+  /**
+   * Determines if a song can be played (either fully or partially ready)
+   */
+  static isPlayable(song: Song | undefined): boolean {
+    if (!song) return false;
+    
+    // A song is playable if it has an audio_url (regardless of task_id)
+    return !!song.audio_url;
   }
 }

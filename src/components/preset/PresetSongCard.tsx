@@ -41,7 +41,8 @@ export default function PresetSongCard({
     variationCount,
     statusLabel,
     song: currentSong,
-    state: songState
+    state: songState,
+    isPartiallyReady
   } = SongStateService.getPresetTypeStateMetadata(
     songs,
     type
@@ -66,9 +67,9 @@ export default function PresetSongCard({
 
   // Handle card click
   const handleCardClick = useCallback(() => {
-    // If already generating, do nothing
-    if (isGenerating) {
-      console.log(`Card click ignored: ${type} preset is already generating`);
+    // If already generating without audio, do nothing
+    if (isGenerating && !currentSong?.audio_url) {
+      console.log(`Card click ignored: ${type} preset is generating without audio`);
       return;
     }
     
@@ -76,13 +77,15 @@ export default function PresetSongCard({
     console.log(`Card click for ${type} preset:`, {
       songState,
       isReady,
+      isPartiallyReady,
       audioUrl: audioUrl || 'none',
       songId: currentSong?.id || 'none'
     });
     
     switch (songState) {
       case SongState.READY:
-        // Play the song if it's ready and has an audio URL
+      case SongState.PARTIALLY_READY:
+        // Play the song if it's ready or partially ready and has an audio URL
         if (audioUrl) {
           onPlayClick(audioUrl, type);
         }
@@ -100,7 +103,7 @@ export default function PresetSongCard({
         onGenerateClick(type);
         break;
     }
-  }, [songState, isGenerating, audioUrl, type, onPlayClick, onGenerateClick, canRetry, isReady, currentSong?.id]);
+  }, [songState, isGenerating, audioUrl, type, onPlayClick, onGenerateClick, canRetry, isReady, isPartiallyReady, currentSong?.id, currentSong?.audio_url]);
 
   // Get color scheme based on preset type
   const getColorScheme = () => {
@@ -163,7 +166,7 @@ export default function PresetSongCard({
 
   // Render the status indicator based on song state
   const renderStatusIndicator = () => {
-    if (isGenerating) {
+    if (isGenerating && !isPartiallyReady) {
       return (
         <span className="inline-flex items-center text-xs bg-primary/20 text-white
                        px-3 py-1.5 rounded-full ml-2 border border-primary/20
@@ -174,6 +177,24 @@ export default function PresetSongCard({
             compact={true}
             className="!m-0 !p-0"
           />
+        </span>
+      );
+    }
+    
+    if (isPartiallyReady) {
+      // Subtle indicator for partially ready songs - softer green with small dot
+      return (
+        <span className="inline-flex items-center text-xs bg-gradient-to-br from-black/80 to-black/90 text-green-400
+                       px-3 py-1.5 rounded-full ml-2 border border-green-500/30
+                       shadow-lg z-10 whitespace-nowrap">
+          {isPlaying ? (
+            <Pause className="w-3 h-3 mr-1" />
+          ) : (
+            <Play className="w-3 h-3 mr-1" />
+          )}
+          {isPlaying ? "Pause" : "Play"}
+          <span className="w-1.5 h-1.5 bg-green-400/70 rounded-full ml-1.5 animate-pulse" 
+                title="Song is still being improved, but you can play it now"></span>
         </span>
       );
     }

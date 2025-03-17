@@ -112,15 +112,16 @@ serve(async (req) => {
     });
 
     if (output?.clips) {
-      console.log('Task completed successfully');
+      console.log('Processing clip output with status:', status);
       
-      // Handle completed status
+      // Handle different statuses
       const clip = Object.values(output.clips)[0] as AudioClip;
       
       console.log('Processing audio clips:', {
         songId: songs.id,
         hasAudio: !!clip?.audio_url,
-        audioUrl: clip?.audio_url ? clip.audio_url.substring(0, 30) + '...' : 'none'
+        audioUrl: clip?.audio_url ? clip.audio_url.substring(0, 30) + '...' : 'none',
+        status: status
       });
       
       if (clip?.audio_url) {
@@ -142,38 +143,74 @@ serve(async (req) => {
           // If the song already has an audio URL, don't update it
           if (currentSong?.audio_url) {
             console.log(`Song ${songs.id} already has audio URL, skipping update`);
+            
+            // But still update completion status if this is the final notification
+            if (status === 'completed' || status === 'complete') {
+              console.log(`Updating song ${songs.id} to mark as completed`);
+              const { error: completeError } = await supabase
+                .from('songs')
+                .update({ 
+                  task_id: null, // Clear task_id only when fully complete
+                  error: null
+                })
+                .eq('id', songs.id);
+                
+              if (completeError) {
+                console.error('Failed to update song completion status:', completeError);
+              }
+            }
+            
             return new Response(JSON.stringify({ success: true, status: 'already_updated' }), {
               headers: { 'Content-Type': 'application/json' },
               status: 200
             });
           }
           
-          // Update the song with the audio URL - condition ONLY on song ID for reliability
-          // This ensures the update happens even if task_id changed
           console.log(`Updating song ${songs.id} with audio URL - START`, new Date().toISOString());
           const updateStart = Date.now();
           
-          // ATOMIC UPDATE: Update all fields in a single operation to prevent race conditions
-          const { error: updateError } = await supabase
-            .from('songs')
-            .update({ 
-              audio_url: clip.audio_url,
-              error: null,
-              task_id: null // Clear task_id to indicate it's no longer in the queue
-            })
-            .eq('id', songs.id);
-            
-            if (updateError) {
-              console.error('Failed to update song with audio URL:', updateError);
-              throw updateError;
+          // PROGRESSIVE UPDATE: Set audio_url without clearing task_id if not completed
+          if (status !== 'completed' && status !== 'complete') {
+            const { error: progressiveUpdateError } = await supabase
+              .from('songs')
+              .update({ 
+                audio_url: clip.audio_url,
+                error: null
+                // Keeping task_id to indicate generation is still in progress
+              })
+              .eq('id', songs.id);
+              
+            if (progressiveUpdateError) {
+              console.error('Failed to update song with progressive audio URL:', progressiveUpdateError);
+              throw progressiveUpdateError;
             }
             
-            console.log(`Successfully updated song with audio URL in ${Date.now() - updateStart}ms:`, {
-              songId: songs.id,
-              taskId: task_id,
-              state: 'completed',
-              timestamp: new Date().toISOString()
-            });
+            console.log(`Successfully updated song with progressive audio URL in ${Date.now() - updateStart}ms`);
+          } else {
+            // COMPLETION UPDATE: Update all fields when fully complete
+            const { error: completeUpdateError } = await supabase
+              .from('songs')
+              .update({ 
+                audio_url: clip.audio_url,
+                error: null,
+                task_id: null // Now safe to clear task_id
+              })
+              .eq('id', songs.id);
+              
+            if (completeUpdateError) {
+              console.error('Failed to update song with complete status:', completeUpdateError);
+              throw completeUpdateError;
+            }
+            
+            console.log(`Successfully updated song to completed state in ${Date.now() - updateStart}ms`);
+          }
+          
+          console.log(`Song update successful:`, {
+            songId: songs.id,
+            taskId: task_id,
+            status: status,
+            timestamp: new Date().toISOString()
+          });
         } catch (err) {
           console.error('Error processing audio URL update:', err);
           // Don't rethrow - we want to return success even if there was an error
@@ -184,7 +221,7 @@ serve(async (req) => {
       }
     }
     else if (taskError) {
-      console.log('Task failed with error');
+      console.log('Task error received');
       
       let errorMsg = taskError.message || 'Music generation failed';
       let retryable = false;
@@ -218,24 +255,34 @@ serve(async (req) => {
         }
         
         // If the song already has an audio URL, don't mark it as failed
-        if (currentSong?.audio_url) {
-          console.log(`Song ${songs.id} already has audio URL, not marking as failed`);
-          return new Response(JSON.stringify({ success: true, status: 'already_completed' }), {
+        // unless the error is critical (determined by retryable flag)
+        if (currentSong?.audio_url && retryable) {
+          console.log(`Song ${songs.id} already has audio URL, not marking as failed since error is retryable`);
+          return new Response(JSON.stringify({ success: true, status: 'has_audio_ignoring_error' }), {
             headers: { 'Content-Type': 'application/json' },
             status: 200
           });
+        }
+
+        // Prepare update fields, preserving audio_url if it exists
+        const updateFields: any = {
+          error: errorMsg,
+          retryable,
+          task_id: null // Clear task_id to indicate it's no longer in the queue
+        };
+        
+        // Don't clear audio_url if it already exists
+        if (!currentSong?.audio_url) {
+          updateFields.audio_url = null;
+        } else {
+          console.log(`Preserving existing audio_url for song ${songs.id} even though error occurred`);
         }
 
         // Update the song with the error
         console.log(`Marking song ${songs.id} as failed with error: ${errorMsg}`);
         const { error: updateError } = await supabase
           .from('songs')
-          .update({ 
-            error: errorMsg,
-            retryable,
-            audio_url: null,
-            task_id: null // Clear task_id to indicate it's no longer in the queue
-          })
+          .update(updateFields)
           .eq('id', songs.id);
 
         if (updateError) {

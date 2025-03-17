@@ -166,7 +166,10 @@ export default function PresetSongCard({
 
   // Render the status indicator based on song state
   const renderStatusIndicator = () => {
-    if (isGenerating && !isPartiallyReady) {
+    // Always use SongStateService to determine state
+    const songState = SongStateService.getSongState(currentSong);
+    
+    if (songState === SongState.GENERATING && !isPartiallyReady) {
       return (
         <span className="inline-flex items-center text-xs bg-primary/20 text-white
                        px-3 py-1.5 rounded-full ml-2 border border-primary/20
@@ -181,7 +184,7 @@ export default function PresetSongCard({
       );
     }
     
-    if (isPartiallyReady) {
+    if (songState === SongState.PARTIALLY_READY) {
       // Subtle indicator for partially ready songs - softer green with small dot
       return (
         <span className="inline-flex items-center text-xs bg-gradient-to-br from-black/80 to-black/90 text-green-400
@@ -199,7 +202,7 @@ export default function PresetSongCard({
       );
     }
     
-    if (hasFailed) {
+    if (songState === SongState.FAILED) {
       return (
         <span className="inline-flex items-center text-xs bg-red-500/20 text-white
                        px-3 py-1.5 rounded-full ml-2 border border-red-500/20
@@ -210,7 +213,7 @@ export default function PresetSongCard({
       );
     }
     
-    if (isReady) {
+    if (songState === SongState.READY) {
       return (
         <span className="inline-flex items-center text-xs bg-gradient-to-br from-black/80 to-black/90 text-green-400
                        px-3 py-1.5 rounded-full ml-2 border border-green-500/30

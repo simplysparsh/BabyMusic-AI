@@ -23,12 +23,19 @@ export class SongStateService {
   static getSongState(song: Song | undefined): SongState {
     if (!song) return SongState.INITIAL;
     
+    // Song has error - it's in a failed state
+    if (song.error || song.retryable) return SongState.FAILED;
+    
+    // Song has audio_url and task_id - it's partially ready (audio available but still finalizing)
     if (song.audio_url && song.task_id) return SongState.PARTIALLY_READY;
     
+    // Song has audio_url but no task_id - it's fully ready
     if (song.audio_url) return SongState.READY;
-    if (song.error || song.retryable) return SongState.FAILED;
+    
+    // Song has task_id but no audio_url - it's still generating
     if (song.task_id) return SongState.GENERATING;
     
+    // Default state for a new song
     return SongState.INITIAL;
   }
 

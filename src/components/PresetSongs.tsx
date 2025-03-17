@@ -33,7 +33,7 @@ const PRESETS: {
   {
     type: 'pooping',
     icon: Waves,
-    title: 'Flush Time',
+    title: 'Flushtime', //Let it be Flushtime
     description: 'Playful tunes to make bathroom time fun',
   },
 ];

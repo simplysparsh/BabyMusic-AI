@@ -624,8 +624,7 @@ export class SongService {
         error: null,
         retryable: false,
         audio_url: null,
-        task_id: null, // Clear this so we don't think it's still generating
-        status: null
+        task_id: null // Clear this so we don't think it's still generating
       };
 
       // Combine reset fields with any custom fields

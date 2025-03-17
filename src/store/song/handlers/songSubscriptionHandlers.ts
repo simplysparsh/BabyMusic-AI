@@ -66,15 +66,16 @@ export async function handleSongUpdate(
     });
   }
 
-  // Track task IDs for processing state
+  // Track task IDs for processing state using batch update
   if (newSong.task_id && !get().processingTaskIds.has(newSong.task_id)) {
-    set({
-      processingTaskIds: new Set([...get().processingTaskIds, newSong.task_id])
+    get().batchUpdate({
+      taskIdsToAddToProcessing: [newSong.task_id]
     });
   }
 
-  // Handle songs in queue
+  // Handle songs in queue using batch update
   if (SongStateService.isInQueue(newSong as unknown as Song) && newSong.task_id && !get().queuedTaskIds.has(newSong.task_id)) {
+    // We can't use batch update for queuedTaskIds yet as it's not part of the batch update interface
     set({
       queuedTaskIds: new Set([...get().queuedTaskIds, newSong.task_id])
     });
@@ -101,26 +102,10 @@ export async function handleSongUpdate(
     if (fetchError || !fetchedSong) {
       console.log(`Song ${newSong.id} not found in database, cleaning up UI state`);
       
-      // Clean up UI state for this song
-      const newGenerating = new Set(get().generatingSongs);
-      newGenerating.delete(newSong.id);
-      
-      // Clean up task IDs if applicable
-      const newProcessingTaskIds = new Set(get().processingTaskIds);
-      if (newSong.task_id) {
-        newProcessingTaskIds.delete(newSong.task_id);
-      }
-      
-      // Clean up retrying state if applicable
-      const newRetrying = new Set(get().retryingSongs);
-      newRetrying.delete(newSong.id);
-      
-      // Remove song from songs array
-      set({
-        songs: get().songs.filter(song => song.id !== newSong.id),
-        generatingSongs: newGenerating,
-        processingTaskIds: newProcessingTaskIds,
-        retryingSongs: newRetrying
+      // Use batch update to atomically remove the song and all related state
+      get().batchUpdate({
+        removeSongId: newSong.id,
+        taskIdsToRemoveFromProcessing: newSong.task_id ? [newSong.task_id] : undefined
       });
       
       return;
@@ -164,9 +149,9 @@ export async function handleSongUpdate(
   
   // Always clear retrying state if song has a new audio_url or error
   if (hasNewAudio || hasNewError) {
-    const newRetrying = new Set(get().retryingSongs);
-    newRetrying.delete(updatedSong.id);
-    set({ retryingSongs: newRetrying });
+    get().batchUpdate({
+      songIdsToRemoveFromRetrying: [updatedSong.id]
+    });
   }
   
   // Handle state-specific updates
@@ -176,12 +161,15 @@ export async function handleSongUpdate(
       if (hasNewAudio) {
         console.log(`Song ${updatedSong.id} is now ready to play with audio_url: ${updatedSong.audio_url}`);
         
-        // Replace the entire song object instead of just updating audio_url
-        // This ensures all fields from the database are applied (especially task_id)
-        set({
-          songs: get().songs.map((song) =>
-            song.id === updatedSong.id ? updatedSong as Song : song
-          )
+        // Use batch update to update song and clear processing states in one operation
+        get().batchUpdate({
+          updateSong: {
+            id: updatedSong.id,
+            updatedSong: updatedSong as Song
+          },
+          songIdsToRemoveFromGenerating: [updatedSong.id],
+          taskIdsToRemoveFromProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined,
+          songIdsToRemoveFromRetrying: [updatedSong.id]
         });
         
         // Log the complete updated song state for debugging
@@ -191,6 +179,9 @@ export async function handleSongUpdate(
           hasTaskId: !!updatedSong.task_id,
           hasError: !!updatedSong.error
         });
+        
+        // We don't need to call updateSongProcessingState here since we've already updated everything
+        return;
       }
       
       // Clear all processing states
@@ -203,51 +194,62 @@ export async function handleSongUpdate(
         console.log(`Song ${updatedSong.id} has failed with error: ${updatedSong.error}`);
       }
       
-      // Clear generating state but keep retryable if applicable
-      updateSongProcessingState(updatedSong.id, updatedSong.task_id, false, !!updatedSong.retryable, set, get);
+      // Use batch update for failed state
+      get().batchUpdate({
+        updateSong: {
+          id: updatedSong.id,
+          updatedSong: updatedSong as Song
+        },
+        songIdsToRemoveFromGenerating: [updatedSong.id],
+        songIdsToAddToRetrying: updatedSong.retryable ? [updatedSong.id] : undefined,
+        taskIdsToRemoveFromProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined,
+        error: updatedSong.error || null
+      });
       
-      // Set error state
-      set({ error: updatedSong.error || null });
-      break;
+      // No need to call updateSongProcessingState here since we've handled it all
+      return;
       
     case SongStateEnum.GENERATING:
       // Song is generating (has task_id)
       if (hasTaskIdChange && updatedSong.task_id) {
         console.log(`Song ${updatedSong.id} is now generating with task_id: ${updatedSong.task_id}`);
         
-        // Add to generating songs if not already there
-        if (!get().generatingSongs.has(updatedSong.id)) {
-          set({
-            generatingSongs: new Set([...get().generatingSongs, updatedSong.id])
-          });
-        }
+        // Update song and add to generating songs in one operation
+        get().batchUpdate({
+          updateSong: {
+            id: updatedSong.id,
+            updatedSong: updatedSong as Song
+          },
+          songIdsToAddToGenerating: [updatedSong.id],
+          taskIdsToAddToProcessing: [updatedSong.task_id]
+        });
+        
+        return;
       }
       break;
       
     default:
       // Initial or unknown state
-      // Clear generating state to be safe
-      updateSongProcessingState(updatedSong.id, updatedSong.task_id, false, false, set, get);
-      break;
+      // Update the song but clear all processing states to be safe
+      get().batchUpdate({
+        updateSong: {
+          id: updatedSong.id,
+          updatedSong: updatedSong as Song
+        },
+        songIdsToRemoveFromGenerating: [updatedSong.id],
+        songIdsToRemoveFromRetrying: [updatedSong.id],
+        taskIdsToRemoveFromProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined
+      });
+      return;
   }
 
-  // Update the song in the songs array
-  // Find if the song already exists in the state
-  const songExists = get().songs.some(song => song.id === updatedSong.id);
-  
-  if (songExists) {
-    // Update existing song
-    set({
-      songs: get().songs.map((song) =>
-        song.id === updatedSong.id ? updatedSong as Song : song
-      )
-    });
-  } else {
-    // Add new song
-    set({
-      songs: [...get().songs, updatedSong as Song]
-    });
-  }
+  // Update the song in the songs array using batch update
+  get().batchUpdate({
+    updateSong: {
+      id: updatedSong.id,
+      updatedSong: updatedSong as Song
+    }
+  });
 }
 
 /**
@@ -261,36 +263,13 @@ function updateSongProcessingState(
   set: SetState,
   get: GetState
 ): void {
-  // Update generating state
-  const newGenerating = new Set(get().generatingSongs);
-  if (isGenerating) {
-    newGenerating.add(songId);
-  } else {
-    newGenerating.delete(songId);
-  }
-  
-  // Update retrying state
-  const newRetrying = new Set(get().retryingSongs);
-  if (isRetrying) {
-    newRetrying.add(songId);
-  } else {
-    newRetrying.delete(songId);
-  }
-  
-  // Update task processing state
-  const newProcessingTaskIds = new Set(get().processingTaskIds);
-  if (taskId) {
-    if (isGenerating) {
-      newProcessingTaskIds.add(taskId);
-    } else {
-      newProcessingTaskIds.delete(taskId);
-    }
-  }
-  
-  // Update all states at once
-  set({
-    generatingSongs: newGenerating,
-    retryingSongs: newRetrying,
-    processingTaskIds: newProcessingTaskIds
+  // Use batch update to ensure atomic update of all related state
+  get().batchUpdate({
+    songIdsToAddToGenerating: isGenerating ? [songId] : undefined,
+    songIdsToRemoveFromGenerating: !isGenerating ? [songId] : undefined,
+    songIdsToAddToRetrying: isRetrying ? [songId] : undefined,
+    songIdsToRemoveFromRetrying: !isRetrying ? [songId] : undefined,
+    taskIdsToAddToProcessing: (isGenerating && taskId) ? [taskId] : undefined,
+    taskIdsToRemoveFromProcessing: (!isGenerating && taskId) ? [taskId] : undefined
   });
 }

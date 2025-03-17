@@ -7,7 +7,7 @@
 // - Related: src/store/authStore.ts (user state)
 
 import { create } from 'zustand';
-import type { SongState } from './song/types';
+import type { SongState, BatchUpdate } from './song/types';
 import { createSongActions } from './song/actions';
 import { createSongSubscriptions } from './song/subscriptions';
 
@@ -28,6 +28,89 @@ export const useSongStore = create<SongState>((set, get) => {
 
     // State helpers
     setState: (updater) => set(updater),
+    
+    /**
+     * Batch update function to handle multiple state changes atomically
+     * This reduces the number of re-renders and prevents race conditions
+     */
+    batchUpdate: (updates: BatchUpdate) => {
+      set(state => {
+        // Start with current state
+        let updatedSongs = [...state.songs];
+        let updatedGenerating = new Set(state.generatingSongs);
+        let updatedProcessing = new Set(state.processingTaskIds);
+        let updatedRetrying = new Set(state.retryingSongs);
+        let updatedError = state.error;
+        
+        // Apply song updates
+        if (updates.songs) {
+          updatedSongs = updates.songs;
+        }
+        
+        // Update a specific song
+        if (updates.updateSong) {
+          updatedSongs = updatedSongs.map(song => 
+            song.id === updates.updateSong!.id ? updates.updateSong!.updatedSong : song
+          );
+        }
+        
+        // Add a new song
+        if (updates.addSong) {
+          if (!updatedSongs.some(s => s.id === updates.addSong!.id)) {
+            updatedSongs = [...updatedSongs, updates.addSong];
+          }
+        }
+        
+        // Remove a song
+        if (updates.removeSongId) {
+          updatedSongs = updatedSongs.filter(song => song.id !== updates.removeSongId);
+          updatedGenerating.delete(updates.removeSongId);
+          updatedRetrying.delete(updates.removeSongId);
+        }
+        
+        // Update generating state
+        if (updates.songIdsToAddToGenerating) {
+          updates.songIdsToAddToGenerating.forEach(id => updatedGenerating.add(id));
+        }
+        
+        if (updates.songIdsToRemoveFromGenerating) {
+          updates.songIdsToRemoveFromGenerating.forEach(id => updatedGenerating.delete(id));
+        }
+        
+        // Update processing task IDs
+        if (updates.taskIdsToAddToProcessing) {
+          updates.taskIdsToAddToProcessing.forEach(id => updatedProcessing.add(id));
+        }
+        
+        if (updates.taskIdsToRemoveFromProcessing) {
+          updates.taskIdsToRemoveFromProcessing.forEach(id => updatedProcessing.delete(id));
+        }
+        
+        // Update retrying state
+        if (updates.songIdsToAddToRetrying) {
+          updates.songIdsToAddToRetrying.forEach(id => updatedRetrying.add(id));
+        }
+        
+        if (updates.songIdsToRemoveFromRetrying) {
+          updates.songIdsToRemoveFromRetrying.forEach(id => updatedRetrying.delete(id));
+        }
+        
+        // Update error if provided
+        if (updates.error !== undefined) {
+          updatedError = updates.error;
+        }
+        
+        // Return all updated state in a single atomic update
+        return {
+          songs: updatedSongs,
+          generatingSongs: updatedGenerating,
+          processingTaskIds: updatedProcessing,
+          retryingSongs: updatedRetrying,
+          error: updatedError
+        };
+      });
+    },
+    
     clearGeneratingState: (songId: string) => {
       set(state => {
         const newGenerating = new Set(state.generatingSongs);

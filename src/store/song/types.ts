@@ -7,6 +7,24 @@ import type { Song, MusicMood, ThemeType, PresetType, Tempo, VoiceType } from '.
 
 export type StateUpdater = (state: SongState) => Partial<SongState>;
 
+/**
+ * Type to represent batch updates to the song state
+ * This ensures that multiple related state updates happen atomically
+ */
+export interface BatchUpdate {
+  songs?: Song[];
+  updateSong?: { id: string; updatedSong: Song };
+  addSong?: Song;
+  removeSongId?: string;
+  songIdsToAddToGenerating?: string[];
+  songIdsToRemoveFromGenerating?: string[];
+  taskIdsToAddToProcessing?: string[];
+  taskIdsToRemoveFromProcessing?: string[];
+  songIdsToAddToRetrying?: string[];
+  songIdsToRemoveFromRetrying?: string[];
+  error?: string | null;
+}
+
 export interface SongState {
   // State
   songs: Song[];
@@ -19,13 +37,14 @@ export interface SongState {
   error: string | null;
 
   // Actions
-  setState: (updater: StateUpdater) => void;
+  setState: (updater: Partial<SongState>) => void;
+  batchUpdate: (updates: BatchUpdate) => void;
   clearGeneratingState: (songId: string) => void;
   setRetrying: (songId: string, isRetrying: boolean) => void;
   loadSongs: () => Promise<void>;
   createSong: (params: CreateSongParams) => Promise<Song>;
   deleteAllSongs: () => Promise<void>;
-  setupSubscription: () => void;
+  setupSubscription: () => (() => void) | undefined;
   resetGeneratingState: () => Promise<void>;
 }
 

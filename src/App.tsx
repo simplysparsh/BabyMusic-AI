@@ -5,13 +5,10 @@ import Methodology from './pages/Methodology';
 import { useEffect, useState, Suspense } from 'react';
 import { useAuthStore } from './store/authStore'; 
 import { useSongStore } from './store/songStore';
-import { useResetGenerating } from './hooks/useResetGenerating';
-import { SongStateService as _SongStateService } from './services/songStateService';
 
 function App() {
   const { user, initialized } = useAuthStore();
-  const { loadSongs, setupSubscription, resetGeneratingState } = useSongStore();
-  const { hasStuckSongs, stuckSongCount } = useResetGenerating();
+  const { loadSongs, setupSubscription } = useSongStore();
   const [path, setPath] = useState(window.location.pathname);
 
   // Handle client-side navigation
@@ -39,29 +36,6 @@ function App() {
       });
     }
   }, [user, setupSubscription, loadSongs]);
-
-  // Check for stuck songs on app load
-  useEffect(() => {
-    if (user && hasStuckSongs) {
-      const checkStuckSongs = async () => {
-        try {
-          // No need to check for inconsistent states anymore
-          
-          // This will reconcile UI state with database state
-          await loadSongs();
-          
-          // If there are still stuck songs after reconciliation, reset them
-          if (hasStuckSongs) {
-            await resetGeneratingState();
-          }
-        } catch (error) {
-          console.error('Error checking stuck songs:', error);
-        }
-      };
-      
-      checkStuckSongs();
-    }
-  }, [user, hasStuckSongs, stuckSongCount, loadSongs, resetGeneratingState]);
 
   // Show loading spinner while auth state is initializing
   if (!initialized) {

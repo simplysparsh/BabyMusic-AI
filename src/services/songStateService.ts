@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase';
-import { TimeoutService } from './timeoutService';
 import type { PresetType, Song } from '../types';
 
 /**
@@ -41,12 +40,6 @@ export class SongStateService {
     
     // If the song has an audio URL, it's not generating
     if (song.audio_url) return false;
-    
-    // Check for timeout
-    if (TimeoutService.hasSongTimedOut(song)) {
-      this.updateSongWithError(song.id, "Generation took too long. Please try again.");
-      return false;
-    }
     
     // A song is generating if it has a task_id, no audio_url, and no error
     return !!song.task_id;

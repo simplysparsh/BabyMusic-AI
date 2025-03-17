@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { SONG_TIMEOUT_DURATION } from '../services/timeoutService';
+
+// Define timeout directly here (5 minutes in milliseconds)
+const SONG_TIMEOUT_DURATION = 5 * 60 * 1000;
 
 // Convert milliseconds to seconds for UI display
 const TIMEOUT_SECONDS = Math.floor(SONG_TIMEOUT_DURATION / 1000);

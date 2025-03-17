@@ -13,7 +13,6 @@ import type {
   AgeGroup,
   SongVariation
 } from '../types';
-import { TimeoutService } from '../services/timeoutService';
 
 // Define a type to bridge database schema columns and Song interface
 type DatabaseSong = {
@@ -88,24 +87,6 @@ function mapDatabaseSongToSong(dbSong: DatabaseSong): Song {
 
 export class SongService {
   /**
-   * Sets a timeout for song generation
-   * @param songId The ID of the song to set a timeout for
-   */
-  private static setSongGenerationTimeout(songId: string): void {
-    // Use the centralized timeout handling in TimeoutService
-    TimeoutService.setSongGenerationTimeout(songId);
-  }
-  
-  /**
-   * Clears a timeout for song generation
-   * @param songId The ID of the song to clear the timeout for
-   */
-  private static clearSongGenerationTimeout(songId: string): void {
-    // Use the centralized timeout handling in TimeoutService
-    TimeoutService.clearSongGenerationTimeout(songId);
-  }
-
-  /**
    * Updates a song with an error status
    * @param songId The ID of the song to update
    * @param errorMessage The error message to set
@@ -115,9 +96,6 @@ export class SongService {
     if (!songId) return;
     
     try {
-      // Clear any existing timeout for this song
-      this.clearSongGenerationTimeout(songId);
-      
       const { error } = await supabase
         .from('songs')
         .update({
@@ -195,9 +173,6 @@ export class SongService {
         throw updateError;
       }
       
-      // Set a timeout for the generation
-      this.setSongGenerationTimeout(dbSong.id);
-      
       return taskId;
     } catch (error) {
       console.error(`Failed to start generation for song ${dbSong.id}:`, error);
@@ -248,8 +223,8 @@ export class SongService {
     if (fetchError) {
       console.error('Failed to fetch songs for timeout clearing:', fetchError);
     } else if (songs && songs.length > 0) {
-      // Clear timeouts for all songs
-      songs.forEach(song => this.clearSongGenerationTimeout(song.id));
+      // No need to clear timeouts anymore
+      console.log(`Deleting ${songs.length} songs for user ${userId}`);
     }
 
     const { error } = await supabase

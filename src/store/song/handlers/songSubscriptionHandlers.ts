@@ -38,17 +38,6 @@ export async function handleSongUpdate(
   const hasTaskIdChange = oldSong.task_id !== newSong.task_id;
   const hasSignificantChange = hasNewError || hasNewAudio || hasTaskIdChange;
   
-  // More detailed debugging for audio_url changes
-  if (hasNewAudio) {
-    console.log('AUDIO URL CHANGE DETECTED:', {
-      songId: newSong.id,
-      songName: newSong.name,
-      oldUrl: oldSong.audio_url || 'none',
-      newUrl: newSong.audio_url,
-      preset_type: (newSong as SongPayload & { preset_type?: string }).preset_type || 'n/a'
-    });
-  }
-  
   // Log significant state transitions
   if (hasSignificantChange) {
     console.log(`Song state change for ${newSong.name} (${newSong.id}):`, {
@@ -140,20 +129,12 @@ export async function handleSongUpdate(
       // Song is ready to play (has audio_url)
       if (hasNewAudio) {
         console.log(`Song ${updatedSong.id} is now ready to play with audio_url: ${updatedSong.audio_url}`);
-        
         // Force immediate UI update for audio URL changes
-        // Apply the update directly to ensure the UI gets the audio_url
         set({
           songs: get().songs.map((song) =>
-            song.id === updatedSong.id ? {
-              ...song,
-              audio_url: updatedSong.audio_url
-            } : song
+            song.id === oldSong.id ? {...song, audio_url: updatedSong.audio_url} : song
           )
         });
-        
-        // Ensure the song is removed from generating state
-        updateSongProcessingState(updatedSong.id, updatedSong.task_id, false, false, set, get);
       }
       
       // Clear all processing states

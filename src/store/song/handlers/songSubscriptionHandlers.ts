@@ -36,30 +36,32 @@ export async function handleSongUpdate(
   const hasNewError = !oldSong.error && newSong.error;
   const hasNewAudio = oldSong.audio_url !== newSong.audio_url && !!newSong.audio_url;
   const hasTaskIdChange = oldSong.task_id !== newSong.task_id;
+  const hasTaskIdCleared = oldSong.task_id && !newSong.task_id;
   const hasSignificantChange = hasNewError || hasNewAudio || hasTaskIdChange;
   
-  // Log significant state transitions
-  if (hasSignificantChange) {
-    console.log(`Song state change for ${newSong.name} (${newSong.id}):`, {
-      song_type: newSong.song_type,
-      preset_type: (newSong as SongPayload & { preset_type?: string }).preset_type,
-      audio_url: {
-        before: oldSong.audio_url ? 'present' : 'none',
-        after: newSong.audio_url ? 'present' : 'none'
+  // Log task_id changes specifically
+  if (hasTaskIdChange) {
+    console.log(`Task ID change for song ${newSong.id}:`, {
+      before: oldSong.task_id || 'none',
+      after: newSong.task_id || 'none',
+      cleared: hasTaskIdCleared,
+      hasAudio: !!newSong.audio_url
+    });
+  }
+  
+  // More detailed debugging for audio_url changes
+  if (hasNewAudio) {
+    console.log('AUDIO URL CHANGE DETECTED:', {
+      songId: newSong.id,
+      songName: newSong.name,
+      oldUrl: oldSong.audio_url || 'none',
+      newUrl: newSong.audio_url,
+      taskId: {
+        before: oldSong.task_id || 'none',
+        after: newSong.task_id || 'none',
+        cleared: hasTaskIdCleared
       },
-      error: {
-        before: oldSong.error,
-        after: newSong.error
-      },
-      task_id: {
-        before: oldSong.task_id,
-        after: newSong.task_id
-      },
-      changes: {
-        hasNewError,
-        hasNewAudio,
-        hasTaskIdChange
-      }
+      preset_type: (newSong as SongPayload & { preset_type?: string }).preset_type || 'n/a'
     });
   }
 
@@ -129,11 +131,21 @@ export async function handleSongUpdate(
       // Song is ready to play (has audio_url)
       if (hasNewAudio) {
         console.log(`Song ${updatedSong.id} is now ready to play with audio_url: ${updatedSong.audio_url}`);
-        // Force immediate UI update for audio URL changes
+        
+        // Replace the entire song object instead of just updating audio_url
+        // This ensures all fields from the database are applied (especially task_id)
         set({
           songs: get().songs.map((song) =>
-            song.id === updatedSong.id ? {...song, audio_url: updatedSong.audio_url} : song
+            song.id === updatedSong.id ? updatedSong as Song : song
           )
+        });
+        
+        // Log the complete updated song state for debugging
+        console.log(`Updated song state in store:`, {
+          id: updatedSong.id,
+          hasAudioUrl: !!updatedSong.audio_url,
+          hasTaskId: !!updatedSong.task_id,
+          hasError: !!updatedSong.error
         });
       }
       

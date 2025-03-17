@@ -1,11 +1,8 @@
-import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useState, useEffect } from 'react';
+import { ComponentType, KeyboardEvent, MouseEvent, useCallback } from 'react';
 import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
 import SongGenerationTimer from '../common/SongGenerationTimer';
-
-// Add a small delay to show loading state before actual generation starts
-const LOADING_DELAY = 300; // milliseconds
 
 interface PresetCardProps {
   type: PresetType;
@@ -34,9 +31,6 @@ export default function PresetSongCard({
   currentVariationIndex,
   isPresetTypeGenerating
 }: PresetCardProps) {
-  // Local loading state to provide immediate UI feedback
-  const [isLocalLoading, setIsLocalLoading] = useState(false);
-  
   // Get song state metadata using the helper method for preset types
   const {
     isGenerating: serviceIsGenerating,
@@ -45,7 +39,7 @@ export default function PresetSongCard({
     isReady,
     hasVariations,
     variationCount,
-    statusLabel: serviceStatusLabel,
+    statusLabel,
     song: currentSong,
     state: songState
   } = SongStateService.getPresetTypeStateMetadata(
@@ -53,25 +47,19 @@ export default function PresetSongCard({
     type
   );
   
-  // Reset local loading state when song state changes
-  useEffect(() => {
-    if (songState === SongState.GENERATING || songState === SongState.READY) {
-      setIsLocalLoading(false);
-    }
-  }, [songState]);
+  // Combine generating states - check both the service and the store state
+  const isGenerating = serviceIsGenerating || isPresetTypeGenerating(type);
   
-  // Combine generating states
-  const isGenerating = serviceIsGenerating || isPresetTypeGenerating(type) || isLocalLoading;
-  
-  // Get status label
-  const statusLabel = isLocalLoading ? "Generating..." : serviceStatusLabel;
-
   // Get the audio URL
   const audioUrl = currentSong ? currentSong.audio_url : undefined;
 
   // Handle card click
   const handleCardClick = useCallback(() => {
-    if (isGenerating) return;
+    // If already generating, do nothing
+    if (isGenerating) {
+      console.log(`Card click ignored: ${type} preset is already generating`);
+      return;
+    }
     
     switch (songState) {
       case SongState.READY:
@@ -84,23 +72,13 @@ export default function PresetSongCard({
       case SongState.FAILED:
         // Handle retry if the song has failed and can be retried
         if (canRetry) {
-          setIsLocalLoading(true);
-          
-          // Add a small delay before actual generation to ensure UI updates
-          setTimeout(() => {
-            onGenerateClick(type);
-          }, LOADING_DELAY);
+          onGenerateClick(type);
         }
         break;
         
       default:
         // For initial state or any other state, generate a new song
-        setIsLocalLoading(true);
-        
-        // Add a small delay before actual generation to ensure UI updates
-        setTimeout(() => {
-          onGenerateClick(type);
-        }, LOADING_DELAY);
+        onGenerateClick(type);
         break;
     }
   }, [songState, isGenerating, audioUrl, type, onPlayClick, onGenerateClick, canRetry]);
@@ -161,8 +139,8 @@ export default function PresetSongCard({
 
   const colors = getColorScheme();
 
-  // Add a pulsing animation to the card when in local loading state
-  const loadingAnimation = isLocalLoading ? 'animate-pulse' : '';
+  // Add a pulsing animation to the card when generating
+  const loadingAnimation = isGenerating ? 'animate-pulse' : '';
 
   // Render the status indicator based on song state
   const renderStatusIndicator = () => {

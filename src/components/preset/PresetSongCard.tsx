@@ -1,4 +1,4 @@
-import { ComponentType, KeyboardEvent, MouseEvent, useCallback } from 'react';
+import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect } from 'react';
 import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
@@ -47,6 +47,17 @@ export default function PresetSongCard({
     type
   );
   
+  // Debugging for song state changes
+  useEffect(() => {
+    if (currentSong?.audio_url && isReady) {
+      console.log(`PresetSongCard: Song ready with audio URL for type ${type}`, {
+        songId: currentSong.id,
+        audioUrl: currentSong.audio_url,
+        state: songState
+      });
+    }
+  }, [currentSong?.audio_url, isReady, songState, type]);
+  
   // Combine generating states - check both the service and the store state
   const isGenerating = serviceIsGenerating || isPresetTypeGenerating(type);
   
@@ -60,6 +71,14 @@ export default function PresetSongCard({
       console.log(`Card click ignored: ${type} preset is already generating`);
       return;
     }
+    
+    // Log the current state for debugging
+    console.log(`Card click for ${type} preset:`, {
+      songState,
+      isReady,
+      audioUrl: audioUrl || 'none',
+      songId: currentSong?.id || 'none'
+    });
     
     switch (songState) {
       case SongState.READY:
@@ -81,7 +100,7 @@ export default function PresetSongCard({
         onGenerateClick(type);
         break;
     }
-  }, [songState, isGenerating, audioUrl, type, onPlayClick, onGenerateClick, canRetry]);
+  }, [songState, isGenerating, audioUrl, type, onPlayClick, onGenerateClick, canRetry, isReady, currentSong?.id]);
 
   // Get color scheme based on preset type
   const getColorScheme = () => {

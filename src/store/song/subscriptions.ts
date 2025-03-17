@@ -22,7 +22,7 @@ interface SongPayload {
   name: string;
   song_type: string;
   error?: string | null;
-  audioUrl?: string | null;
+  audio_url?: string | null;
   task_id?: string;
   status?: string;
   user_id: string;

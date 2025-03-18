@@ -42,6 +42,23 @@ serve(async (req) => {
     try {
       body = await req.json();
       console.log('Webhook body:', JSON.stringify(body, null, 2));
+      
+      // Enhanced webhook request logging
+      console.log('Webhook request details:', {
+        method: req.method,
+        headers: Object.fromEntries(
+          Array.from(req.headers.entries())
+            .filter(([key]) => !key.toLowerCase().includes('secret'))
+        ),
+        bodyStructure: body ? {
+          hasTaskId: !!body.task_id,
+          status: body.status,
+          hasOutput: !!body.output,
+          clipCount: body.output?.clips ? Object.keys(body.output.clips).length : 0,
+          hasError: !!body.error
+        } : 'No body',
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
       console.error('Failed to parse webhook body:', error);
       throw new Error('Invalid webhook body');
@@ -175,6 +192,15 @@ serve(async (req) => {
           
           // Update logic based on status
           if (status === 'completed' || status === 'complete') {
+            // ENHANCED LOGGING: Log when we receive completed status
+            console.log('COMPLETED status detected:', {
+              songId: songs.id,
+              status,
+              clipCount: output?.clips ? Object.keys(output.clips).length : 0,
+              clipStatus: output?.clips ? Object.values(output.clips)[0]?.status : 'unknown',
+              timestamp: new Date().toISOString()
+            });
+            
             // Song is complete - update audio_url and clear task_id
             const { error: completeUpdateError } = await supabase
               .from('songs')

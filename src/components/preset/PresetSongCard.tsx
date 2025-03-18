@@ -59,6 +59,25 @@ export default function PresetSongCard({
     }
   }, [currentSong?.audio_url, isReady, songState, type]);
   
+  // Enhanced debugging and UI refresh for all state changes
+  useEffect(() => {
+    // Log all state changes for debugging
+    console.log(`PresetSongCard ${type} state change:`, {
+      songState,
+      hasAudio: !!currentSong?.audio_url,
+      taskId: currentSong?.task_id || 'none',
+      isPartiallyReady,
+      timestamp: new Date().toISOString()
+    });
+    
+    // If we have audio, force the DOM to update with a state change
+    if (currentSong?.audio_url) {
+      // This will force a DOM refresh
+      const forceRefresh = setTimeout(() => {}, 0);
+      return () => clearTimeout(forceRefresh);
+    }
+  }, [currentSong?.audio_url, currentSong?.task_id, songState, type, isPartiallyReady]);
+  
   // Combine generating states - check both the service and the store state
   const isGenerating = serviceIsGenerating || isPresetTypeGenerating(type);
   

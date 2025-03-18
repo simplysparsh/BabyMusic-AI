@@ -172,12 +172,22 @@ export async function handleSongUpdate(
           songIdsToRemoveFromRetrying: [updatedSong.id]
         });
         
+        // Force refresh the songs array to trigger UI updates - same as PARTIALLY_READY
+        const readySongs = [...get().songs];
+        const readySongIndex = readySongs.findIndex(s => s.id === updatedSong.id);
+        
+        if (readySongIndex !== -1) {
+          readySongs[readySongIndex] = updatedSong as Song;
+          set({ songs: readySongs });
+        }
+        
         // Log the complete updated song state for debugging
         console.log(`Updated song state in store:`, {
           id: updatedSong.id,
           hasAudioUrl: !!updatedSong.audio_url,
           hasTaskId: !!updatedSong.task_id,
-          hasError: !!updatedSong.error
+          hasError: !!updatedSong.error,
+          state: 'READY'
         });
         
         // Clear all processing states
@@ -187,6 +197,39 @@ export async function handleSongUpdate(
       
       // Clear all processing states
       updateSongProcessingState(updatedSong.id, updatedSong.task_id, false, false, get);
+      break;
+      
+    case SongStateEnum.PARTIALLY_READY:
+      // Song has audio but is still generating
+      if (hasNewAudio) {
+        console.log(`Song ${updatedSong.id} is now partially ready with audio_url: ${updatedSong.audio_url}`);
+        
+        // Force update the UI immediately since we have audio
+        get().batchUpdate({
+          updateSong: {
+            id: updatedSong.id,
+            updatedSong: updatedSong as Song
+          }
+        });
+        
+        // Force refresh the songs array to trigger UI updates
+        const currentSongs = [...get().songs];
+        const songIndex = currentSongs.findIndex(s => s.id === updatedSong.id);
+        
+        if (songIndex !== -1) {
+          currentSongs[songIndex] = updatedSong as Song;
+          set({ songs: currentSongs });
+        }
+        
+        console.log(`Updated partially ready song in store:`, {
+          id: updatedSong.id,
+          hasAudioUrl: !!updatedSong.audio_url,
+          hasTaskId: !!updatedSong.task_id,
+          state: 'PARTIALLY_READY'
+        });
+        
+        return;
+      }
       break;
       
     case SongStateEnum.FAILED:

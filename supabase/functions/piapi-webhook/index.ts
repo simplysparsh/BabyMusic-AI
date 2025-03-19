@@ -91,17 +91,23 @@ serve(async (req) => {
     // Log status update in a clear format
     console.log('\n##### Status now:', status, '#####\n');
     
-    // Check for errors only when the error object has a non-zero code and a message
-    const hasError = taskError && taskError.code !== 0 && (taskError.message || taskError.raw_message);
+    // Check for errors in the response
+    const hasError = taskError && typeof taskError === 'object' && 
+      'code' in taskError && taskError.code !== 0 && 
+      ('message' in taskError || 'raw_message' in taskError) && 
+      (taskError.message || taskError.raw_message);
 
-    // Log status for debugging
+    // Log status update with error info if present
     console.log('Task status update:', {
       taskId: task_id,
       status,
-      hasOutput: !!output,
-      hasError: !!hasError,
-      errorDetails: taskError ? `code: ${taskError.code}, message: ${taskError.message || taskError.raw_message}` : 'none',
-      progress: output?.progress
+      hasError,
+      errorDetails: taskError && typeof taskError === 'object' ? {
+        code: 'code' in taskError ? taskError.code : 0,
+        message: 'message' in taskError ? taskError.message : 
+                 ('raw_message' in taskError ? taskError.raw_message : ''),
+        detail: 'detail' in taskError ? taskError.detail : null
+      } : null
     });
 
     console.log('Webhook received:', {
@@ -254,7 +260,7 @@ serve(async (req) => {
       }
     }
     // SIMPLIFIED ERROR HANDLING: Only handle errors when the error object has a non-zero code and a message
-    else if (taskError && taskError.code !== 0 && (taskError.message || taskError.raw_message)) {
+    else if (hasError) {
       console.log('Error object received from API:', taskError);
       
       // Use message or raw_message from the error object

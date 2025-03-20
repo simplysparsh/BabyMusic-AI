@@ -13,7 +13,7 @@ interface AudioClip {
   };
 }
 
-const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET')
+const WEBHOOK_SECRET = Deno.env.get('VITE_WEBHOOK_SECRET')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
@@ -26,49 +26,123 @@ console.log('Edge Function started:', {
 
 serve(async (req) => {
   try {
-    // Log incoming request
-    console.log('Webhook received:', {
-      method: req.method,
-      // @ts-ignore - Headers iteration works correctly in Deno
-      headers: Object.fromEntries([...req.headers].filter(([key]) => !key.toLowerCase().includes('secret'))),
+    // Log ALL headers (names only) to see what PIAPI is sending
+    const allHeaders = [...req.headers.keys()];
+    console.log('All received headers:', {
+      headerNames: allHeaders,
+      timestamp: new Date().toISOString()
     });
 
-    // Verify webhook secret
-    const secret = req.headers.get('x-webhook-secret');
-    if (secret !== Deno.env.get('WEBHOOK_SECRET')) {
-      console.error('Invalid webhook secret');
-      throw new Error('Invalid webhook secret');
+    // Log incoming request with full details (excluding secrets)
+    const requestHeaders = Object.fromEntries([...req.headers].filter(([key]) => !key.toLowerCase().includes('secret')));
+    console.log('Webhook received:', {
+      method: req.method,
+      headers: requestHeaders,
+      timestamp: new Date().toISOString()
+    });
+
+    // Try multiple possible header names for the secret
+    const secret = req.headers.get('x-webhook-secret') || 
+                  req.headers.get('x-secret') ||
+                  req.headers.get('webhook-secret') ||
+                  req.headers.get('secret');
+
+    console.log('Webhook secret check:', {
+      hasSecret: !!secret,
+      expectedSecret: !!WEBHOOK_SECRET,
+      checkedHeaders: ['x-webhook-secret', 'x-secret', 'webhook-secret', 'secret'],
+      timestamp: new Date().toISOString()
+    });
+
+    if (!secret) {
+      console.error('Missing webhook secret header');
+      return new Response(JSON.stringify({ 
+        error: 'Missing webhook secret header',
+        status: 'error'
+      }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    // Parse request body
+    if (secret !== WEBHOOK_SECRET) {
+      console.error('Invalid webhook secret');
+      return new Response(JSON.stringify({ 
+        error: 'Invalid webhook secret',
+        status: 'error'
+      }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Parse request body with error handling
     let body;
     try {
       body = await req.json();
       console.log('Webhook body:', JSON.stringify(body, null, 2));
-      
-      // Enhanced webhook request logging
-      console.log('Webhook request details:', {
-        method: req.method,
-        headers: Object.fromEntries([...req.headers].filter(([key]) => !key.toLowerCase().includes('secret'))),
-        bodyStructure: body ? {
-          hasTaskId: !!body.task_id,
-          status: body.status,
-          hasOutput: !!body.output,
-          clipCount: body.output?.clips ? Object.keys(body.output.clips).length : 0,
-          hasError: !!body.error
-        } : 'No body',
-        timestamp: new Date().toISOString()
-      });
     } catch (error) {
       console.error('Failed to parse webhook body:', error);
-      throw new Error('Invalid webhook body');
+      return new Response(JSON.stringify({ 
+        error: 'Invalid JSON body',
+        status: 'error'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    // Extract task details
-    const { task_id, status, error: taskError, output } = body;
+    // Extract data from the nested structure
+    const { data } = body;
+    if (!data) {
+      console.error('Missing data object in webhook body');
+      return new Response(JSON.stringify({ 
+        error: 'Missing data object in webhook body',
+        status: 'error'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Validate required fields from the data object
+    const { task_id, status, error: taskError, output } = data;
     if (!task_id) {
-      console.error('Missing task_id in webhook');
-      throw new Error('Missing task_id');
+      console.error('Missing task_id in webhook body');
+      return new Response(JSON.stringify({ 
+        error: 'Missing task_id in webhook body',
+        status: 'error'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Initialize Supabase client
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Find the song with detailed logging
+    console.log('Looking for song with task_id:', task_id);
+    const { data: songs, error: findError } = await supabase
+      .from('songs')
+      .select('id, task_id, audio_url, error')
+      .eq('task_id', task_id.toString())
+      .maybeSingle();
+
+    if (findError) {
+      console.error('Database error finding song:', findError);
+      throw findError;
+    }
+
+    if (!songs) {
+      console.error(`No song found for task_id: ${task_id}`);
+      return new Response(JSON.stringify({ 
+        error: `No song found for task_id: ${task_id}`,
+        status: 'error'
+      }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     console.log('Processing webhook:', {
@@ -77,9 +151,6 @@ serve(async (req) => {
       error: taskError,
       hasOutput: !!output
     });
-
-    // Initialize Supabase client with service role key
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
     // Log status update in a clear format
     console.log('\n#######################');
@@ -115,26 +186,6 @@ serve(async (req) => {
       status,
       hasOutput: !!output,
       clipCount: output?.clips ? Object.keys(output.clips).length : 0
-    });
-
-    // Find the song by task_id
-    const { data: songs, error: findError } = await supabase
-      .from('songs')
-      .select('id, task_id, audio_url, error')
-      .eq('task_id', task_id.toString())
-      .maybeSingle();
-
-    if (findError) {
-      throw findError;
-    }
-
-    if (!songs) {
-      throw new Error(`Song not found for task_id: ${task_id}`);
-    }
-
-    console.log('Found song:', {
-      songId: songs.id,
-      taskId: songs.task_id
     });
 
     // SIMPLIFIED LOGIC: Handle audio clips if present

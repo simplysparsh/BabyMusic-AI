@@ -99,6 +99,7 @@ export const createMusicGenerationTask = async ({
       webhook_config: {
         endpoint: WEBHOOK_URL,
         secret: import.meta.env.VITE_WEBHOOK_SECRET,
+        secret_header: 'x-webhook-secret',
         include_output: true,
       },
     },

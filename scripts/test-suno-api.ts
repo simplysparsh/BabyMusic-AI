@@ -51,6 +51,7 @@ interface SunoResponse {
     webhook_config: {
       endpoint: string;
       secret: string;
+      secret_header: string;
     };
   };
   output: {
@@ -167,33 +168,30 @@ async function setupTestData() {
 
   // Now create the song in Suno
   const sunoPayload = {
-    prompt: "A gentle lullaby with soft piano and strings, perfect for helping babies fall asleep",
-    mode: "melody",
-    model_version: "v2",
-    webhook_url: `${VITE_SUPABASE_URL}/functions/v1/piapi-webhook`,
-    webhook_auth_header: "x-webhook-secret",
-    webhook_auth_value: VITE_WEBHOOK_SECRET,
-    reference_song: null,
-    continuation_song: null,
-    continuation_start: null,
-    continuation_end: null,
-    sample_rate: null,
-    format: null,
-    language: null,
-    accent: null,
-    top_k: null,
-    top_p: null,
-    temperature: null,
-    classifier_free_guidance: null,
-    output_format: null,
-    interpolation_points: null
+    model: 'music-s',
+    task_type: 'generate_music_custom',
+    config: {
+      webhook_config: {
+        endpoint: `${VITE_SUPABASE_URL}/functions/v1/piapi-webhook`,
+        secret: VITE_WEBHOOK_SECRET,
+        secret_header: 'x-webhook-secret',
+        include_output: true,
+      },
+    },
+    input: {
+      title: "Test Lullaby",
+      prompt: "A gentle lullaby with soft piano and strings, perfect for helping babies fall asleep",
+      tags: "Soft, gentle lullaby for sleep time",
+      make_instrumental: false,
+      negative_tags: 'rock, metal, aggressive, harsh',
+    },
   };
 
   console.log('Creating song in Suno API...');
-  const sunoResponse = await fetch('https://api.suno.ai/v1/generations', {
+  const sunoResponse = await fetch('https://api.piapi.ai/api/v1/task', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${VITE_PIAPI_KEY}`,
+      'x-api-key': VITE_PIAPI_KEY || '',
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(sunoPayload)
@@ -204,21 +202,21 @@ async function setupTestData() {
     throw new Error(`Suno API request failed: ${sunoResponse.status} ${sunoResponse.statusText}\n${error}`);
   }
 
-  const sunoData = (await sunoResponse.json()) as SunoResponse;
+  const sunoData = (await sunoResponse.json()) as { code: number, data: SunoResponse, message: string };
   console.log('Suno API response:', sunoData);
 
   // Update our song with the task ID from Suno
   const { error: updateError } = await supabase
     .from('songs')
-    .update({ task_id: sunoData.task_id })
+    .update({ task_id: sunoData.data.task_id })
     .eq('id', TEST_SONG_ID);
 
   if (updateError) {
     throw new Error(`Failed to update song with task_id: ${updateError.message}`);
   }
 
-  console.log('Updated song with Suno task_id:', sunoData.task_id);
-  return { user, song, sunoData };
+  console.log('Updated song with Suno task_id:', sunoData.data.task_id);
+  return { user, song, sunoData: sunoData.data };
 }
 
 async function waitForCompletion(timeoutMinutes = 5) {
@@ -227,6 +225,7 @@ async function waitForCompletion(timeoutMinutes = 5) {
   const timeoutMs = timeoutMinutes * 60 * 1000;
 
   while (Date.now() - startTime < timeoutMs) {
+    // Get current state from database
     const { data: song } = await supabase
       .from('songs')
       .select('*')
@@ -240,11 +239,30 @@ async function waitForCompletion(timeoutMinutes = 5) {
       error: song.error
     });
 
+    // Check webhook logs for this task
+    if (song.task_id) {
+      const { data: logs, error: logsError } = await supabase
+        .from('webhook_logs')
+        .select('*')
+        .eq('task_id', song.task_id)
+        .order('created_at', { ascending: false });
+
+      if (!logsError && logs && logs.length > 0) {
+        console.log('\nWebhook logs for task:', song.task_id);
+        logs.forEach(log => {
+          console.log(`\nWebhook log at ${log.created_at}:`);
+          console.log('Headers:', log.headers);
+          console.log('Body:', log.body);
+          if (log.error) console.log('Error:', log.error);
+        });
+      }
+    }
+
     if (song.error) {
       throw new Error(`Song generation failed: ${song.error}`);
     }
 
-    if (song.audio_url && !song.task_id) {
+    if (song.audio_url) {
       console.log('Song generation completed successfully!');
       return song;
     }
@@ -257,44 +275,33 @@ async function waitForCompletion(timeoutMinutes = 5) {
   throw new Error(`Timeout after ${timeoutMinutes} minutes`);
 }
 
-async function cleanupTestData() {
-  console.log('\n=== Cleaning up test data ===');
-  
-  // Delete test song using song ID if available
-  if (TEST_SONG_ID) {
-    const { error: songError } = await supabase
-      .from('songs')
-      .delete()
-      .eq('id', TEST_SONG_ID);
-
-    if (songError) {
-      console.error('Failed to cleanup test song:', songError);
-    } else {
-      console.log('Test song cleaned up successfully');
-    }
-  }
-
-  // Delete test user
-  await deleteTestUser();
-}
-
 async function main() {
   try {
-    // Setup test data and create song
     const { sunoData } = await setupTestData();
     console.log('Test setup complete. Suno task_id:', sunoData.task_id);
 
-    // Wait for completion
-    const completedSong = await waitForCompletion();
-    console.log('Final song state:', completedSong);
-
+    await waitForCompletion();
   } catch (error) {
-    console.error('Test failed:', error);
-    throw error;
-  } finally {
-    // Clean up
-    await cleanupTestData();
+    console.error('\nTest failed:', error);
   }
+  // Commenting out cleanup to keep test data for webhook testing
+  // finally {
+  //   console.log('\n=== Cleaning up test data ===');
+  //   if (TEST_SONG_ID) {
+  //     const { error: deleteError } = await supabase
+  //       .from('songs')
+  //       .delete()
+  //       .eq('id', TEST_SONG_ID);
+      
+  //     if (deleteError) {
+  //       console.error('Failed to clean up test song:', deleteError);
+  //     } else {
+  //       console.log('Test song cleaned up successfully');
+  //     }
+  //   }
+    
+  //   await deleteTestUser();
+  // }
 }
 
 // Run the test

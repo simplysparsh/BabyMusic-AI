@@ -1,4 +1,6 @@
+// @ts-ignore
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+// @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 
 interface AudioClip {
@@ -27,7 +29,8 @@ serve(async (req) => {
     // Log incoming request
     console.log('Webhook received:', {
       method: req.method,
-      headers: Object.fromEntries(req.headers.entries()),
+      // @ts-ignore - Headers iteration works correctly in Deno
+      headers: Object.fromEntries([...req.headers].filter(([key]) => !key.toLowerCase().includes('secret'))),
     });
 
     // Verify webhook secret
@@ -46,10 +49,7 @@ serve(async (req) => {
       // Enhanced webhook request logging
       console.log('Webhook request details:', {
         method: req.method,
-        headers: Object.fromEntries(
-          Array.from(req.headers.entries())
-            .filter(([key]) => !key.toLowerCase().includes('secret'))
-        ),
+        headers: Object.fromEntries([...req.headers].filter(([key]) => !key.toLowerCase().includes('secret'))),
         bodyStructure: body ? {
           hasTaskId: !!body.task_id,
           status: body.status,
@@ -203,7 +203,8 @@ serve(async (req) => {
               songId: songs.id,
               status,
               clipCount: output?.clips ? Object.keys(output.clips).length : 0,
-              clipStatus: output?.clips ? Object.values(output.clips)[0]?.status : 'unknown',
+              // @ts-ignore - We know the structure of clips at runtime
+              clipStatus: output?.clips ? Object.values(output.clips)[0]?.status ?? 'unknown' : 'unknown',
               timestamp: new Date().toISOString()
             });
             

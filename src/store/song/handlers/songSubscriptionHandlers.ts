@@ -66,42 +66,11 @@ export async function handleSongUpdate(
     });
   }
 
-  // Handle task IDs for processing state using batch update
+  // Track task IDs for processing state using batch update
   if (newSong.task_id && !get().processingTaskIds.has(newSong.task_id)) {
     get().batchUpdate({
       taskIdsToAddToProcessing: [newSong.task_id]
     });
-  }
-
-  // Task ID was cleared - handle transition from PARTIALLY_READY to READY state
-  if (oldSong.task_id && !newSong.task_id && newSong.audio_url) {
-    console.log(`Task ID cleared for song ${newSong.id} with audio - transitioning to READY state`, {
-      songId: newSong.id,
-      audioUrl: newSong.audio_url,
-      oldTaskId: oldSong.task_id
-    });
-    
-    // Make sure we update the song in the store and clear all processing states
-    get().batchUpdate({
-      updateSong: {
-        id: newSong.id,
-        updatedSong: newSong as unknown as Song
-      },
-      songIdsToRemoveFromGenerating: [newSong.id],
-      taskIdsToRemoveFromProcessing: [oldSong.task_id],
-      songIdsToRemoveFromRetrying: [newSong.id]
-    });
-    
-    // Force refresh the songs array to trigger UI updates
-    const currentSongs = [...get().songs];
-    const songIndex = currentSongs.findIndex(s => s.id === newSong.id);
-    
-    if (songIndex !== -1) {
-      currentSongs[songIndex] = newSong as unknown as Song;
-      set({ songs: currentSongs });
-    }
-    
-    return; // Exit early after processing this important transition
   }
 
   // Handle songs in queue using batch update

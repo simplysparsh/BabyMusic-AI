@@ -39,6 +39,8 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
   const setupSubscription = () => {
     const user = useAuthStore.getState().user;
     if (!user) return;
+    
+    // Clean up existing subscriptions first
     supabase.getChannels().forEach(channel => channel.unsubscribe());
     
     // Subscribe to both songs and variations changes
@@ -53,26 +55,43 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
           filter: `user_id=eq.${user.id}`,
         },
         async (payload) => {
-          // Use type assertion to ensure TypeScript knows the structure
-          const typedPayload = payload as RealtimePayload<SongPayload>;
-          const { new: newSong, old: oldSong } = typedPayload;
-          
-          // Add null checks and type assertions
-          if (!oldSong || !newSong || !('id' in oldSong) || !('id' in newSong)) {
-            return;
+          try {
+            // Use type assertion to ensure TypeScript knows the structure
+            const typedPayload = payload as RealtimePayload<SongPayload>;
+            const { new: newSong, old: oldSong } = typedPayload;
+            
+            // Add null checks and type assertions
+            if (!oldSong || !newSong || !('id' in oldSong) || !('id' in newSong)) {
+              return;
+            }
+            
+            // Log the state change for debugging
+            if (oldSong.task_id !== newSong.task_id) {
+              console.log('Supabase subscription - task_id change detected:', {
+                songId: newSong.id,
+                oldTaskId: oldSong.task_id || 'none',
+                newTaskId: newSong.task_id || 'none',
+                hasAudio: !!newSong.audio_url
+              });
+            }
+            
+            // Handle the song update
+            await handleSongUpdate(
+              newSong as SongPayload,
+              oldSong as SongPayload,
+              set,
+              get,
+              supabase
+            );
+          } catch (error) {
+            // Prevent subscription errors from breaking the channel
+            console.error('Error in songs subscription handler:', error);
           }
-          
-          // Remove the presetSongsProcessing parameter or update the handler function
-          await handleSongUpdate(
-            newSong as SongPayload,
-            oldSong as SongPayload,
-            set,
-            get,
-            supabase
-          );
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Songs subscription status: ${status}`);
+      });
       
     const variationsSubscription = supabase
       .channel('variations-channel')
@@ -84,27 +103,35 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
           table: 'song_variations'
         },
         async (payload) => {
-          // Use type assertion to ensure TypeScript knows the structure
-          const typedPayload = payload as RealtimePayload<VariationPayload>;
-          const { new: variation } = typedPayload;
-          
-          // Add null check and type assertion
-          if (!variation || !('song_id' in variation)) {
-            return;
+          try {
+            // Use type assertion to ensure TypeScript knows the structure
+            const typedPayload = payload as RealtimePayload<VariationPayload>;
+            const { new: variation } = typedPayload;
+            
+            // Add null check and type assertion
+            if (!variation || !('song_id' in variation)) {
+              return;
+            }
+            
+            await handleVariationInsert(
+              variation as VariationPayload,
+              set,
+              get,
+              supabase
+            );
+          } catch (error) {
+            // Prevent subscription errors from breaking the channel
+            console.error('Error in variations subscription handler:', error);
           }
-          
-          await handleVariationInsert(
-            variation as VariationPayload,
-            set,
-            get,
-            supabase
-          );
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Variations subscription status: ${status}`);
+      });
 
     // Clean up subscription when user changes
     return () => {
+      console.log('Cleaning up Supabase subscriptions');
       songsSubscription.unsubscribe();
       variationsSubscription.unsubscribe();
     };

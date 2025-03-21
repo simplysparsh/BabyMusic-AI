@@ -54,10 +54,11 @@ export default function PresetSongCard({
       console.log(`PresetSongCard: Song ready with audio URL for type ${type}`, {
         songId: currentSong.id,
         audioUrl: currentSong.audio_url,
-        state: songState
+        state: songState,
+        hasTaskId: !!currentSong.task_id  // Add task_id info to debug log
       });
     }
-  }, [currentSong?.audio_url, isReady, songState, type]);
+  }, [currentSong?.audio_url, currentSong?.task_id, isReady, songState, type]);
   
   // Enhanced debugging and UI refresh for all state changes
   useEffect(() => {

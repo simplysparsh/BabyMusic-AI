@@ -71,18 +71,9 @@ const PresetSongs: FC = () => {
           const song = songs.find(s => s.preset_type === type);
           const audioUrl = song?.audio_url;
           
-          // Create a key that will change when important values change, forcing re-render
-          const keyParts = [
-            type,
-            song?.id || 'no-song',
-            song?.audio_url ? 'has-audio' : 'no-audio',
-            song?.task_id ? 'has-task' : 'no-task'
-          ];
-          const itemKey = keyParts.join('-');
-          
           return (
             <PresetSongCard
-              key={itemKey}
+              key={type}
               type={type}
               title={title}
               description={description}

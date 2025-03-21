@@ -263,6 +263,19 @@ export const createSongActions = (set: SetState, get: GetState) => ({
             generatingSongs: new Set([...get().generatingSongs].filter(id => id !== createdSong!.id))
           });
         }
+      } else if (error instanceof Error && (error.message.includes('timed out') || error.message.includes('timeout'))) {
+        // Handle timeout specifically - log but don't show UI message
+        console.error('Song creation timed out:', error);
+        
+        // If this is a preset song, just let the UI return to initial state automatically
+        if (songType === 'preset' && currentPresetType) {
+          // Clean up any UI state related to this song creation attempt
+          set({
+            generatingSongs: new Set([...get().generatingSongs].filter(id => 
+              !id.includes(`temp-${currentPresetType}`)
+            ))
+          });
+        }
       }
 
       throw error instanceof Error ? error : new Error('Failed to create song');

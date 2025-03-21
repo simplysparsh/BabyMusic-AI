@@ -13,6 +13,21 @@ const secretPatterns = [
   /CLAUDE_API_KEY\s*=\s*["'](?!process|import\.meta|your_)/i,
   /WEBHOOK_SECRET\s*=\s*["'](?!process|import\.meta|your_)/i,
   /eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9/i, // JWT pattern
+  /OPENAI_API_KEY\s*=\s*["'](?!process|import\.meta|your_)/i,
+  /ANTHROPIC_API_KEY\s*=\s*["'](?!process|import\.meta|your_)/i,
+  /GOOGLE_API_KEY\s*=\s*["'](?!process|import\.meta|your_)/i,
+  /AWS_ACCESS_KEY\s*=\s*["'](?!process|import\.meta|your_)/i,
+  /AWS_SECRET_KEY\s*=\s*["'](?!process|import\.meta|your_)/i,
+  /DATABASE_URL\s*=\s*["'](?!process|import\.meta|your_)/i,
+  /POSTGRES_PASSWORD\s*=\s*["'](?!process|import\.meta|your_)/i,
+  /STRIPE_SECRET_KEY\s*=\s*["'](?!process|import\.meta|your_)/i,
+  /GITHUB_TOKEN\s*=\s*["'](?!process|import\.meta|your_)/i,
+  /sk_live_[0-9a-zA-Z]{24,}/i, // Stripe live key pattern
+  /rk_live_[0-9a-zA-Z]{24,}/i, // Stripe restricted key pattern
+  /xox[baprs]-([0-9a-zA-Z]{10,48})/i, // Slack token pattern
+  /ghp_[0-9a-zA-Z]{36}/i, // GitHub personal access token pattern
+  /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/i, // UUID pattern
+  /-----BEGIN\s+(RSA|DSA|EC|OPENSSH)\s+PRIVATE\s+KEY-----/i, // Private key pattern
 ];
 
 // Patterns to exclude (common false positives)

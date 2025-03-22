@@ -42,6 +42,9 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
           const typedPayload = payload as RealtimePayload<SongPayload>;
           const { new: newSong, old: oldSong } = typedPayload;
           
+          // IMPORTANT: By default, Supabase only includes primary keys in oldSong, not complete data
+          // The handler function should avoid comparing oldSong to newSong for non-primary-key fields
+          
           // Add null checks and type assertions
           if (!oldSong || !newSong || !('id' in oldSong) || !('id' in newSong)) {
             return;

@@ -35,7 +35,6 @@ export default function PresetSongCard({
   const {
     isGenerating: serviceIsGenerating,
     canRetry,
-    isReady,
     hasVariations,
     variationCount,
     statusLabel,
@@ -47,48 +46,98 @@ export default function PresetSongCard({
     type
   );
   
-  // Debugging for song state changes
-  useEffect(() => {
-    if (currentSong?.audio_url && isReady) {
-      console.log(`PresetSongCard: Song ready with audio URL for type ${type}`, {
-        songId: currentSong.id,
-        audioUrl: currentSong.audio_url,
-        state: songState
-      });
-    }
-  }, [currentSong?.audio_url, isReady, songState, type]);
+  // Store direct references to critical state values to detect changes
+  const prevTaskIdRef = useRef<string | null | undefined>(currentSong?.task_id);
+  const prevAudioUrlRef = useRef<string | undefined>(currentSong?.audio_url);
+  const lastStateRef = useRef<SongState | null>(null);
   
-  // Brute-force UI update approach with useRef
+  // UI update mechanism with useRef
   const forceUpdateKey = useRef(0);
   const [, setForceRender] = useState({});
   
-  // Force UI update on every state change
+  // Use a focused dependency list for critical song properties
   useEffect(() => {
-    // Log all state changes for debugging with simplified format
-    console.log(`PresetSongCard ${type} state update:`, {
-      state: songState,
-      audio: !!currentSong?.audio_url,
-      taskId: currentSong?.task_id || 'none',
-      updateKey: forceUpdateKey.current
-    });
+    // Extract the properties we care about for change detection
+    const currentTaskId = currentSong?.task_id;
+    const currentAudioUrl = currentSong?.audio_url;
+    
+    // Check for changes to task_id specifically (most important for state transitions)
+    const taskIdChanged = prevTaskIdRef.current !== currentTaskId;
+    const audioUrlChanged = prevAudioUrlRef.current !== currentAudioUrl;
+    
+    // Update refs for next comparison
+    prevTaskIdRef.current = currentTaskId;
+    prevAudioUrlRef.current = currentAudioUrl;
+    
+    // Directly recompute the song state
+    const currentState = currentSong ? SongStateService.getSongState(currentSong) : SongState.INITIAL;
+    const stateChanged = lastStateRef.current !== currentState;
+    lastStateRef.current = currentState;
+    
+    // Log detailed state change info when critical properties change
+    if (taskIdChanged || audioUrlChanged || stateChanged) {
+      console.log(`PresetSongCard ${type} critical state change:`, {
+        state: currentState,
+        audio: !!currentAudioUrl,
+        taskId: currentTaskId || 'none',
+        taskIdChanged,
+        audioUrlChanged,
+        stateChanged
+      });
+      
+      // Force an immediate refresh when task_id is nullified (highest priority change)
+      if (taskIdChanged && currentTaskId === null) {
+        console.log(`Task ID nullified for ${type} - forcing immediate refresh`);
+        forceUpdateKey.current += 1;
+        setForceRender({});
+        return;
+      }
+    }
     
     // Force a re-render by updating the key with a timeout
-    // to ensure React has processed all state changes
     const forceRefresh = setTimeout(() => {
-      forceUpdateKey.current += 1;
-      // Trigger re-render without dependencies
-      setForceRender({});
-      console.log(`Forced DOM update for ${type} preset`, {
-        reason: 'State change detected',
-        newKey: forceUpdateKey.current,
-        timestamp: new Date().toISOString()
-      });
+      if (taskIdChanged || audioUrlChanged || stateChanged) {
+        forceUpdateKey.current += 1;
+        setForceRender({});
+      }
     }, 100);
     
     return () => clearTimeout(forceRefresh);
-  }, [currentSong, songState, type, isPartiallyReady]);
+  }, [
+    currentSong?.id, 
+    currentSong?.task_id,
+    currentSong?.audio_url,
+    currentSong?.error,
+    type
+  ]);
   
-  // Combine generating states - check both the service and the store state
+  // Validation check for state mismatches
+  useEffect(() => {
+    if (!currentSong) return;
+    
+    // Periodically validate that the state matches the actual song state
+    const stateValidator = setInterval(() => {
+      const computedState = SongStateService.getSongState(currentSong);
+      
+      // If current song has audio URL but task_id is null and we're not showing READY state
+      if (currentSong.audio_url && currentSong.task_id === null && songState !== SongState.READY) {
+        console.log(`State validation found mismatched state for ${type}:`, {
+          currentState: songState,
+          computedState,
+          audioUrl: !!currentSong.audio_url,
+          taskId: currentSong.task_id
+        });
+        
+        // Force a UI refresh
+        forceUpdateKey.current += 1;
+        setForceRender({});
+      }
+    }, 2000);
+    
+    return () => clearInterval(stateValidator);
+  }, [currentSong, songState, type]);
+  
+  // Combine generating states
   const isGenerating = serviceIsGenerating || isPresetTypeGenerating(type);
   
   // Get the audio URL
@@ -98,20 +147,20 @@ export default function PresetSongCard({
   const handleCardClick = useCallback(() => {
     // If already generating without audio, do nothing
     if (isGenerating && !currentSong?.audio_url) {
-      console.log(`Card click ignored: ${type} preset is generating without audio`);
       return;
     }
     
-    // Log the current state for debugging
-    console.log(`Card click for ${type} preset:`, {
-      songState,
-      isReady,
-      isPartiallyReady,
-      audioUrl: audioUrl || 'none',
-      songId: currentSong?.id || 'none'
-    });
+    // Double-check current song state directly
+    const currentState = currentSong ? SongStateService.getSongState(currentSong) : SongState.INITIAL;
     
-    switch (songState) {
+    // If the state we're using is stale, force an update before continuing
+    if (currentState !== songState) {
+      console.log(`State mismatch detected in click handler: ${songState} vs ${currentState} - forcing refresh`);
+      forceUpdateKey.current += 1;
+      setForceRender({});
+    }
+    
+    switch (currentState) {
       case SongState.READY:
       case SongState.PARTIALLY_READY:
         // Play the song if it's ready or partially ready and has an audio URL
@@ -132,7 +181,7 @@ export default function PresetSongCard({
         onGenerateClick(type);
         break;
     }
-  }, [songState, isGenerating, audioUrl, type, onPlayClick, onGenerateClick, canRetry, isReady, isPartiallyReady, currentSong?.id, currentSong?.audio_url]);
+  }, [songState, isGenerating, audioUrl, type, onPlayClick, onGenerateClick, canRetry, currentSong]);
 
   // Get color scheme based on preset type
   const getColorScheme = () => {
@@ -177,15 +226,26 @@ export default function PresetSongCard({
   // Render the status indicator based on song state
   const renderStatusIndicator = () => {
     // Always use SongStateService to determine state
-    const songState = SongStateService.getSongState(currentSong);
+    const computedState = currentSong ? SongStateService.getSongState(currentSong) : SongState.INITIAL;
     
-    if (songState === SongState.GENERATING && !isPartiallyReady) {
+    // Log when there's a mismatch between computed state and our current state
+    if (computedState !== songState && currentSong) {
+      console.log(`State mismatch in status indicator for ${type}:`, {
+        computedState,
+        currentState: songState,
+        taskId: currentSong.task_id || 'none',
+        hasAudio: !!currentSong.audio_url
+      });
+    }
+    
+    // Use the computed state for all rendering decisions
+    if (computedState === SongState.GENERATING && (!currentSong?.audio_url)) {
       return (
         <span className="inline-flex items-center text-xs bg-primary/20 text-white
                        px-3 py-1.5 rounded-full ml-2 border border-primary/20
                        shadow-lg z-10 whitespace-nowrap">
           <SongGenerationTimer 
-            isGenerating={isGenerating}
+            isGenerating={true}
             showProgress={false}
             compact={true}
             className="!m-0 !p-0"
@@ -194,7 +254,8 @@ export default function PresetSongCard({
       );
     }
     
-    if (songState === SongState.PARTIALLY_READY) {
+    if (computedState === SongState.PARTIALLY_READY || 
+        (computedState === SongState.GENERATING && currentSong?.audio_url)) {
       // Subtle indicator for partially ready songs - softer green with small dot
       return (
         <span className="inline-flex items-center text-xs bg-gradient-to-br from-black/80 to-black/90 text-green-400
@@ -212,7 +273,7 @@ export default function PresetSongCard({
       );
     }
     
-    if (songState === SongState.FAILED) {
+    if (computedState === SongState.FAILED) {
       return (
         <span className="inline-flex items-center text-xs bg-red-500/20 text-white
                        px-3 py-1.5 rounded-full ml-2 border border-red-500/20
@@ -223,7 +284,7 @@ export default function PresetSongCard({
       );
     }
     
-    if (songState === SongState.READY) {
+    if (computedState === SongState.READY) {
       return (
         <span className="inline-flex items-center text-xs bg-gradient-to-br from-black/80 to-black/90 text-green-400
                        px-3 py-1.5 rounded-full ml-2 border border-green-500/30
@@ -233,7 +294,7 @@ export default function PresetSongCard({
           ) : (
             <Play className="w-3 h-3 mr-1" />
           )}
-          {isPlaying ? "Pause" : statusLabel}
+          {isPlaying ? "Pause" : "Play"}
         </span>
       );
     }
@@ -278,7 +339,7 @@ export default function PresetSongCard({
           {renderStatusIndicator()}
         </h3>
         <p className="text-xs text-white/60 transition-colors">
-          {isGenerating ? (
+          {isGenerating && currentSong?.task_id ? (
             <span className="text-primary animate-pulse inline-block">
               Creating your special song...
             </span>

@@ -226,15 +226,26 @@ export default function PresetSongCard({
   // Render the status indicator based on song state
   const renderStatusIndicator = () => {
     // Always use SongStateService to determine state
-    const songState = SongStateService.getSongState(currentSong);
+    const computedState = currentSong ? SongStateService.getSongState(currentSong) : SongState.INITIAL;
     
-    if (songState === SongState.GENERATING && !isPartiallyReady) {
+    // Log when there's a mismatch between computed state and our current state
+    if (computedState !== songState && currentSong) {
+      console.log(`State mismatch in status indicator for ${type}:`, {
+        computedState,
+        currentState: songState,
+        taskId: currentSong.task_id || 'none',
+        hasAudio: !!currentSong.audio_url
+      });
+    }
+    
+    // Use the computed state for all rendering decisions
+    if (computedState === SongState.GENERATING && (!currentSong?.audio_url)) {
       return (
         <span className="inline-flex items-center text-xs bg-primary/20 text-white
                        px-3 py-1.5 rounded-full ml-2 border border-primary/20
                        shadow-lg z-10 whitespace-nowrap">
           <SongGenerationTimer 
-            isGenerating={isGenerating}
+            isGenerating={true}
             showProgress={false}
             compact={true}
             className="!m-0 !p-0"
@@ -243,7 +254,8 @@ export default function PresetSongCard({
       );
     }
     
-    if (songState === SongState.PARTIALLY_READY) {
+    if (computedState === SongState.PARTIALLY_READY || 
+        (computedState === SongState.GENERATING && currentSong?.audio_url)) {
       // Subtle indicator for partially ready songs - softer green with small dot
       return (
         <span className="inline-flex items-center text-xs bg-gradient-to-br from-black/80 to-black/90 text-green-400
@@ -261,7 +273,7 @@ export default function PresetSongCard({
       );
     }
     
-    if (songState === SongState.FAILED) {
+    if (computedState === SongState.FAILED) {
       return (
         <span className="inline-flex items-center text-xs bg-red-500/20 text-white
                        px-3 py-1.5 rounded-full ml-2 border border-red-500/20
@@ -272,7 +284,7 @@ export default function PresetSongCard({
       );
     }
     
-    if (songState === SongState.READY) {
+    if (computedState === SongState.READY) {
       return (
         <span className="inline-flex items-center text-xs bg-gradient-to-br from-black/80 to-black/90 text-green-400
                        px-3 py-1.5 rounded-full ml-2 border border-green-500/30
@@ -282,7 +294,7 @@ export default function PresetSongCard({
           ) : (
             <Play className="w-3 h-3 mr-1" />
           )}
-          {isPlaying ? "Pause" : statusLabel}
+          {isPlaying ? "Pause" : "Play"}
         </span>
       );
     }
@@ -327,7 +339,7 @@ export default function PresetSongCard({
           {renderStatusIndicator()}
         </h3>
         <p className="text-xs text-white/60 transition-colors">
-          {isGenerating ? (
+          {isGenerating && currentSong?.task_id ? (
             <span className="text-primary animate-pulse inline-block">
               Creating your special song...
             </span>

@@ -10,14 +10,24 @@ import { SongStateService, SongState as SongStateEnum } from '../../../services/
 
 interface SongPayload {
   id: string;
+  created_at?: string;
   name: string;
   song_type: string;
   error?: string | null;
   audio_url?: string | null;
-  task_id?: string;
+  task_id?: string | null;
   user_id: string;
-  preset_type?: string;
   retryable?: boolean;
+  is_instrumental?: boolean;
+  theme?: string | null;
+  user_lyric_input?: string | null;
+  generated_lyrics?: string | null;
+  tempo?: string | null;
+  preset_type?: string | null;
+  mood?: string | null;
+  instrument?: string | null;
+  voice_type?: string | null;
+  lyrics?: string | null;
 }
 
 type SetState = (state: Partial<SongState>) => void;

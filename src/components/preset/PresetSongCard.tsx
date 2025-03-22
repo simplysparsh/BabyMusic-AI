@@ -1,4 +1,4 @@
-import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect } from 'react';
+import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useState } from 'react';
 import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
@@ -59,24 +59,32 @@ export default function PresetSongCard({
     }
   }, [currentSong?.audio_url, isReady, songState, type]);
   
-  // Enhanced debugging and UI refresh for all state changes
+  // Brute-force UI update approach
+  const [forceUpdateKey, setForceUpdateKey] = useState<number>(0);
+  
+  // Force UI update on every state change
   useEffect(() => {
-    // Log all state changes for debugging
-    console.log(`PresetSongCard ${type} state change:`, {
-      songState,
-      hasAudio: !!currentSong?.audio_url,
+    // Log all state changes for debugging with simplified format
+    console.log(`PresetSongCard ${type} state update:`, {
+      state: songState,
+      audio: !!currentSong?.audio_url,
       taskId: currentSong?.task_id || 'none',
-      isPartiallyReady,
-      timestamp: new Date().toISOString()
+      updateKey: forceUpdateKey
     });
     
-    // If we have audio, force the DOM to update with a state change
-    if (currentSong?.audio_url) {
-      // This will force a DOM refresh
-      const forceRefresh = setTimeout(() => {}, 0);
-      return () => clearTimeout(forceRefresh);
-    }
-  }, [currentSong?.audio_url, currentSong?.task_id, songState, type, isPartiallyReady]);
+    // Force a re-render by updating the key with a timeout
+    // to ensure React has processed all state changes
+    const forceRefresh = setTimeout(() => {
+      setForceUpdateKey(prev => prev + 1);
+      console.log(`Forced DOM update for ${type} preset`, {
+        reason: 'State change detected',
+        newKey: forceUpdateKey + 1,
+        timestamp: new Date().toISOString()
+      });
+    }, 100);
+    
+    return () => clearTimeout(forceRefresh);
+  }, [currentSong, songState, type, isPartiallyReady]);
   
   // Combine generating states - check both the service and the store state
   const isGenerating = serviceIsGenerating || isPresetTypeGenerating(type);
@@ -122,7 +130,7 @@ export default function PresetSongCard({
         onGenerateClick(type);
         break;
     }
-  }, [songState, isGenerating, audioUrl, type, onPlayClick, onGenerateClick, canRetry, isReady, isPartiallyReady, currentSong?.id, currentSong?.audio_url]);
+  }, [songState, isGenerating, audioUrl, type, onPlayClick, onGenerateClick, canRetry, isReady, isPartiallyReady, currentSong?.id, currentSong?.audio_url, forceUpdateKey]);
 
   // Get color scheme based on preset type
   const getColorScheme = () => {
@@ -247,6 +255,7 @@ export default function PresetSongCard({
 
   return (
     <div
+      key={`preset-${type}-${forceUpdateKey}`}
       onClick={handleCardClick}
       role="button"
       aria-disabled={isGenerating}

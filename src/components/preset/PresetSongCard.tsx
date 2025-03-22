@@ -1,4 +1,4 @@
-import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useState } from 'react';
+import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useState, useRef } from 'react';
 import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
@@ -59,8 +59,9 @@ export default function PresetSongCard({
     }
   }, [currentSong?.audio_url, isReady, songState, type]);
   
-  // Brute-force UI update approach
-  const [forceUpdateKey, setForceUpdateKey] = useState<number>(0);
+  // Brute-force UI update approach with useRef
+  const forceUpdateKey = useRef(0);
+  const [, setForceRender] = useState({});
   
   // Force UI update on every state change
   useEffect(() => {
@@ -69,16 +70,18 @@ export default function PresetSongCard({
       state: songState,
       audio: !!currentSong?.audio_url,
       taskId: currentSong?.task_id || 'none',
-      updateKey: forceUpdateKey
+      updateKey: forceUpdateKey.current
     });
     
     // Force a re-render by updating the key with a timeout
     // to ensure React has processed all state changes
     const forceRefresh = setTimeout(() => {
-      setForceUpdateKey(prev => prev + 1);
+      forceUpdateKey.current += 1;
+      // Trigger re-render without dependencies
+      setForceRender({});
       console.log(`Forced DOM update for ${type} preset`, {
         reason: 'State change detected',
-        newKey: forceUpdateKey + 1,
+        newKey: forceUpdateKey.current,
         timestamp: new Date().toISOString()
       });
     }, 100);
@@ -130,7 +133,7 @@ export default function PresetSongCard({
         onGenerateClick(type);
         break;
     }
-  }, [songState, isGenerating, audioUrl, type, onPlayClick, onGenerateClick, canRetry, isReady, isPartiallyReady, currentSong?.id, currentSong?.audio_url, forceUpdateKey]);
+  }, [songState, isGenerating, audioUrl, type, onPlayClick, onGenerateClick, canRetry, isReady, isPartiallyReady, currentSong?.id, currentSong?.audio_url]);
 
   // Get color scheme based on preset type
   const getColorScheme = () => {
@@ -255,7 +258,7 @@ export default function PresetSongCard({
 
   return (
     <div
-      key={`preset-${type}-${forceUpdateKey}`}
+      key={`preset-${type}-${forceUpdateKey.current}`}
       onClick={handleCardClick}
       role="button"
       aria-disabled={isGenerating}

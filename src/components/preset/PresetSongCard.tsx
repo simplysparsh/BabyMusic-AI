@@ -34,7 +34,6 @@ export default function PresetSongCard({
   // Get song state metadata using the helper method for preset types
   const {
     isGenerating: serviceIsGenerating,
-    hasFailed,
     canRetry,
     isReady,
     hasVariations,
@@ -174,9 +173,6 @@ export default function PresetSongCard({
   };
 
   const colors = getColorScheme();
-
-  // Add a pulsing animation to the card when generating
-  const loadingAnimation = '';
 
   // Render the status indicator based on song state
   const renderStatusIndicator = () => {

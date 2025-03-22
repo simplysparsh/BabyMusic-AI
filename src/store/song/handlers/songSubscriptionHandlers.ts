@@ -22,30 +22,30 @@ export async function handleSongUpdate(
   get: GetState,
   supabase: SupabaseClient
 ) {
-  // Detect significant state changes
-  const hasNewError = !oldSong.error && newSong.error;
-  const hasNewAudio = oldSong.audio_url !== newSong.audio_url && !!newSong.audio_url;
+  // IMPORTANT: By default, Supabase only includes primary keys in oldSong, not complete data
+  // Therefore, we should avoid comparisons that rely on oldSong having complete data
   
-  // Direct state checks that don't depend on potentially incomplete oldSong data
+  // Direct state checks on newSong (reliable)
   const hasTaskId = !!newSong.task_id;
   const isTaskIdNull = newSong.task_id === null;
   const songHasAudio = !!newSong.audio_url;
+  const songHasError = !!newSong.error;
   
-  // Log task_id state specifically - avoiding any dependency on oldSong.task_id
+  // Log task_id state specifically
   console.log(`Song ${newSong.id} task_id state:`, {
     taskId: newSong.task_id || 'none',
     isExplicitlyNull: isTaskIdNull,
     hasAudio: songHasAudio,
+    hasError: songHasError,
     state: isTaskIdNull ? 'COMPLETED' : hasTaskId ? 'GENERATING' : 'NO_TASK',
   });
   
-  // More detailed debugging for audio_url changes
-  if (hasNewAudio) {
-    console.log('AUDIO URL CHANGE DETECTED:', {
+  // Log audio_url if present
+  if (songHasAudio) {
+    console.log('SONG HAS AUDIO:', {
       songId: newSong.id,
       songName: newSong.name,
-      oldUrl: oldSong.audio_url || 'none',
-      newUrl: newSong.audio_url,
+      audioUrl: newSong.audio_url,
       taskId: newSong.task_id || 'none',
       isTaskIdNull: isTaskIdNull,
       preset_type: newSong.preset_type || 'n/a'
@@ -70,8 +70,8 @@ export async function handleSongUpdate(
   // Determine if we need to fetch variations
   // Only fetch the complete song if we actually need the variations
   // or if this is a critical state change that might have complex data
-  const needsCompleteData = hasNewAudio || // We need variations for newly ready songs
-                           hasNewError || // We need error details
+  const needsCompleteData = songHasAudio || // We need variations for newly ready songs
+                           songHasError || // We need error details
                            get().songs.findIndex(s => s.id === newSong.id) === -1; // New song
   
   let updatedSong;
@@ -134,7 +134,7 @@ export async function handleSongUpdate(
   const songState = SongStateService.getSongState(updatedSong as Song);
   
   // Always clear retrying state if song has a new audio_url or error
-  if (hasNewAudio || hasNewError) {
+  if (songHasAudio || songHasError) {
     get().batchUpdate({
       songIdsToRemoveFromRetrying: [updatedSong.id]
     });
@@ -144,7 +144,7 @@ export async function handleSongUpdate(
   switch (songState) {
     case SongStateEnum.READY:
       // Song is ready to play (has audio_url)
-      if (hasNewAudio || isTaskIdNull) {
+      if (songHasAudio || isTaskIdNull) {
         console.log(`Song ${updatedSong.id} is now ready to play with audio_url: ${updatedSong.audio_url}`);
         
         // Add log when a song transitions to READY due to task_id being cleared
@@ -192,7 +192,7 @@ export async function handleSongUpdate(
       
     case SongStateEnum.PARTIALLY_READY:
       // Song has audio but is still generating
-      if (hasNewAudio || isTaskIdNull) {
+      if (songHasAudio || isTaskIdNull) {
         // If task_id is cleared, the song is now fully ready
         if (isTaskIdNull) {
           console.log(`Log from SongStateEnum.PARTIALLY_READY:Song ${updatedSong.id} transitioned from PARTIALLY_READY to READY: task_id cleared`);
@@ -252,7 +252,7 @@ export async function handleSongUpdate(
       
     case SongStateEnum.FAILED:
       // Song has failed (has error)
-      if (hasNewError) {
+      if (songHasError) {
         console.log(`Song ${updatedSong.id} has failed with error: ${updatedSong.error}`);
       }
       

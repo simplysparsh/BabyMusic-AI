@@ -9,45 +9,13 @@
 
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../authStore';
-import type { SongState } from './types';
+import type { SongState, SongPayload, VariationPayload } from './types';
 import { handleSongUpdate } from './handlers/songSubscriptionHandlers';
 import { handleVariationInsert } from './handlers/variationSubscriptionHandlers';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 type SetState = (state: Partial<SongState>) => void;
 type GetState = () => SongState;
-
-interface SongPayload {
-  id: string;
-  created_at?: string;
-  name: string;
-  song_type: string;
-  error?: string | null;
-  audio_url?: string | null;
-  task_id?: string | null;
-  user_id: string;
-  retryable?: boolean;
-  is_instrumental?: boolean;
-  theme?: string | null;
-  user_lyric_input?: string | null;
-  generated_lyrics?: string | null;
-  tempo?: string | null;
-  preset_type?: string | null;
-  mood?: string | null;
-  instrument?: string | null;
-  voice_type?: string | null;
-  lyrics?: string | null;
-}
-
-interface VariationPayload {
-  id: string;
-  song_id: string;
-  created_at?: string;
-  audio_url?: string | null;
-  metadata?: Record<string, any> | null;
-  retryable?: boolean;
-  title?: string | null;
-}
 
 // Update the type with the correct constraint
 type RealtimePayload<T extends object> = RealtimePostgresChangesPayload<T>;

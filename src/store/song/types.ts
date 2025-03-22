@@ -8,6 +8,46 @@ import type { Song, MusicMood, ThemeType, PresetType, Tempo, VoiceType } from '.
 export type StateUpdater = (state: SongState) => Partial<SongState>;
 
 /**
+ * Interface for song data received from Supabase realtime subscriptions
+ * Matches the database schema of the songs table
+ */
+export interface SongPayload {
+  id: string;
+  created_at?: string;
+  name: string;
+  song_type: string;
+  error?: string | null;
+  audio_url?: string | null;
+  task_id?: string | null;
+  user_id: string;
+  retryable?: boolean;
+  is_instrumental?: boolean;
+  theme?: string | null;
+  user_lyric_input?: string | null;
+  generated_lyrics?: string | null;
+  tempo?: string | null;
+  preset_type?: string | null;
+  mood?: string | null;
+  instrument?: string | null;
+  voice_type?: string | null;
+  lyrics?: string | null;
+}
+
+/**
+ * Interface for variation data received from Supabase realtime subscriptions
+ * Matches the database schema of the song_variations table
+ */
+export interface VariationPayload {
+  id: string;
+  song_id: string;
+  created_at?: string;
+  audio_url?: string | null;
+  metadata?: Record<string, any> | null;
+  retryable?: boolean;
+  title?: string | null;
+}
+
+/**
  * Type to represent batch updates to the song state
  * This ensures that multiple related state updates happen atomically
  */

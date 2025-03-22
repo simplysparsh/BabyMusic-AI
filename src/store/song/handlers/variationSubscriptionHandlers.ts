@@ -4,12 +4,8 @@
 // - Related: src/store/song/types.ts (types)
 
 import type { Song } from '../../../types';
-import type { SongState } from '../types';
+import type { SongState, VariationPayload } from '../types';
 import type { SupabaseClient } from '@supabase/supabase-js';
-
-interface VariationPayload {
-  song_id: string;
-}
 
 type SetState = (state: Partial<SongState>) => void;
 type GetState = () => SongState;

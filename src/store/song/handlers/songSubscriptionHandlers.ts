@@ -25,18 +25,19 @@ export async function handleSongUpdate(
   // Detect significant state changes
   const hasNewError = !oldSong.error && newSong.error;
   const hasNewAudio = oldSong.audio_url !== newSong.audio_url && !!newSong.audio_url;
-  const hasTaskIdChange = oldSong.task_id !== newSong.task_id;
-  const hasTaskIdCleared = oldSong.task_id && !newSong.task_id;
   
-  // Log task_id changes specifically
-  if (hasTaskIdChange) {
-    console.log(`Task ID change for song ${newSong.id}:`, {
-      before: oldSong.task_id || 'none',
-      after: newSong.task_id || 'none',
-      cleared: hasTaskIdCleared,
-      hasAudio: !!newSong.audio_url
-    });
-  }
+  // Direct state checks that don't depend on potentially incomplete oldSong data
+  const hasTaskId = !!newSong.task_id;
+  const isTaskIdNull = newSong.task_id === null;
+  const songHasAudio = !!newSong.audio_url;
+  
+  // Log task_id state specifically - avoiding any dependency on oldSong.task_id
+  console.log(`Song ${newSong.id} task_id state:`, {
+    taskId: newSong.task_id || 'none',
+    isExplicitlyNull: isTaskIdNull,
+    hasAudio: songHasAudio,
+    state: isTaskIdNull ? 'COMPLETED' : hasTaskId ? 'GENERATING' : 'NO_TASK',
+  });
   
   // More detailed debugging for audio_url changes
   if (hasNewAudio) {
@@ -45,11 +46,8 @@ export async function handleSongUpdate(
       songName: newSong.name,
       oldUrl: oldSong.audio_url || 'none',
       newUrl: newSong.audio_url,
-      taskId: {
-        before: oldSong.task_id || 'none',
-        after: newSong.task_id || 'none',
-        cleared: hasTaskIdCleared
-      },
+      taskId: newSong.task_id || 'none',
+      isTaskIdNull: isTaskIdNull,
       preset_type: newSong.preset_type || 'n/a'
     });
   }
@@ -146,8 +144,13 @@ export async function handleSongUpdate(
   switch (songState) {
     case SongStateEnum.READY:
       // Song is ready to play (has audio_url)
-      if (hasNewAudio) {
+      if (hasNewAudio || isTaskIdNull) {
         console.log(`Song ${updatedSong.id} is now ready to play with audio_url: ${updatedSong.audio_url}`);
+        
+        // Add log when a song transitions to READY due to task_id being cleared
+        if (isTaskIdNull) {
+          console.log(`Log from SongStateEnum.READY: Song ${updatedSong.id} transitioned to READY state because task_id was cleared`);
+        }
         
         // Use batch update to update song and clear processing states in one operation
         get().batchUpdate({
@@ -189,7 +192,34 @@ export async function handleSongUpdate(
       
     case SongStateEnum.PARTIALLY_READY:
       // Song has audio but is still generating
-      if (hasNewAudio) {
+      if (hasNewAudio || isTaskIdNull) {
+        // If task_id is cleared, the song is now fully ready
+        if (isTaskIdNull) {
+          console.log(`Log from SongStateEnum.PARTIALLY_READY:Song ${updatedSong.id} transitioned from PARTIALLY_READY to READY: task_id cleared`);
+          
+          // Use the same logic as READY state
+          get().batchUpdate({
+            updateSong: {
+              id: updatedSong.id,
+              updatedSong: updatedSong as Song
+            },
+            songIdsToRemoveFromGenerating: [updatedSong.id],
+            taskIdsToRemoveFromProcessing: undefined, // task_id is already null
+            songIdsToRemoveFromRetrying: [updatedSong.id]
+          });
+          
+          // Force refresh the songs array to trigger UI updates
+          const readySongs = [...get().songs];
+          const readySongIndex = readySongs.findIndex(s => s.id === updatedSong.id);
+          
+          if (readySongIndex !== -1) {
+            readySongs[readySongIndex] = updatedSong as Song;
+            set({ songs: readySongs });
+          }
+          
+          return;
+        }
+        
         console.log(`Song ${updatedSong.id} is now partially ready with audio_url: ${updatedSong.audio_url}`);
         
         // Force update the UI immediately since we have audio
@@ -243,7 +273,7 @@ export async function handleSongUpdate(
       
     case SongStateEnum.GENERATING:
       // Song is generating (has task_id)
-      if (hasTaskIdChange && updatedSong.task_id) {
+      if (hasTaskId) {
         console.log(`Song ${updatedSong.id} is now generating with task_id: ${updatedSong.task_id}`);
         
         // Update song and add to generating songs in one operation
@@ -262,6 +292,32 @@ export async function handleSongUpdate(
       
     default:
       // Initial or unknown state
+      // If the song has audio_url and null task_id, treat as READY
+      if (songHasAudio && isTaskIdNull) {
+        console.log(`Song ${updatedSong.id} is in INITIAL state with audio_url and null task_id - treating as READY`);
+        
+        // Use the same logic as READY state
+        get().batchUpdate({
+          updateSong: {
+            id: updatedSong.id,
+            updatedSong: updatedSong as Song
+          },
+          songIdsToRemoveFromGenerating: [updatedSong.id],
+          songIdsToRemoveFromRetrying: [updatedSong.id]
+        });
+        
+        // Force refresh the songs array to trigger UI updates
+        const readySongs = [...get().songs];
+        const readySongIndex = readySongs.findIndex(s => s.id === updatedSong.id);
+        
+        if (readySongIndex !== -1) {
+          readySongs[readySongIndex] = updatedSong as Song;
+          set({ songs: readySongs });
+        }
+        
+        return;
+      }
+      
       // Update the song but clear all processing states to be safe
       get().batchUpdate({
         updateSong: {
@@ -294,13 +350,28 @@ function updateSongProcessingState(
   isRetrying: boolean,
   get: GetState
 ): void {
+  // Check for explicit null (completed state)
+  const isExplicitlyNull = taskId === null;
+  
   // Use batch update to ensure atomic update of all related state
   get().batchUpdate({
-    songIdsToAddToGenerating: isGenerating ? [songId] : undefined,
-    songIdsToRemoveFromGenerating: !isGenerating ? [songId] : undefined,
-    songIdsToAddToRetrying: isRetrying ? [songId] : undefined,
-    songIdsToRemoveFromRetrying: !isRetrying ? [songId] : undefined,
-    taskIdsToAddToProcessing: (isGenerating && taskId) ? [taskId] : undefined,
-    taskIdsToRemoveFromProcessing: (!isGenerating && taskId) ? [taskId] : undefined
+    // Only add to generating if explicitly requested AND not null
+    songIdsToAddToGenerating: (isGenerating && !isExplicitlyNull) ? [songId] : undefined,
+    
+    // Remove from generating if not generating OR explicit null
+    songIdsToRemoveFromGenerating: (!isGenerating || isExplicitlyNull) ? [songId] : undefined,
+    
+    // Only add to retrying if explicitly requested AND not null
+    songIdsToAddToRetrying: (isRetrying && !isExplicitlyNull) ? [songId] : undefined,
+    
+    // Remove from retrying if not retrying OR explicit null
+    songIdsToRemoveFromRetrying: (!isRetrying || isExplicitlyNull) ? [songId] : undefined,
+    
+    // Only add task to processing if generating AND has a non-null task_id
+    taskIdsToAddToProcessing: (isGenerating && taskId && !isExplicitlyNull) ? [taskId] : undefined,
+    
+    // Remove task from processing if not generating OR explicit null
+    taskIdsToRemoveFromProcessing: (!isGenerating || isExplicitlyNull) ? 
+      (taskId ? [taskId] : undefined) : undefined
   });
 }

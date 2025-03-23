@@ -17,7 +17,6 @@ type GetState = () => SongState;
  */
 export async function handleSongUpdate(
   newSong: SongPayload,
-  oldSong: SongPayload,
   set: SetState,
   get: GetState,
   supabase: SupabaseClient

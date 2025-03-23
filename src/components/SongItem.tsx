@@ -30,15 +30,15 @@ export default function SongItem({
   const isGenerating = SongStateService.isGenerating(song);
   const hasFailed = SongStateService.hasFailed(song);
   const hasVariations = SongStateService.hasVariations(song);
-  const isCompleted = SongStateService.isCompleted(song);
+  const isReady = SongStateService.isReady(song);
   const canRetry = SongStateService.canRetry(song);
+  const isPlayable = SongStateService.isPlayable(song);
 
   // Check if the song is currently being retried
   const isRetrying = retryingSongs.has(song.id);
 
-  // Get the audio URL and check if it's actually available
+  // Get the audio URL
   const audioUrl = song.audio_url;
-  const isPlayable = !!audioUrl; // A song is playable if it has an audio URL
 
   // Effect to clear retrying state when song state changes
   useEffect(() => {
@@ -179,7 +179,7 @@ export default function SongItem({
               />
             ) : (
               <p className={`text-xs text-white/60 ${hasFailed ? '!text-red-400' : ''}`}>
-                {isCompleted ? 'Ready to play' : (song.error || 'Processing...')}
+                {isReady ? 'Ready to play' : (song.error || 'Processing...')}
               </p>
             )}
             {canRetry && (

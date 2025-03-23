@@ -44,16 +44,7 @@ export class SongStateService {
    * This is the primary check for generation state.
    */
   static isGenerating(song: Song | undefined): boolean {
-    if (!song) return false;
-    
-    // If the song has an error or is retryable, it's not generating
-    if (song.error || song.retryable) return false;
-    
-    // If the song has an audio URL, it's not generating
-    if (song.audio_url) return false;
-    
-    // A song is generating if it has a task_id, no audio_url, and no error
-    return !!song.task_id;
+    return this.getSongState(song) === SongState.GENERATING;
   }
 
   /**
@@ -71,29 +62,20 @@ export class SongStateService {
    * Determines if a song is ready to play
    */
   static isReady(song: Song | undefined): boolean {
-    return !!song?.audio_url && !song?.task_id;
+    return this.getSongState(song) === SongState.READY;
   }
 
   /**
    * Determines if a song has failed generation
    */
   static hasFailed(song: Song | undefined): boolean {
-    if (!song) return false;
-    return !!song.error || !!song.retryable;
-  }
-
-  /**
-   * Determines if a song is completed (has an audio URL)
-   */
-  static isCompleted(song: Song | undefined): boolean {
-    return this.isReady(song);
+    return this.getSongState(song) === SongState.FAILED;
   }
 
   /**
    * Determines if a song can be retried
    */
   static canRetry(song: Song | undefined): boolean {
-    if (!song) return false;
     return this.hasFailed(song);
   }
 
@@ -103,6 +85,22 @@ export class SongStateService {
   static isPresetSong(song: Song | undefined): boolean {
     if (!song) return false;
     return song.song_type === 'preset' && !!song.preset_type;
+  }
+
+
+  /**
+   * Determines if a song is partially ready (has audio but still generating)
+   */
+  static isPartiallyReady(song: Song | undefined): boolean {
+    return this.getSongState(song) === SongState.PARTIALLY_READY;
+  }
+  
+  /**
+   * Determines if a song can be played (either fully or partially ready)
+   */
+  static isPlayable(song: Song | undefined): boolean {
+    const state = this.getSongState(song);
+    return state === SongState.READY || state === SongState.PARTIALLY_READY;
   }
 
   /**
@@ -221,7 +219,6 @@ export class SongStateService {
     variationCount: number;
     statusLabel: string;
     song: Song | undefined;
-    isCompleted: boolean;
     state: SongState;
     isPartiallyReady: boolean;
   } {
@@ -235,7 +232,6 @@ export class SongStateService {
     const hasFailed = this.hasFailed(song);
     const canRetry = this.canRetry(song);
     const isReady = this.isReady(song);
-    const isCompleted = this.isCompleted(song);
     const isPartiallyReady = this.isPartiallyReady(song);
     const hasVariations = this.hasVariations(song);
     const variationCount = this.getVariationCount(song);
@@ -250,7 +246,6 @@ export class SongStateService {
       variationCount,
       statusLabel,
       song,
-      isCompleted,
       state,
       isPartiallyReady
     };
@@ -278,25 +273,5 @@ export class SongStateService {
     } catch (err) {
       console.error(`Error updating song ${songId} with error:`, err);
     }
-  }
-
-  /**
-   * Determines if a song is partially ready (has audio but still generating)
-   */
-  static isPartiallyReady(song: Song | undefined): boolean {
-    if (!song) return false;
-    
-    // A song is partially ready if it has an audio_url AND still has a task_id
-    return !!song.audio_url && !!song.task_id;
-  }
-  
-  /**
-   * Determines if a song can be played (either fully or partially ready)
-   */
-  static isPlayable(song: Song | undefined): boolean {
-    if (!song) return false;
-    
-    // A song is playable if it has an audio_url (regardless of task_id)
-    return !!song.audio_url;
   }
 }

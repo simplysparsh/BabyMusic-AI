@@ -71,7 +71,7 @@ export class SongStateService {
    * Determines if a song is ready to play
    */
   static isReady(song: Song | undefined): boolean {
-    return !!song?.audio_url;
+    return !!song?.audio_url && !song?.task_id;
   }
 
   /**

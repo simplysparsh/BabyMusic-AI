@@ -24,6 +24,19 @@ export async function handleSongUpdate(
   // IMPORTANT: By default, Supabase only includes primary keys in oldSong, not complete data
   // Therefore, we should avoid comparisons that rely on oldSong having complete data
   
+  // IMPORTANT: When a field is set to NULL in the database, Supabase might either:
+  // 1. Include the field explicitly as NULL in the payload, or
+  // 2. Omit the field entirely from the payload (so it's undefined)
+  // We need to handle both cases to ensure consistent state transitions
+
+  // If newSong.task_id is undefined (not included in the payload), set it to null
+  // This ensures we correctly handle the case where task_id was set to NULL in the database
+  // but was omitted from the update payload
+  if (newSong.task_id === undefined) {
+    console.log(`Song ${newSong.id} has undefined task_id in payload, treating as NULL. This fixes inconsistent state transitions when Supabase omits NULL fields from update payloads.`);
+    newSong.task_id = null;
+  }
+  
   // Direct state checks on newSong (reliable)
   const hasTaskId = !!newSong.task_id;
   const isTaskIdNull = newSong.task_id === null;

@@ -19,7 +19,6 @@ export const useSongStore = create<SongState>((set, get) => {
     // Initial state
     songs: [],
     isLoading: false,
-    generatingSongs: new Set<string>(),
     retryingSongs: new Set<string>(),
     processingTaskIds: new Set<string>(),
     queuedTaskIds: new Set<string>(),
@@ -37,7 +36,6 @@ export const useSongStore = create<SongState>((set, get) => {
       set(state => {
         // Start with current state
         let updatedSongs = [...state.songs];
-        let updatedGenerating = new Set(state.generatingSongs);
         let updatedProcessing = new Set(state.processingTaskIds);
         let updatedRetrying = new Set(state.retryingSongs);
         let updatedError = state.error;
@@ -64,17 +62,7 @@ export const useSongStore = create<SongState>((set, get) => {
         // Remove a song
         if (updates.removeSongId) {
           updatedSongs = updatedSongs.filter(song => song.id !== updates.removeSongId);
-          updatedGenerating.delete(updates.removeSongId);
           updatedRetrying.delete(updates.removeSongId);
-        }
-        
-        // Update generating state
-        if (updates.songIdsToAddToGenerating) {
-          updates.songIdsToAddToGenerating.forEach(id => updatedGenerating.add(id));
-        }
-        
-        if (updates.songIdsToRemoveFromGenerating) {
-          updates.songIdsToRemoveFromGenerating.forEach(id => updatedGenerating.delete(id));
         }
         
         // Update processing task IDs
@@ -103,19 +91,10 @@ export const useSongStore = create<SongState>((set, get) => {
         // Return all updated state in a single atomic update
         return {
           songs: updatedSongs,
-          generatingSongs: updatedGenerating,
           processingTaskIds: updatedProcessing,
           retryingSongs: updatedRetrying,
           error: updatedError
         };
-      });
-    },
-    
-    clearGeneratingState: (songId: string) => {
-      set(state => {
-        const newGenerating = new Set(state.generatingSongs);
-        newGenerating.delete(songId);
-        return { generatingSongs: newGenerating };
       });
     },
 

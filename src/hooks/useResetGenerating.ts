@@ -1,14 +1,20 @@
 import { useState, useCallback } from 'react';
 import { useSongStore } from '../store/songStore';
+import { SongStateService } from '../services/songStateService';
 
 /**
  * Hook to provide functionality for resetting songs stuck in generating state
  */
 export function useResetGenerating() {
   const [isResetting, setIsResetting] = useState(false);
-  const { generatingSongs, resetGeneratingState } = useSongStore();
+  const { songs, resetGeneratingState } = useSongStore();
   
-  const hasStuckSongs = generatingSongs.size > 0;
+  // Determine if there are any songs currently in generating or partially ready state
+  const stuckSongs = songs.filter(song => 
+    SongStateService.isGenerating(song) || SongStateService.isPartiallyReady(song)
+  );
+  
+  const hasStuckSongs = stuckSongs.length > 0;
   
   const resetStuckSongs = useCallback(async () => {
     if (!hasStuckSongs) return;
@@ -27,7 +33,7 @@ export function useResetGenerating() {
     hasStuckSongs,
     isResetting,
     resetStuckSongs,
-    stuckSongCount: generatingSongs.size
+    stuckSongCount: stuckSongs.length
   };
 }
 

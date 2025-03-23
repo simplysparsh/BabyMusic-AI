@@ -46,7 +46,7 @@ export async function handleSongUpdate(
     isExplicitlyNull: isTaskIdNull,
     hasAudio: songHasAudio,
     hasError: songHasError,
-    state: isTaskIdNull ? 'COMPLETED' : hasTaskId ? 'GENERATING' : 'NO_TASK',
+    state: isTaskIdNull ? 'READY' : hasTaskId ? 'GENERATING' : 'NO_TASK',
   });
   
   // Log audio_url if present
@@ -55,7 +55,7 @@ export async function handleSongUpdate(
       songId: newSong.id,
       songName: newSong.name,
       audioUrl: newSong.audio_url,
-      taskId: newSong.task_id || 'none',
+      taskId: newSong.task_id,
       isTaskIdNull: isTaskIdNull,
       preset_type: newSong.preset_type || 'n/a'
     });
@@ -167,7 +167,6 @@ export async function handleSongUpdate(
             id: updatedSong.id,
             updatedSong: updatedSong as Song
           },
-          songIdsToRemoveFromGenerating: [updatedSong.id],
           taskIdsToRemoveFromProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined,
           songIdsToRemoveFromRetrying: [updatedSong.id]
         });
@@ -191,12 +190,12 @@ export async function handleSongUpdate(
         });
         
         // Clear all processing states
-        updateSongProcessingState(updatedSong.id, updatedSong.task_id, false, false, get);
+        updateSongProcessingState(updatedSong.task_id, false, get);
         return;
       }
       
       // Clear all processing states
-      updateSongProcessingState(updatedSong.id, updatedSong.task_id, false, false, get);
+      updateSongProcessingState(updatedSong.task_id, false, get);
       break;
       
     case SongStateEnum.PARTIALLY_READY:
@@ -212,7 +211,6 @@ export async function handleSongUpdate(
               id: updatedSong.id,
               updatedSong: updatedSong as Song
             },
-            songIdsToRemoveFromGenerating: [updatedSong.id],
             taskIdsToRemoveFromProcessing: undefined, // task_id is already null
             songIdsToRemoveFromRetrying: [updatedSong.id]
           });
@@ -260,44 +258,65 @@ export async function handleSongUpdate(
       break;
       
     case SongStateEnum.FAILED:
-      // Song has failed (has error)
-      if (songHasError) {
-        console.log(`Song ${updatedSong.id} has failed with error: ${updatedSong.error}`);
-      }
-      
-      // Use batch update for failed state
+      // Update song to reflect it's now in a failed state
       get().batchUpdate({
         updateSong: {
           id: updatedSong.id,
           updatedSong: updatedSong as Song
         },
-        songIdsToRemoveFromGenerating: [updatedSong.id],
-        songIdsToAddToRetrying: updatedSong.retryable ? [updatedSong.id] : undefined,
-        taskIdsToRemoveFromProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined,
-        error: updatedSong.error || null
+        songIdsToAddToRetrying: updatedSong.retryable ? [updatedSong.id] : undefined
       });
       
-      // No need to call updateSongProcessingState here since we've handled it all
+      // Force refresh the songs array to trigger UI updates
+      const failedSongs = [...get().songs];
+      const failedSongIndex = failedSongs.findIndex(s => s.id === updatedSong.id);
+      
+      if (failedSongIndex !== -1) {
+        failedSongs[failedSongIndex] = updatedSong as Song;
+        set({ songs: failedSongs });
+      }
+      
+      console.log(`Updated song state to FAILED:`, {
+        id: updatedSong.id,
+        hasAudioUrl: !!updatedSong.audio_url,
+        hasTaskId: !!updatedSong.task_id,
+        hasError: !!updatedSong.error,
+        isRetryable: !!updatedSong.retryable,
+        state: 'FAILED'
+      });
+      
+      // Clear processing state
+      updateSongProcessingState(updatedSong.task_id, false, get);
       return;
       
     case SongStateEnum.GENERATING:
-      // Song is generating (has task_id)
-      if (hasTaskId) {
-        console.log(`Song ${updatedSong.id} is now generating with task_id: ${updatedSong.task_id}`);
-        
-        // Update song and add to generating songs in one operation
-        get().batchUpdate({
-          updateSong: {
-            id: updatedSong.id,
-            updatedSong: updatedSong as Song
-          },
-          songIdsToAddToGenerating: [updatedSong.id],
-          taskIdsToAddToProcessing: [updatedSong.task_id]
-        });
-        
-        return;
+      // Song is generating (has task_id, no audio_url, no error)
+      get().batchUpdate({
+        updateSong: {
+          id: updatedSong.id,
+          updatedSong: updatedSong as Song
+        }
+      });
+      
+      // Force refresh the songs array to trigger UI updates
+      const songsArray = [...get().songs];
+      const songIndex = songsArray.findIndex(s => s.id === updatedSong.id);
+      
+      if (songIndex !== -1) {
+        songsArray[songIndex] = updatedSong as Song;
+        set({ songs: songsArray });
       }
-      break;
+      
+      // Update processing state - if song is generating, add it to processing
+      updateSongProcessingState(updatedSong.task_id, true, get);
+      
+      console.log(`Updated song state to GENERATING:`, {
+        id: updatedSong.id,
+        hasAudioUrl: !!updatedSong.audio_url,
+        hasTaskId: !!updatedSong.task_id,
+        state: 'GENERATING'
+      });
+      return;
       
     default:
       // Initial or unknown state
@@ -311,7 +330,6 @@ export async function handleSongUpdate(
             id: updatedSong.id,
             updatedSong: updatedSong as Song
           },
-          songIdsToRemoveFromGenerating: [updatedSong.id],
           songIdsToRemoveFromRetrying: [updatedSong.id]
         });
         
@@ -333,7 +351,6 @@ export async function handleSongUpdate(
           id: updatedSong.id,
           updatedSong: updatedSong as Song
         },
-        songIdsToRemoveFromGenerating: [updatedSong.id],
         songIdsToRemoveFromRetrying: [updatedSong.id],
         taskIdsToRemoveFromProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined
       });
@@ -350,37 +367,18 @@ export async function handleSongUpdate(
 }
 
 /**
- * Helper function to update a song's processing state
+ * Helper function to update song processing state
  */
 function updateSongProcessingState(
-  songId: string,
-  taskId: string | null | undefined,
-  isGenerating: boolean,
-  isRetrying: boolean,
+  taskId: string | null,
+  isProcessing: boolean,
   get: GetState
-): void {
-  // Check for explicit null (completed state)
-  const isExplicitlyNull = taskId === null;
-  
-  // Use batch update to ensure atomic update of all related state
-  get().batchUpdate({
-    // Only add to generating if explicitly requested AND not null
-    songIdsToAddToGenerating: (isGenerating && !isExplicitlyNull) ? [songId] : undefined,
-    
-    // Remove from generating if not generating OR explicit null
-    songIdsToRemoveFromGenerating: (!isGenerating || isExplicitlyNull) ? [songId] : undefined,
-    
-    // Only add to retrying if explicitly requested AND not null
-    songIdsToAddToRetrying: (isRetrying && !isExplicitlyNull) ? [songId] : undefined,
-    
-    // Remove from retrying if not retrying OR explicit null
-    songIdsToRemoveFromRetrying: (!isRetrying || isExplicitlyNull) ? [songId] : undefined,
-    
-    // Only add task to processing if generating AND has a non-null task_id
-    taskIdsToAddToProcessing: (isGenerating && taskId && !isExplicitlyNull) ? [taskId] : undefined,
-    
-    // Remove task from processing if not generating OR explicit null
-    taskIdsToRemoveFromProcessing: (!isGenerating || isExplicitlyNull) ? 
-      (taskId ? [taskId] : undefined) : undefined
-  });
+) {
+  // Update only the processing taskIds
+  if (taskId) {
+    get().batchUpdate({
+      taskIdsToAddToProcessing: isProcessing ? [taskId] : undefined,
+      taskIdsToRemoveFromProcessing: !isProcessing ? [taskId] : undefined,
+    });
+  }
 }

@@ -341,7 +341,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Clear other stores
       useSongStore.getState().setState(_state => ({
         songs: [],
-        generatingSongs: new Set(),
         presetSongTypes: new Set(),
         processingTaskIds: new Set()
       }));

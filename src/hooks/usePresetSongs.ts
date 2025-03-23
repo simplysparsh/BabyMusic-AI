@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback, MouseEvent, useMemo } from 'react';
 import type { PresetType, Song } from '../types';
 import { useSongStore } from '../store/songStore';
-import { SongStateService } from '../services/songStateService';
+import { SongStateService, SongState } from '../services/songStateService';
 import { useAudioStore } from '../store/audioStore';
 import { useAuthStore } from '../store/authStore';
 import { PRESET_CONFIGS } from '../data/lyrics';
 
 export default function usePresetSongs() {
   const { user, profile } = useAuthStore();
-  const { songs, generatingSongs, createSong } = useSongStore();
+  const { songs, createSong } = useSongStore();
   const { isPlaying: _isPlaying, playAudio } = useAudioStore();
   
   // Filter only preset songs
@@ -44,12 +44,6 @@ export default function usePresetSongs() {
     setPresetSongs(filteredPresetSongs);
   }, [songs]);
 
-  // Check if a preset type is currently generating
-  const isPresetTypeGenerating = useCallback((type: PresetType): boolean => {
-    // Use the enhanced method that considers both song properties and generating state
-    return SongStateService.isPresetTypeGeneratingFull(songs, type, generatingSongs);
-  }, [songs, generatingSongs]);
-
   // Handle preset card click
   const handlePresetClick = useCallback((type: PresetType) => {
     // If user or profile is missing, we can't proceed
@@ -59,8 +53,9 @@ export default function usePresetSongs() {
     }
 
     const currentSong = SongStateService.getSongForPresetType(songs, type);
-    const isGenerating = SongStateService.isPresetTypeGeneratingFull(songs, type, generatingSongs);
-    const hasFailed = currentSong ? SongStateService.hasFailed(currentSong) : false;
+    const songState = currentSong ? SongStateService.getSongState(currentSong) : SongState.INITIAL;
+    const isGenerating = songState === SongState.GENERATING || songState === SongState.PARTIALLY_READY;
+    const hasFailed = songState === SongState.FAILED;
     
     // If the song is already generating, do nothing
     if (isGenerating) {
@@ -139,7 +134,6 @@ export default function usePresetSongs() {
     handlePresetClick,
     handlePlay,
     handleVariationChange,
-    isPresetTypeGenerating,
     currentVariationIndices: variationIndices
   };
 }

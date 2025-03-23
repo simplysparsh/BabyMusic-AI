@@ -26,9 +26,13 @@ export default function MusicGenerator() {
   const [error, setError] = useState<string | null>(null);
   const [songType, setSongType] = useState<'preset' | 'theme' | 'theme-with-input' | 'from-scratch'>('theme');
   
-  const { createSong, generatingSongs } = useSongStore();
+  const { createSong, songs } = useSongStore();
   const { user } = useAuthStore();
-  const isGenerating = generatingSongs.size > 0;
+  
+  // Check if any songs are currently generating
+  const isGenerating = songs.some(song => 
+    song.task_id && (!song.audio_url || song.audio_url === null)
+  );
   
   // Use the centralized timer hook
   const { timeLeft, totalTime, formattedTime, progress } = useSongGenerationTimer(isGenerating);

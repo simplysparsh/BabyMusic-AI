@@ -47,7 +47,6 @@ const PresetSongs: FC = () => {
     handlePresetClick,
     handlePlay,
     handleVariationChange,
-    isPresetTypeGenerating,
     currentVariationIndices
   } = usePresetSongs();
 
@@ -84,7 +83,6 @@ const PresetSongs: FC = () => {
               onGenerateClick={handlePresetClick}
               onVariationChange={handleVariationChange}
               currentVariationIndex={currentVariationIndices[type] || 0}
-              isPresetTypeGenerating={isPresetTypeGenerating}
             />
           );
         })}

@@ -56,8 +56,6 @@ export interface BatchUpdate {
   updateSong?: { id: string; updatedSong: Song };
   addSong?: Song;
   removeSongId?: string;
-  songIdsToAddToGenerating?: string[];
-  songIdsToRemoveFromGenerating?: string[];
   taskIdsToAddToProcessing?: string[];
   taskIdsToRemoveFromProcessing?: string[];
   songIdsToAddToRetrying?: string[];
@@ -69,7 +67,6 @@ export interface SongState {
   // State
   songs: Song[];
   isLoading: boolean;
-  generatingSongs: Set<string>;
   retryingSongs: Set<string>;
   processingTaskIds: Set<string>;
   queuedTaskIds: Set<string>; // Tasks that are in the queue (have task_id, no audio_url, no error)
@@ -79,7 +76,6 @@ export interface SongState {
   // Actions
   setState: (updater: Partial<SongState>) => void;
   batchUpdate: (updates: BatchUpdate) => void;
-  clearGeneratingState: (songId: string) => void;
   setRetrying: (songId: string, isRetrying: boolean) => void;
   loadSongs: () => Promise<void>;
   createSong: (params: CreateSongParams) => Promise<Song>;

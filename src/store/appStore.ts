@@ -18,7 +18,6 @@ interface AppState {
   // UI state
   isLoading: boolean;
   error: string | null;
-  generatingSongs: Set<string>;
   presetSongTypes: Set<PresetType>;
   
   // Actions
@@ -53,7 +52,6 @@ export const useAppStore = create<AppState>((
   songs: [],
   isLoading: false,
   error: null,
-  generatingSongs: new Set<string>(),
   presetSongTypes: new Set<PresetType>(),
 
   // State helpers
@@ -117,7 +115,6 @@ export const useAppStore = create<AppState>((
       user: null, 
       profile: null, 
       songs: [],
-      generatingSongs: new Set(),
       presetSongTypes: new Set()
     });
   },
@@ -171,8 +168,7 @@ export const useAppStore = create<AppState>((
       });
 
       set(state => ({
-        songs: [song, ...state.songs],
-        generatingSongs: new Set([...state.generatingSongs, song.id])
+        songs: [song, ...state.songs]
       }));
 
       return song;

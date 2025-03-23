@@ -30,7 +30,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       
       if (error) throw error;
 
-      // Clear any generating songs that don't exist in the database
+      // Clear any processing task IDs that don't exist in the database
       const newProcessingTaskIds = new Set([...get().processingTaskIds]);
       const newQueuedTaskIds = new Set([...get().queuedTaskIds]);
       
@@ -53,25 +53,14 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         }
       }
 
-      // Update generating songs based on SongStateService
-      const updatedGeneratingSongs = new Set<string>();
-      songsData?.forEach(song => {
-        if (SongStateService.isGenerating(song as Song)) {
-          updatedGeneratingSongs.add(song.id);
-        }
-      });
-
       console.log('State reconciliation:', {
         dbSongs: songsData?.length || 0,
-        previousGenerating: get().generatingSongs.size,
-        newGenerating: updatedGeneratingSongs.size,
         previousTaskIds: get().processingTaskIds.size,
         newTaskIds: newProcessingTaskIds.size
       });
       
       set({ 
         songs: songsData as Song[] || [],
-        generatingSongs: updatedGeneratingSongs,
         processingTaskIds: newProcessingTaskIds,
         queuedTaskIds: newQueuedTaskIds
       });
@@ -177,8 +166,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
             
             // 6. Update UI state
             set({
-              songs: get().songs.map(s => s.id === existingSong.id ? updatedSong : s),
-              generatingSongs: new Set([...get().generatingSongs, existingSong.id])
+              songs: get().songs.map(s => s.id === existingSong.id ? updatedSong : s)
             });
             
             return updatedSong;
@@ -219,8 +207,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
 
       // Update UI state
       set({
-        songs: [createdSong, ...get().songs],
-        generatingSongs: new Set([...get().generatingSongs, createdSong.id])
+        songs: [createdSong, ...get().songs]
       });
 
       return createdSong;
@@ -239,8 +226,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
             console.log(`Song ${createdSong!.id} no longer exists in database, cleaning up UI state only`);
             // Song doesn't exist in DB, just clean up UI state
             set({
-              songs: get().songs.filter(song => song.id !== createdSong!.id),
-              generatingSongs: new Set([...get().generatingSongs].filter(id => id !== createdSong!.id))
+              songs: get().songs.filter(song => song.id !== createdSong!.id)
             });
           } else {
             // Song exists, update it with error
@@ -251,31 +237,19 @@ export const createSongActions = (set: SetState, get: GetState) => ({
                 task_id: null // Clear task ID to prevent stuck state
               })
               .eq('id', createdSong!.id);
-
-            set({
-              generatingSongs: new Set([...get().generatingSongs].filter(id => id !== createdSong!.id))
-            });
           }
         } catch (updateError) {
           console.error('Failed to update song error state:', updateError);
-          // Still clean up UI state even if update fails
-          set({
-            generatingSongs: new Set([...get().generatingSongs].filter(id => id !== createdSong!.id))
-          });
+          // Still clean up UI state even if update fails - no need to do anything
+          console.log('Letting UI return to initial state for preset', currentPresetType);
         }
       } else if (error instanceof Error && (error.message.includes('timed out') || error.message.includes('timeout'))) {
         // Handle timeout specifically - log but don't show UI message
         console.error('Song creation timed out:', error);
         
         // If this is a preset song, just let the UI return to initial state automatically
-        if (songType === 'preset' && currentPresetType) {
-          // Clean up any UI state related to this song creation attempt
-          set({
-            generatingSongs: new Set([...get().generatingSongs].filter(id => 
-              !id.includes(`temp-${currentPresetType}`)
-            ))
-          });
-        }
+        // No need for additional UI cleanup
+        console.log('Letting UI return to initial state for preset', currentPresetType);
       }
 
       throw error instanceof Error ? error : new Error('Failed to create song');
@@ -300,7 +274,6 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       
       set({ 
         songs: [], 
-        generatingSongs: new Set(),
         processingTaskIds: new Set(),
         queuedTaskIds: new Set()
       });
@@ -347,51 +320,50 @@ export const createSongActions = (set: SetState, get: GetState) => ({
   },
 
   resetGeneratingState: async () => {
-    console.log('Resetting all generating state');
-    
     try {
-      // Get all songs that are currently marked as generating in the UI
-      const generatingSongIds = [...get().generatingSongs];
+      set({ isLoading: true, error: null });
       
-      if (generatingSongIds.length > 0) {
-        console.log(`Clearing generating state for ${generatingSongIds.length} songs`);
-        
-        // Update any songs in the database that still have task IDs
-        const { data: songsWithTaskIds, error: fetchError } = await supabase
-          .from('songs')
-          .select('id, task_id')
-          .in('id', generatingSongIds)
-          .not('task_id', 'is', null);
+      const songs = get().songs;
+      if (songs.length === 0) {
+        console.log('No songs to reset');
+        return;
+      }
+      
+      const songsToReset = songs.filter(song => 
+        // Only reset songs that are in GENERATING or PARTIALLY_READY state
+        SongStateService.isGenerating(song) || SongStateService.isPartiallyReady(song)
+      );
+      
+      if (songsToReset.length === 0) {
+        console.log('No generating songs to reset');
+        set({ isLoading: false });
+        return;
+      }
+      
+      console.log(`Resetting ${songsToReset.length} songs stuck in generating state`);
+      
+      // Update each song in the database to clear task_id and mark as retryable
+      for (const song of songsToReset) {
+        try {
+          await SongStateService.updateSongWithError(
+            song.id,
+            'Generation timed out - please try again'
+          );
           
-        if (!fetchError && songsWithTaskIds && songsWithTaskIds.length > 0) {
-          console.log(`Found ${songsWithTaskIds.length} songs with task IDs in database, clearing them`);
-          
-          // Update songs to clear task IDs and mark as failed
-          const { error: updateError } = await supabase
-            .from('songs')
-            .update({ 
-              task_id: null,
-              error: 'Generation was interrupted or failed to complete',
-              retryable: true
-            })
-            .in('id', songsWithTaskIds.map(song => song.id));
-            
-          if (updateError) {
-            console.error('Failed to update songs in database:', updateError);
-          }
+          console.log(`Reset generating state for song ${song.id}`);
+        } catch (err) {
+          console.error(`Failed to reset song ${song.id}:`, err);
         }
       }
       
-      // Reset all UI state related to generating songs
-      set({
-        generatingSongs: new Set(),
-        processingTaskIds: new Set(),
-        queuedTaskIds: new Set()
-      });
+      // Force refresh songs from the database to get the updated state
+      await get().loadSongs();
       
-      console.log('Successfully reset generating state');
     } catch (error) {
       console.error('Error resetting generating state:', error);
+      set({ error: 'Failed to reset generating songs.' });
+    } finally {
+      set({ isLoading: false });
     }
   }
 });

@@ -123,51 +123,6 @@ export class SongStateService {
   }
 
   /**
-   * Determines if any song with a given preset type exists and is generating
-   * based solely on the song's properties (primary check).
-   * 
-   * @deprecated Use isPresetTypeGeneratingFull instead, which provides
-   * a more robust check by also considering the store's generatingSongs set.
-   */
-  static isPresetTypeGenerating(
-    songs: Song[],
-    presetType: PresetType
-  ): boolean {
-    // Just a wrapper that passes an empty Set for backward compatibility
-    console.warn('SongStateService.isPresetTypeGenerating is deprecated. Use isPresetTypeGeneratingFull instead.');
-    return this.isPresetTypeGeneratingFull(songs, presetType, new Set<string>());
-  }
-
-  /**
-   * Enhanced version that checks both song properties and the generating songs set.
-   * Uses a primary-secondary check approach for more reliable state detection.
-   * 
-   * @param songs All songs
-   * @param presetType The preset type to check
-   * @param generatingSongsSet Set of song IDs currently being generated (from store)
-   * @returns Whether a song of this preset type is generating
-   */
-  static isPresetTypeGeneratingFull(
-    songs: Song[],
-    presetType: PresetType,
-    generatingSongsSet: Set<string>
-  ): boolean {
-    const song = this.getSongForPresetType(songs, presetType);
-    
-    // Primary check - Based on song properties from database
-    const isPrimaryGenerating = song ? this.isGenerating(song) : false;
-    
-    // If primary indicates generating, we can trust that
-    if (isPrimaryGenerating) return true;
-    
-    // Secondary check - Only consult if primary check is negative
-    // This catches cases where generation has started but properties haven't updated
-    const isSecondaryGenerating = song?.id ? generatingSongsSet.has(song.id) : false;
-    
-    return isSecondaryGenerating;
-  }
-
-  /**
    * Determines if a song has variations
    */
   static hasVariations(song: Song | undefined): boolean {

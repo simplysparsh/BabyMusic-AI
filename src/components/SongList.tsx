@@ -7,7 +7,7 @@ import { useAudioStore } from '../store/audioStore';
 import SongItem from './SongItem';
 
 export default function SongList() {
-  const { songs, loadSongs, isLoading, isDeleting, deleteAllSongs, generatingSongs, processingTaskIds } = useSongStore();
+  const { songs, loadSongs, isLoading, isDeleting, deleteAllSongs, processingTaskIds } = useSongStore();
   const { user } = useAuthStore();
   const { isPlaying, currentUrl, playAudio } = useAudioStore();
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
@@ -149,14 +149,12 @@ export default function SongList() {
       )}
       
       <div className="space-y-4">
-        {regularSongs.map((song) => (
+        {songs.map(song => (
           <SongItem
             key={song.id}
             song={song}
             currentSong={currentUrl}
             isPlaying={isPlaying && currentUrl === song.audio_url}
-            generatingSongs={generatingSongs}
-            processingTaskIds={processingTaskIds}
             onPlayClick={handlePlay}
             onDownloadClick={handleDownload}
           />

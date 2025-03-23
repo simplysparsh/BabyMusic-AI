@@ -1,4 +1,4 @@
-import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useState, useMemo } from 'react';
+import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useMemo } from 'react';
 import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
@@ -15,7 +15,6 @@ interface PresetCardProps {
   onGenerateClick: (type: PresetType) => void;
   onVariationChange: (e: MouseEvent<HTMLDivElement>, type: PresetType, direction: 'next' | 'prev') => void;
   currentVariationIndex: number;
-  isPresetTypeGenerating: (type: PresetType) => boolean;
 }
 
 export default function PresetSongCard({
@@ -28,8 +27,7 @@ export default function PresetSongCard({
   onPlayClick,
   onGenerateClick,
   onVariationChange,
-  currentVariationIndex,
-  isPresetTypeGenerating
+  currentVariationIndex
 }: PresetCardProps) {
   // Get the current song for this preset type
   const currentSong = useMemo(() => 
@@ -68,12 +66,15 @@ export default function PresetSongCard({
     [currentSong]
   );
   
-  // Use the isGenerating prop from parent which already has the appropriate logic
-  const isGenerating = isPresetTypeGenerating(type);
+  // Use direct state checks instead of the isGenerating prop
+  const isGeneratingOrPartiallyReady = useMemo(() => 
+    songState === SongState.GENERATING || songState === SongState.PARTIALLY_READY,
+    [songState]
+  );
   
   const statusLabel = useMemo(() => 
-    SongStateService.getStatusLabel(currentSong, isGenerating),
-    [currentSong, isGenerating]
+    SongStateService.getStatusLabel(currentSong, isGeneratingOrPartiallyReady),
+    [currentSong, isGeneratingOrPartiallyReady]
   );
   
   // Get the audio URL
@@ -81,12 +82,6 @@ export default function PresetSongCard({
     currentSong ? currentSong.audio_url : undefined,
     [currentSong]
   );
-  
-  // Force render mechanism (for debugging/troubleshooting)
-  const [forceRenderKey, setForceRenderKey] = useState(0);
-  const forceRerender = useCallback(() => {
-    setForceRenderKey(prev => prev + 1);
-  }, []);
   
   // Debugging for song state changes
   useEffect(() => {
@@ -99,49 +94,10 @@ export default function PresetSongCard({
     }
   }, [currentSong?.audio_url, isReady, songState, type]);
   
-  // Periodic check for state consistency every 2 seconds
-  useEffect(() => {
-    const checkStateConsistency = () => {
-      if (!currentSong) return;
-      
-      // Get fresh song from the current songs prop
-      const freshSong = SongStateService.getSongForPresetType(songs, type);
-      if (!freshSong) return;
-      
-      // Use the service's state determination
-      const freshSongState = SongStateService.getSongState(freshSong);
-      const currentSongState = SongStateService.getSongState(currentSong);
-      
-      // Check for state changes and key property changes
-      const hasStateChange = freshSongState !== currentSongState;
-      const hasPropertyChange = 
-        freshSong.task_id !== currentSong.task_id || 
-        freshSong.audio_url !== currentSong.audio_url;
-      
-      if (hasStateChange || hasPropertyChange) {
-        console.log(`State change detected for ${type} preset:`, {
-          previousState: currentSongState,
-          newState: freshSongState,
-          songId: freshSong.id
-        });
-        
-        // Force UI update to correct the displayed state
-        forceRerender();
-      }
-    };
-    
-    // Run check immediately and set up interval
-    checkStateConsistency();
-    const intervalId = setInterval(checkStateConsistency, 2000);
-    
-    // Clean up interval on unmount
-    return () => clearInterval(intervalId);
-  }, [currentSong, songs, type, forceRerender]);
-
   // Handle card click
   const handleCardClick = useCallback(() => {
     // If already generating without audio, do nothing
-    if (isGenerating && !currentSong?.audio_url) {
+    if (songState === SongState.GENERATING && !currentSong?.audio_url) {
       console.log(`Card click ignored: ${type} preset is generating without audio`);
       return;
     }
@@ -176,7 +132,7 @@ export default function PresetSongCard({
         onGenerateClick(type);
         break;
     }
-  }, [songState, isGenerating, audioUrl, type, onPlayClick, onGenerateClick, canRetry, isReady, isPartiallyReady, currentSong?.id, currentSong?.audio_url]);
+  }, [songState, audioUrl, type, onPlayClick, onGenerateClick, canRetry, isReady, isPartiallyReady, currentSong?.id, currentSong?.audio_url]);
 
   // Get color scheme based on preset type
   const getColorScheme = () => {
@@ -220,13 +176,13 @@ export default function PresetSongCard({
 
   // Render the status indicator based on song state
   const renderStatusIndicator = () => {
-    if (songState === SongState.GENERATING && !isPartiallyReady) {
+    if (songState === SongState.GENERATING) {
       return (
         <span className="inline-flex items-center text-xs bg-primary/20 text-white
                        px-3 py-1.5 rounded-full ml-2 border border-primary/20
                        shadow-lg z-10 whitespace-nowrap">
           <SongGenerationTimer 
-            isGenerating={isGenerating}
+            isGenerating={true}
             showProgress={false}
             compact={true}
             className="!m-0 !p-0"
@@ -295,10 +251,10 @@ export default function PresetSongCard({
 
   return (
     <div
-      key={`preset-${type}-${forceRenderKey}`}
+      key={`preset-${type}`}
       onClick={handleCardClick}
       role="button"
-      aria-disabled={isGenerating}
+      aria-disabled={songState === SongState.GENERATING}
       className={`relative overflow-hidden rounded-2xl p-5 sm:p-7 text-left min-h-[100px] cursor-pointer
                  aria-disabled:cursor-not-allowed
                  transition-all duration-500 group flex items-start gap-4 backdrop-blur-sm bg-black/60
@@ -319,13 +275,17 @@ export default function PresetSongCard({
           {renderStatusIndicator()}
         </h3>
         <p className="text-xs text-white/60 transition-colors">
-          {isGenerating ? (
+          {songState === SongState.GENERATING ? (
             <span className="text-primary animate-pulse inline-block">
               Creating your special song...
             </span>
+          ) : songState === SongState.PARTIALLY_READY ? (
+            <span className="text-green-400">
+              Song’s ready to play—just finalizing it now...
+            </span>
           ) : description}
         </p>
-        {hasVariations && !isGenerating && currentSong && (
+        {hasVariations && songState !== SongState.GENERATING && currentSong && (
           <div className="flex items-center gap-1 mt-3 text-white/60">
             <div
               role="button"

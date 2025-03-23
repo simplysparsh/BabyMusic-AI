@@ -59,7 +59,7 @@ export default function usePresetSongs() {
     }
 
     const currentSong = SongStateService.getSongForPresetType(songs, type);
-    const isGenerating = SongStateService.isPresetTypeGenerating(songs, type);
+    const isGenerating = SongStateService.isPresetTypeGeneratingFull(songs, type, generatingSongs);
     const hasFailed = currentSong ? SongStateService.hasFailed(currentSong) : false;
     
     // If the song is already generating, do nothing

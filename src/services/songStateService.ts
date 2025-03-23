@@ -126,15 +126,16 @@ export class SongStateService {
    * Determines if any song with a given preset type exists and is generating
    * based solely on the song's properties (primary check).
    * 
-   * NOTE: Consider using isPresetTypeGeneratingFull instead, which provides
+   * @deprecated Use isPresetTypeGeneratingFull instead, which provides
    * a more robust check by also considering the store's generatingSongs set.
    */
   static isPresetTypeGenerating(
     songs: Song[],
     presetType: PresetType
   ): boolean {
-    const song = this.getSongForPresetType(songs, presetType);
-    return song ? this.isGenerating(song) : false;
+    // Just a wrapper that passes an empty Set for backward compatibility
+    console.warn('SongStateService.isPresetTypeGenerating is deprecated. Use isPresetTypeGeneratingFull instead.');
+    return this.isPresetTypeGeneratingFull(songs, presetType, new Set<string>());
   }
 
   /**

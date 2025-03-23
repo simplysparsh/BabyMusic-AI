@@ -101,7 +101,7 @@ export default function PresetSongCard({
     prevSongStateRef.current = currentSongState;
   }, [currentSong?.task_id, currentSong?.audio_url, songState, type]);
   
-  // Periodic check for state consistency every 10 seconds
+  // Periodic check for state consistency every 5 seconds
   useEffect(() => {
     const intervalId = setInterval(() => {
       // Skip if no song is available
@@ -151,7 +151,7 @@ export default function PresetSongCard({
         // Force UI update to correct the displayed state
         forceRerender();
       }
-    }, 10000);
+    }, 5000);
     
     // Clean up interval on unmount
     return () => clearInterval(intervalId);

@@ -33,7 +33,6 @@ export default function PresetSongCard({
 }: PresetCardProps) {
   // Get song state metadata using the helper method for preset types
   const {
-    isGenerating: serviceIsGenerating,
     canRetry,
     isReady,
     hasVariations,

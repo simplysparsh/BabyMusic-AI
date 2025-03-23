@@ -99,36 +99,44 @@ export default function PresetSongCard({
     }
   }, [currentSong?.audio_url, isReady, songState, type]);
   
-  // Periodic check for state consistency every 5 seconds
+  // Periodic check for state consistency every 2 seconds
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      // Skip if no song is available
+    const checkStateConsistency = () => {
       if (!currentSong) return;
       
-      // Compute the current state
-      const freshSongState = SongStateService.getSongState(currentSong);
+      // Get fresh song from the current songs prop
+      const freshSong = SongStateService.getSongForPresetType(songs, type);
+      if (!freshSong) return;
       
-      // Detect mismatches between computed state and displayed state
-      const stateMismatch = freshSongState !== songState;
+      // Use the service's state determination
+      const freshSongState = SongStateService.getSongState(freshSong);
+      const currentSongState = SongStateService.getSongState(currentSong);
       
-      if (stateMismatch) {
-        console.log(`Detected state inconsistency for ${type} preset in interval check:`, {
-          computedState: freshSongState,
-          displayedState: songState,
-          audioUrl: currentSong.audio_url ? 'exists' : 'none',
-          taskId: currentSong.task_id ? 'exists' : 'none',
-          error: currentSong.error ? 'exists' : 'none',
-          retryable: currentSong.retryable ? 'true' : 'false'
+      // Check for state changes and key property changes
+      const hasStateChange = freshSongState !== currentSongState;
+      const hasPropertyChange = 
+        freshSong.task_id !== currentSong.task_id || 
+        freshSong.audio_url !== currentSong.audio_url;
+      
+      if (hasStateChange || hasPropertyChange) {
+        console.log(`State change detected for ${type} preset:`, {
+          previousState: currentSongState,
+          newState: freshSongState,
+          songId: freshSong.id
         });
         
         // Force UI update to correct the displayed state
         forceRerender();
       }
-    }, 5000);
+    };
+    
+    // Run check immediately and set up interval
+    checkStateConsistency();
+    const intervalId = setInterval(checkStateConsistency, 2000);
     
     // Clean up interval on unmount
     return () => clearInterval(intervalId);
-  }, [currentSong, songState, type, forceRerender]);
+  }, [currentSong, songs, type, forceRerender]);
 
   // Handle card click
   const handleCardClick = useCallback(() => {

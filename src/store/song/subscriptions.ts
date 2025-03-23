@@ -53,7 +53,6 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
           // Remove the presetSongsProcessing parameter or update the handler function
           await handleSongUpdate(
             newSong as SongPayload,
-            oldSong as SongPayload,
             set,
             get,
             supabase

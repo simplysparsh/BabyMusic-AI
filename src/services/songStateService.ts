@@ -23,19 +23,42 @@ export class SongStateService {
   static getSongState(song: Song | undefined): SongState {
     if (!song) return SongState.INITIAL;
     
+    // Debug trace (minimize output to avoid console spam)
+    const shouldLog = Math.random() < 0.1; // Only log ~10% of calls
+    if (shouldLog) {
+      console.log(`[STATE CALC] SongStateService.getSongState for song ${song.id}:`, {
+        hasError: !!song.error,
+        isRetryable: !!song.retryable,
+        hasAudioUrl: !!song.audio_url,
+        hasTaskId: !!song.task_id,
+        taskId: song.task_id || 'none',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
     // Song has error - it's in a failed state
     if (song.error || song.retryable) return SongState.FAILED;
     
     // Song has audio_url and task_id - it's partially ready (audio available but still finalizing)
-    if (song.audio_url && song.task_id) return SongState.PARTIALLY_READY;
+    if (song.audio_url && song.task_id) {
+      if (shouldLog) console.log(`[STATE DECISION] Song ${song.id} is PARTIALLY_READY`);
+      return SongState.PARTIALLY_READY;
+    }
     
     // Song has audio_url but no task_id - it's fully ready
-    if (song.audio_url) return SongState.READY;
+    if (song.audio_url) {
+      if (shouldLog) console.log(`[STATE DECISION] Song ${song.id} is READY`);
+      return SongState.READY;
+    }
     
     // Song has task_id but no audio_url - it's still generating
-    if (song.task_id) return SongState.GENERATING;
+    if (song.task_id) {
+      if (shouldLog) console.log(`[STATE DECISION] Song ${song.id} is GENERATING`);
+      return SongState.GENERATING;
+    }
     
     // Default state for a new song
+    if (shouldLog) console.log(`[STATE DECISION] Song ${song.id} is INITIAL`);
     return SongState.INITIAL;
   }
 

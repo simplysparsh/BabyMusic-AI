@@ -36,10 +36,21 @@ export default function PresetSongCard({
   );
   
   // Compute all state properties using useMemo for reactivity
-  const songState = useMemo(() => 
-    SongStateService.getSongState(currentSong),
-    [currentSong]
-  );
+  const songState = useMemo(() => {
+    const state = SongStateService.getSongState(currentSong);
+    const timestamp = new Date().toISOString();
+    const sequenceId = Math.random().toString(36).substring(2, 8);
+    
+    console.log(`[UI STATE] PresetSongCard ${type}: Computing song state at ${timestamp} [${sequenceId}]:`, { 
+      state, 
+      hasTaskId: currentSong?.task_id ? true : false, 
+      taskId: currentSong?.task_id || 'none',
+      hasAudio: currentSong?.audio_url ? true : false,
+      songId: currentSong?.id || 'none',
+      audioUrl: currentSong?.audio_url?.substring(0, 30) + '...' || 'none'
+    });
+    return state;
+  }, [currentSong, type]);
   
   const isReady = useMemo(() => 
     songState === SongState.READY,
@@ -93,6 +104,49 @@ export default function PresetSongCard({
       });
     }
   }, [currentSong?.audio_url, isReady, songState, type]);
+  
+  // Force the component to update when song state changes
+  useEffect(() => {
+    const timestamp = new Date().toISOString();
+    const sequenceId = Math.random().toString(36).substring(2, 8);
+    
+    console.log(`[UI UPDATE] PresetSongCard ${type}: Song state changed to ${songState} at ${timestamp} [${sequenceId}]`);
+    
+    // For debugging transitions from generating to partially ready
+    if (songState === SongState.PARTIALLY_READY) {
+      console.log(`[PARTIAL READY] PresetSongCard ${type}: Song is now PARTIALLY_READY:`, {
+        songId: currentSong?.id,
+        hasAudio: currentSong?.audio_url ? true : false,
+        hasTaskId: currentSong?.task_id ? true : false,
+        timestamp,
+        sequenceId
+      });
+    }
+    
+    // For debugging transitions from partially ready to ready
+    if (songState === SongState.READY) {
+      console.log(`[READY] PresetSongCard ${type}: Song is now READY:`, {
+        songId: currentSong?.id,
+        hasAudio: currentSong?.audio_url ? true : false,
+        hasTaskId: currentSong?.task_id ? true : false,
+        timestamp,
+        sequenceId
+      });
+    }
+  }, [songState, type, currentSong]);
+  
+  // Special effect to detect changes to the currentSong
+  useEffect(() => {
+    if (currentSong) {
+      console.log(`[SONG UPDATED] PresetSongCard ${type}: Song object updated:`, {
+        id: currentSong.id,
+        hasTaskId: currentSong.task_id ? true : false,
+        taskId: currentSong.task_id || 'none',
+        hasAudio: currentSong.audio_url ? true : false,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [currentSong, type]);
   
   // Handle card click
   const handleCardClick = useCallback(() => {
@@ -249,9 +303,19 @@ export default function PresetSongCard({
     );
   };
 
+  // Create a stable key for the component that changes when state changes
+  const componentKey = useMemo(() => {
+    // Create a key that will change when key properties change
+    // Include audio_url to catch all transitions
+    const hasLastUpdated = currentSong && '_lastUpdated' in currentSong;
+    const lastUpdatedValue = hasLastUpdated ? (currentSong as any)._lastUpdated : '0';
+    
+    return `preset-${type}-${songState}-${currentSong?.id || 'no-song'}-${currentSong?.task_id ? 'has-task' : 'no-task'}-${currentSong?.audio_url ? 'has-audio' : 'no-audio'}-${lastUpdatedValue}`;
+  }, [type, songState, currentSong]);
+
   return (
     <div
-      key={`preset-${type}`}
+      key={componentKey}
       onClick={handleCardClick}
       role="button"
       aria-disabled={songState === SongState.GENERATING}
@@ -281,7 +345,7 @@ export default function PresetSongCard({
             </span>
           ) : songState === SongState.PARTIALLY_READY ? (
             <span className="text-green-400">
-              Song’s ready to play—just finalizing it now...
+              Song's ready to play—just finalizing it now...
             </span>
           ) : description}
         </p>

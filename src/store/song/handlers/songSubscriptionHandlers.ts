@@ -49,13 +49,28 @@ export async function handleSongUpdate(
     state: isTaskIdNull ? 'READY' : hasTaskId ? 'GENERATING' : 'NO_TASK',
   });
   
-  // Log audio_url if present
+  // Update this section to trace song transitions into PARTIALLY_READY state
   if (songHasAudio) {
+    // Determine the exact state transition
+    const previousState = get().songs.find(s => s.id === newSong.id);
+    const previousStateEnum = previousState ? SongStateService.getSongState(previousState) : 'unknown';
+    const currentStateEnum = SongStateService.getSongState(newSong as unknown as Song);
+
+    console.log(`[STATE TRANSITION] Song ${newSong.id}:`, {
+      previousState: previousStateEnum,
+      currentState: currentStateEnum,
+      hasAudio: songHasAudio,
+      hasTaskId: hasTaskId,
+      taskId: newSong.task_id || 'none',
+      timestamp: new Date().toISOString(),
+      sequence: Math.random().toString(36).substring(2, 8) // Add a sequence ID to track the update order
+    });
+
     console.log('SONG HAS AUDIO:', {
       songId: newSong.id,
       songName: newSong.name,
       audioUrl: newSong.audio_url,
-      taskId: newSong.task_id,
+      taskId: newSong.task_id || 'none',
       isTaskIdNull: isTaskIdNull,
       preset_type: newSong.preset_type || 'n/a'
     });
@@ -203,26 +218,59 @@ export async function handleSongUpdate(
       if (songHasAudio || isTaskIdNull) {
         // If task_id is cleared, the song is now fully ready
         if (isTaskIdNull) {
-          console.log(`Log from SongStateEnum.PARTIALLY_READY:Song ${updatedSong.id} transitioned from PARTIALLY_READY to READY: task_id cleared`);
-          
-          // Use the same logic as READY state
-          get().batchUpdate({
-            updateSong: {
-              id: updatedSong.id,
-              updatedSong: updatedSong as Song
+          console.log(`[TRANSITION FROM PARTIALLY_READY TO READY] Song ${updatedSong.id} transitioning to READY: task_id cleared`, {
+            before: {
+              state: SongStateEnum.PARTIALLY_READY,
+              hasTaskId: true,
+              hasAudio: songHasAudio
             },
-            taskIdsToRemoveFromProcessing: undefined, // task_id is already null
-            songIdsToRemoveFromRetrying: [updatedSong.id]
+            after: {
+              state: SongStateEnum.READY,
+              hasTaskId: false,
+              hasAudio: songHasAudio
+            },
+            song: updatedSong
           });
           
-          // Force refresh the songs array to trigger UI updates
+          // CRITICAL FIX: Force a more aggressive UI update by removing the song and re-adding it
           const readySongs = [...get().songs];
           const readySongIndex = readySongs.findIndex(s => s.id === updatedSong.id);
           
           if (readySongIndex !== -1) {
-            readySongs[readySongIndex] = updatedSong as Song;
+            // Create a new song object to ensure React detects the change
+            const updatedSongWithNewRef = {
+              ...updatedSong as Song,
+              // Add a dummy property to force React to see this as a new object
+              _lastUpdated: Date.now()
+            };
+            
+            // Replace the song in the array
+            readySongs[readySongIndex] = updatedSongWithNewRef;
+            
+            // Log before setting state
+            console.log(`[CRITICAL FIX - PARTIALLY_READY→READY] Forcing UI update for song ${updatedSong.id}`);
+            
+            // Set the state and trigger UI updates - This is the critical part
             set({ songs: readySongs });
+            
+            // Verify the update was applied
+            setTimeout(() => {
+              const songInStore = get().songs.find(s => s.id === updatedSong.id);
+              console.log(`[VERIFICATION - PARTIALLY_READY→READY] Song ${updatedSong.id} state after update:`, {
+                state: songInStore ? SongStateService.getSongState(songInStore) : 'not found',
+                hasTaskId: songInStore?.task_id ? true : false, 
+                isTaskIdNull: songInStore?.task_id === null,
+                hasAudio: songInStore?.audio_url ? true : false,
+                audioUrl: songInStore?.audio_url?.substring(0, 30) + '...' || 'none'
+              });
+            }, 10);
           }
+          
+          // Use batch update for other state changes
+          get().batchUpdate({
+            taskIdsToRemoveFromProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined,
+            songIdsToRemoveFromRetrying: [updatedSong.id]
+          });
           
           return;
         }
@@ -291,6 +339,56 @@ export async function handleSongUpdate(
       
     case SongStateEnum.GENERATING:
       // Song is generating (has task_id, no audio_url, no error)
+      
+      // Check if this update is changing the song to PARTIALLY_READY
+      if (songHasAudio && hasTaskId) {
+        console.log(`[TRANSITION TO PARTIALLY_READY] Song ${updatedSong.id} is now partially ready with audio_url: ${updatedSong.audio_url}`);
+        
+        // CRITICAL FIX: Force React to detect the change by creating a new object
+        const songsArray = [...get().songs];
+        const songIndex = songsArray.findIndex(s => s.id === updatedSong.id);
+        
+        if (songIndex !== -1) {
+          // Create a completely new object reference to ensure React detects the change
+          const updatedSongWithNewRef = {
+            ...updatedSong as Song
+          };
+          
+          // Replace the song in the array with the new reference
+          songsArray[songIndex] = updatedSongWithNewRef;
+          
+          // Log before setting state
+          console.log(`[CRITICAL FIX - GENERATING→PARTIALLY_READY] About to update song ${updatedSong.id} in store`);
+          
+          // Force a state update that React will detect
+          set({ songs: songsArray });
+          
+          // Verify the update was applied
+          setTimeout(() => {
+            const updatedSongInStore = get().songs.find(s => s.id === updatedSong.id);
+            console.log(`[VERIFICATION - GENERATING→PARTIALLY_READY] Song ${updatedSong.id} in store after update:`, {
+              songState: updatedSongInStore ? SongStateService.getSongState(updatedSongInStore) : 'not found',
+              hasTaskId: updatedSongInStore?.task_id ? true : false,
+              hasAudio: updatedSongInStore?.audio_url ? true : false
+            });
+          }, 10);
+        }
+        
+        // Update processing state - if song is generating, add it to processing
+        updateSongProcessingState(updatedSong.task_id, true, get);
+        
+        // Update metadata via batch update to ensure all state changes are applied
+        get().batchUpdate({
+          updateSong: {
+            id: updatedSong.id,
+            updatedSong: updatedSong as Song
+          }
+        });
+        
+        return;
+      }
+      
+      // Regular update for a generating song (no transition)
       get().batchUpdate({
         updateSong: {
           id: updatedSong.id,

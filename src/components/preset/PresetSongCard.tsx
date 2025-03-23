@@ -88,8 +88,8 @@ export default function PresetSongCard({
     return () => clearTimeout(forceRefresh);
   }, [currentSong, songState, type, isPartiallyReady]);
   
-  // Combine generating states - check both the service and the store state
-  const isGenerating = serviceIsGenerating || isPresetTypeGenerating(type);
+  // Use the enhanced isPresetTypeGenerating function which now handles both checks internally
+  const isGenerating = isPresetTypeGenerating(type);
   
   // Get the audio URL
   const audioUrl = currentSong ? currentSong.audio_url : undefined;

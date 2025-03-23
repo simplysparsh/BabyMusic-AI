@@ -46,12 +46,8 @@ export default function usePresetSongs() {
 
   // Check if a preset type is currently generating
   const isPresetTypeGenerating = useCallback((type: PresetType): boolean => {
-    // Check if any song of this type is in the global generating set
-    return songs.some(song => 
-      song.preset_type === type && 
-      song.id && 
-      generatingSongs.has(song.id)
-    );
+    // Use the enhanced method that considers both song properties and generating state
+    return SongStateService.isPresetTypeGeneratingFull(songs, type, generatingSongs);
   }, [songs, generatingSongs]);
 
   // Handle preset card click

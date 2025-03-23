@@ -47,6 +47,117 @@ export default function PresetSongCard({
     type
   );
   
+  // Refs to track previous state for comparison
+  const prevTaskIdRef = useRef<string | undefined>(currentSong?.task_id);
+  const prevAudioUrlRef = useRef<string | undefined>(currentSong?.audio_url);
+  const prevSongStateRef = useRef<SongState | undefined>(songState);
+  
+  // Force render mechanism
+  const forceUpdateKey = useRef(0);
+  const [forceRenderKey, setForceRenderKey] = useState(0);
+  
+  // Helper function to force a re-render that will work even with memoization
+  const forceRerender = () => {
+    forceUpdateKey.current += 1;
+    setForceRenderKey(prev => prev + 1);
+  };
+  
+  // Track meaningful changes in song state and trigger UI updates when needed
+  useEffect(() => {
+    const currentTaskId = currentSong?.task_id;
+    const currentAudioUrl = currentSong?.audio_url;
+    const currentSongState = songState;
+    
+    // Check for meaningful state changes
+    const taskIdChanged = currentTaskId !== prevTaskIdRef.current;
+    const audioUrlChanged = currentAudioUrl !== prevAudioUrlRef.current;
+    const songStateChanged = currentSongState !== prevSongStateRef.current;
+    
+    // Detect specific meaningful transitions that require UI updates
+    const needsUIUpdate = 
+      // Audio URL became available
+      (audioUrlChanged && !prevAudioUrlRef.current && currentAudioUrl) ||
+      // Task ID changed and no longer generating
+      (taskIdChanged && prevSongStateRef.current === SongState.GENERATING && currentSongState !== SongState.GENERATING) ||
+      // Song state transitioned to a new state
+      (songStateChanged && currentSongState !== SongState.GENERATING) ||
+      // Audio URL exists but state doesn't reflect it
+      (currentAudioUrl && currentSongState === SongState.INITIAL);
+    
+    if (needsUIUpdate) {
+      console.log(`Detected meaningful state change for ${type} preset:`, {
+        taskIdChange: taskIdChanged ? `${prevTaskIdRef.current} → ${currentTaskId}` : 'unchanged',
+        audioUrlChange: audioUrlChanged ? `${prevAudioUrlRef.current ? 'exists' : 'none'} → ${currentAudioUrl ? 'exists' : 'none'}` : 'unchanged',
+        stateChange: songStateChanged ? `${prevSongStateRef.current} → ${currentSongState}` : 'unchanged',
+        updateKey: forceUpdateKey.current
+      });
+      
+      // Trigger UI refresh with both methods to ensure it works
+      forceRerender();
+    }
+    
+    // Update refs with current values for next comparison
+    prevTaskIdRef.current = currentTaskId;
+    prevAudioUrlRef.current = currentAudioUrl;
+    prevSongStateRef.current = currentSongState;
+  }, [currentSong?.task_id, currentSong?.audio_url, songState, type]);
+  
+  // Periodic check for state consistency every 10 seconds
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      // Skip if no song is available
+      if (!currentSong) return;
+      
+      // APPROACH 1: First re-evaluate the song state using what we have
+      const freshSongState = SongStateService.getSongState(currentSong);
+      const currentDisplayedState = songState;
+      
+      // Detect mismatches between computed state and displayed state
+      const stateMismatch = freshSongState !== currentDisplayedState;
+      
+      // APPROACH 2: Look for logical inconsistencies in the data itself
+      // These checks don't rely on correct state computation, but on data integrity
+      const audioExistsButWrongState = currentSong.audio_url && 
+        currentDisplayedState !== SongState.READY && 
+        currentDisplayedState !== SongState.PARTIALLY_READY;
+      
+      const taskIdExistsButNotGenerating = currentSong.task_id && 
+        !currentSong.audio_url && !currentSong.error &&
+        currentDisplayedState !== SongState.GENERATING;
+        
+      const readyStateWithoutAudio = currentDisplayedState === SongState.READY && !currentSong.audio_url;
+      
+      const errorStateButNoError = currentDisplayedState === SongState.FAILED && 
+        !currentSong.error && !currentSong.retryable;
+        
+      // If any inconsistencies are detected, force a UI update
+      if (stateMismatch || audioExistsButWrongState || taskIdExistsButNotGenerating || 
+          readyStateWithoutAudio || errorStateButNoError) {
+        console.log(`Detected state inconsistency for ${type} preset in interval check:`, {
+          computedState: freshSongState,
+          displayedState: currentDisplayedState,
+          audioUrl: currentSong.audio_url ? 'exists' : 'none',
+          taskId: currentSong.task_id ? 'exists' : 'none',
+          error: currentSong.error ? 'exists' : 'none',
+          retryable: currentSong.retryable ? 'true' : 'false',
+          inconsistencies: {
+            stateMismatch,
+            audioExistsButWrongState,
+            taskIdExistsButNotGenerating,
+            readyStateWithoutAudio,
+            errorStateButNoError
+          }
+        });
+        
+        // Force UI update to correct the displayed state
+        forceRerender();
+      }
+    }, 10000);
+    
+    // Clean up interval on unmount
+    return () => clearInterval(intervalId);
+  }, [currentSong?.id, currentSong?.task_id, currentSong?.audio_url, currentSong?.error, currentSong?.retryable, songState, type]);
+  
   // Debugging for song state changes
   useEffect(() => {
     if (currentSong?.audio_url && isReady) {
@@ -57,36 +168,6 @@ export default function PresetSongCard({
       });
     }
   }, [currentSong?.audio_url, isReady, songState, type]);
-  
-  // Brute-force UI update approach with useRef
-  const forceUpdateKey = useRef(0);
-  const [, setForceRender] = useState({});
-  
-  // Force UI update on every state change
-  useEffect(() => {
-    // Log all state changes for debugging with simplified format
-    console.log(`PresetSongCard ${type} state update:`, {
-      state: songState,
-      audio: !!currentSong?.audio_url,
-      taskId: currentSong?.task_id || 'none',
-      updateKey: forceUpdateKey.current
-    });
-    
-    // Force a re-render by updating the key with a timeout
-    // to ensure React has processed all state changes
-    const forceRefresh = setTimeout(() => {
-      forceUpdateKey.current += 1;
-      // Trigger re-render without dependencies
-      setForceRender({});
-      console.log(`Forced DOM update for ${type} preset`, {
-        reason: 'State change detected',
-        newKey: forceUpdateKey.current,
-        timestamp: new Date().toISOString()
-      });
-    }, 100);
-    
-    return () => clearTimeout(forceRefresh);
-  }, [currentSong, songState, type, isPartiallyReady]);
   
   // Combine generating states - check both the service and the store state
   const isGenerating = serviceIsGenerating || isPresetTypeGenerating(type);
@@ -254,7 +335,7 @@ export default function PresetSongCard({
 
   return (
     <div
-      key={`preset-${type}-${forceUpdateKey.current}`}
+      key={`preset-${type}-${forceRenderKey}`}
       onClick={handleCardClick}
       role="button"
       aria-disabled={isGenerating}

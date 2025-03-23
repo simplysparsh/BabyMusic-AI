@@ -33,7 +33,6 @@ export default function PresetSongCard({
 }: PresetCardProps) {
   // Get song state metadata using the helper method for preset types
   const {
-    isGenerating: serviceIsGenerating,
     canRetry,
     isReady,
     hasVariations,
@@ -169,8 +168,9 @@ export default function PresetSongCard({
     }
   }, [currentSong?.audio_url, isReady, songState, type]);
   
-  // Combine generating states - check both the service and the store state
-  const isGenerating = serviceIsGenerating || isPresetTypeGenerating(type);
+  // Use the enhanced isPresetTypeGenerating function which now handles both checks internally
+  // This provides a single source of truth for the generating state
+  const isGenerating = isPresetTypeGenerating(type);
   
   // Get the audio URL
   const audioUrl = currentSong ? currentSong.audio_url : undefined;

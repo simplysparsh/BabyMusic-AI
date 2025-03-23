@@ -40,7 +40,8 @@ export class SongStateService {
   }
 
   /**
-   * Determines if a song is currently generating
+   * Determines if a song is currently generating based on its properties.
+   * This is the primary check for generation state.
    */
   static isGenerating(song: Song | undefined): boolean {
     if (!song) return false;
@@ -125,6 +126,10 @@ export class SongStateService {
 
   /**
    * Determines if any song with a given preset type exists and is generating
+   * based solely on the song's properties (primary check).
+   * 
+   * NOTE: Consider using isPresetTypeGeneratingFull instead, which provides
+   * a more robust check by also considering the store's generatingSongs set.
    */
   static isPresetTypeGenerating(
     songs: Song[],
@@ -132,6 +137,35 @@ export class SongStateService {
   ): boolean {
     const song = this.getSongForPresetType(songs, presetType);
     return song ? this.isGenerating(song) : false;
+  }
+
+  /**
+   * Enhanced version that checks both song properties and the generating songs set.
+   * Uses a primary-secondary check approach for more reliable state detection.
+   * 
+   * @param songs All songs
+   * @param presetType The preset type to check
+   * @param generatingSongsSet Set of song IDs currently being generated (from store)
+   * @returns Whether a song of this preset type is generating
+   */
+  static isPresetTypeGeneratingFull(
+    songs: Song[],
+    presetType: PresetType,
+    generatingSongsSet: Set<string>
+  ): boolean {
+    const song = this.getSongForPresetType(songs, presetType);
+    
+    // Primary check - Based on song properties from database
+    const isPrimaryGenerating = song ? this.isGenerating(song) : false;
+    
+    // If primary indicates generating, we can trust that
+    if (isPrimaryGenerating) return true;
+    
+    // Secondary check - Only consult if primary check is negative
+    // This catches cases where generation has started but properties haven't updated
+    const isSecondaryGenerating = song?.id ? generatingSongsSet.has(song.id) : false;
+    
+    return isSecondaryGenerating;
   }
 
   /**
@@ -179,7 +213,7 @@ export class SongStateService {
     songs: Song[],
     presetType: PresetType
   ): {
-    isGenerating: boolean;
+    isGenerating: boolean;  // Note: This is only the primary check based on song properties
     hasFailed: boolean;
     canRetry: boolean;
     isReady: boolean;
@@ -197,7 +231,7 @@ export class SongStateService {
     const state = this.getSongState(song);
     
     // Compute metadata flags
-    const isGenerating = this.isGenerating(song);
+    const isGenerating = this.isGenerating(song);  // Primary check based on song properties only
     const hasFailed = this.hasFailed(song);
     const canRetry = this.canRetry(song);
     const isReady = this.isReady(song);

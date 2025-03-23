@@ -28,6 +28,11 @@ export async function handleSongUpdate(
   // 1. Include the field explicitly as NULL in the payload, or
   // 2. Omit the field entirely from the payload (so it's undefined)
   // We need to handle both cases to ensure consistent state transitions
+  
+  // Log when task_id is undefined in the payload
+  if (newSong.task_id === undefined) {
+    console.log(`IMPORTANT: Supabase sent update for song ${newSong.id} with task_id UNDEFINED (not included in payload)`);
+  }
 
   // Direct state checks on newSong (reliable)
   const hasTaskId = !!newSong.task_id;

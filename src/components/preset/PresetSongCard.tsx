@@ -1,4 +1,4 @@
-import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useState, useRef } from 'react';
+import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useState, useMemo } from 'react';
 import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
@@ -31,131 +31,62 @@ export default function PresetSongCard({
   currentVariationIndex,
   isPresetTypeGenerating
 }: PresetCardProps) {
-  // Get song state metadata using the helper method for preset types
-  const {
-    canRetry,
-    isReady,
-    hasVariations,
-    variationCount,
-    statusLabel,
-    song: currentSong,
-    state: songState,
-    isPartiallyReady
-  } = SongStateService.getPresetTypeStateMetadata(
-    songs,
-    type
+  // Get the current song for this preset type
+  const currentSong = useMemo(() => 
+    SongStateService.getSongForPresetType(songs, type),
+    [songs, type]
   );
   
-  // Refs to track previous state for comparison
-  const prevTaskIdRef = useRef<string | undefined>(currentSong?.task_id);
-  const prevAudioUrlRef = useRef<string | undefined>(currentSong?.audio_url);
-  const prevSongStateRef = useRef<SongState | undefined>(songState);
+  // Compute all state properties using useMemo for reactivity
+  const songState = useMemo(() => 
+    SongStateService.getSongState(currentSong),
+    [currentSong]
+  );
   
-  // Force render mechanism
-  const forceUpdateKey = useRef(0);
+  const isReady = useMemo(() => 
+    songState === SongState.READY,
+    [songState]
+  );
+  
+  const isPartiallyReady = useMemo(() => 
+    songState === SongState.PARTIALLY_READY,
+    [songState]
+  );
+  
+  const hasVariations = useMemo(() => 
+    SongStateService.hasVariations(currentSong),
+    [currentSong]
+  );
+  
+  const variationCount = useMemo(() => 
+    SongStateService.getVariationCount(currentSong),
+    [currentSong]
+  );
+  
+  const canRetry = useMemo(() => 
+    SongStateService.canRetry(currentSong),
+    [currentSong]
+  );
+  
+  // Use the isGenerating prop from parent which already has the appropriate logic
+  const isGenerating = isPresetTypeGenerating(type);
+  
+  const statusLabel = useMemo(() => 
+    SongStateService.getStatusLabel(currentSong, isGenerating),
+    [currentSong, isGenerating]
+  );
+  
+  // Get the audio URL
+  const audioUrl = useMemo(() => 
+    currentSong ? currentSong.audio_url : undefined,
+    [currentSong]
+  );
+  
+  // Force render mechanism (for debugging/troubleshooting)
   const [forceRenderKey, setForceRenderKey] = useState(0);
-  
-  // Helper function to force a re-render that will work even with memoization
-  const forceRerender = () => {
-    forceUpdateKey.current += 1;
+  const forceRerender = useCallback(() => {
     setForceRenderKey(prev => prev + 1);
-  };
-  
-  // Track meaningful changes in song state and trigger UI updates when needed
-  useEffect(() => {
-    const currentTaskId = currentSong?.task_id;
-    const currentAudioUrl = currentSong?.audio_url;
-    const currentSongState = songState;
-    
-    // Check for meaningful state changes
-    const taskIdChanged = currentTaskId !== prevTaskIdRef.current;
-    const audioUrlChanged = currentAudioUrl !== prevAudioUrlRef.current;
-    const songStateChanged = currentSongState !== prevSongStateRef.current;
-    
-    // Detect specific meaningful transitions that require UI updates
-    const needsUIUpdate = 
-      // Audio URL became available
-      (audioUrlChanged && !prevAudioUrlRef.current && currentAudioUrl) ||
-      // Task ID changed and no longer generating
-      (taskIdChanged && prevSongStateRef.current === SongState.GENERATING && currentSongState !== SongState.GENERATING) ||
-      // Song state transitioned to a new state
-      (songStateChanged && currentSongState !== SongState.GENERATING) ||
-      // Audio URL exists but state doesn't reflect it
-      (currentAudioUrl && currentSongState === SongState.INITIAL);
-    
-    if (needsUIUpdate) {
-      console.log(`Detected meaningful state change for ${type} preset:`, {
-        taskIdChange: taskIdChanged ? `${prevTaskIdRef.current} → ${currentTaskId}` : 'unchanged',
-        audioUrlChange: audioUrlChanged ? `${prevAudioUrlRef.current ? 'exists' : 'none'} → ${currentAudioUrl ? 'exists' : 'none'}` : 'unchanged',
-        stateChange: songStateChanged ? `${prevSongStateRef.current} → ${currentSongState}` : 'unchanged',
-        updateKey: forceUpdateKey.current
-      });
-      
-      // Trigger UI refresh with both methods to ensure it works
-      forceRerender();
-    }
-    
-    // Update refs with current values for next comparison
-    prevTaskIdRef.current = currentTaskId;
-    prevAudioUrlRef.current = currentAudioUrl;
-    prevSongStateRef.current = currentSongState;
-  }, [currentSong?.task_id, currentSong?.audio_url, songState, type]);
-  
-  // Periodic check for state consistency every 5 seconds
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      // Skip if no song is available
-      if (!currentSong) return;
-      
-      // APPROACH 1: First re-evaluate the song state using what we have
-      const freshSongState = SongStateService.getSongState(currentSong);
-      const currentDisplayedState = songState;
-      
-      // Detect mismatches between computed state and displayed state
-      const stateMismatch = freshSongState !== currentDisplayedState;
-      
-      // APPROACH 2: Look for logical inconsistencies in the data itself
-      // These checks don't rely on correct state computation, but on data integrity
-      const audioExistsButWrongState = currentSong.audio_url && 
-        currentDisplayedState !== SongState.READY && 
-        currentDisplayedState !== SongState.PARTIALLY_READY;
-      
-      const taskIdExistsButNotGenerating = currentSong.task_id && 
-        !currentSong.audio_url && !currentSong.error &&
-        currentDisplayedState !== SongState.GENERATING;
-        
-      const readyStateWithoutAudio = currentDisplayedState === SongState.READY && !currentSong.audio_url;
-      
-      const errorStateButNoError = currentDisplayedState === SongState.FAILED && 
-        !currentSong.error && !currentSong.retryable;
-        
-      // If any inconsistencies are detected, force a UI update
-      if (stateMismatch || audioExistsButWrongState || taskIdExistsButNotGenerating || 
-          readyStateWithoutAudio || errorStateButNoError) {
-        console.log(`Detected state inconsistency for ${type} preset in interval check:`, {
-          computedState: freshSongState,
-          displayedState: currentDisplayedState,
-          audioUrl: currentSong.audio_url ? 'exists' : 'none',
-          taskId: currentSong.task_id ? 'exists' : 'none',
-          error: currentSong.error ? 'exists' : 'none',
-          retryable: currentSong.retryable ? 'true' : 'false',
-          inconsistencies: {
-            stateMismatch,
-            audioExistsButWrongState,
-            taskIdExistsButNotGenerating,
-            readyStateWithoutAudio,
-            errorStateButNoError
-          }
-        });
-        
-        // Force UI update to correct the displayed state
-        forceRerender();
-      }
-    }, 5000);
-    
-    // Clean up interval on unmount
-    return () => clearInterval(intervalId);
-  }, [currentSong?.id, currentSong?.task_id, currentSong?.audio_url, currentSong?.error, currentSong?.retryable, songState, type]);
+  }, []);
   
   // Debugging for song state changes
   useEffect(() => {
@@ -168,12 +99,36 @@ export default function PresetSongCard({
     }
   }, [currentSong?.audio_url, isReady, songState, type]);
   
-  // Use the enhanced isPresetTypeGenerating function which now handles both checks internally
-  // This provides a single source of truth for the generating state
-  const isGenerating = isPresetTypeGenerating(type);
-  
-  // Get the audio URL
-  const audioUrl = currentSong ? currentSong.audio_url : undefined;
+  // Periodic check for state consistency every 5 seconds
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      // Skip if no song is available
+      if (!currentSong) return;
+      
+      // Compute the current state
+      const freshSongState = SongStateService.getSongState(currentSong);
+      
+      // Detect mismatches between computed state and displayed state
+      const stateMismatch = freshSongState !== songState;
+      
+      if (stateMismatch) {
+        console.log(`Detected state inconsistency for ${type} preset in interval check:`, {
+          computedState: freshSongState,
+          displayedState: songState,
+          audioUrl: currentSong.audio_url ? 'exists' : 'none',
+          taskId: currentSong.task_id ? 'exists' : 'none',
+          error: currentSong.error ? 'exists' : 'none',
+          retryable: currentSong.retryable ? 'true' : 'false'
+        });
+        
+        // Force UI update to correct the displayed state
+        forceRerender();
+      }
+    }, 5000);
+    
+    // Clean up interval on unmount
+    return () => clearInterval(intervalId);
+  }, [currentSong, songState, type, forceRerender]);
 
   // Handle card click
   const handleCardClick = useCallback(() => {
@@ -257,9 +212,6 @@ export default function PresetSongCard({
 
   // Render the status indicator based on song state
   const renderStatusIndicator = () => {
-    // Always use SongStateService to determine state
-    const songState = SongStateService.getSongState(currentSong);
-    
     if (songState === SongState.GENERATING && !isPartiallyReady) {
       return (
         <span className="inline-flex items-center text-xs bg-primary/20 text-white

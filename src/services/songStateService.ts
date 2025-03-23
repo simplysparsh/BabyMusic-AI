@@ -203,56 +203,6 @@ export class SongStateService {
   }
 
   /**
-   * Gets the state metadata for a preset type
-   * @param songs All songs
-   * @param presetType The preset type to get metadata for
-   * @returns State metadata including various boolean flags and the relevant song
-   */
-  static getPresetTypeStateMetadata(
-    songs: Song[],
-    presetType: PresetType
-  ): {
-    isGenerating: boolean;  // Note: This is only the primary check based on song properties
-    hasFailed: boolean;
-    canRetry: boolean;
-    isReady: boolean;
-    hasVariations: boolean;
-    variationCount: number;
-    statusLabel: string;
-    song: Song | undefined;
-    state: SongState;
-    isPartiallyReady: boolean;
-  } {
-    const song = this.getSongForPresetType(songs, presetType);
-    
-    // Get state first
-    const state = this.getSongState(song);
-    
-    // Compute metadata flags
-    const isGenerating = this.isGenerating(song);  // Primary check based on song properties only
-    const hasFailed = this.hasFailed(song);
-    const canRetry = this.canRetry(song);
-    const isReady = this.isReady(song);
-    const isPartiallyReady = this.isPartiallyReady(song);
-    const hasVariations = this.hasVariations(song);
-    const variationCount = this.getVariationCount(song);
-    const statusLabel = this.getStatusLabel(song, isGenerating);
-    
-    return {
-      isGenerating,
-      hasFailed,
-      canRetry,
-      isReady,
-      hasVariations,
-      variationCount,
-      statusLabel,
-      song,
-      state,
-      isPartiallyReady
-    };
-  }
-
-  /**
    * Updates a song with an error message
    */
   static async updateSongWithError(songId: string, errorMessage: string): Promise<void> {

@@ -106,10 +106,11 @@ export default function usePresetSongs() {
   ) => {
     e.stopPropagation(); // Prevent card click
     
-    const { variationCount, song } = SongStateService.getPresetTypeStateMetadata(
-      songs,
-      type
-    );
+    // Get the current song for this preset type
+    const song = SongStateService.getSongForPresetType(songs, type);
+    
+    // Get variation count directly
+    const variationCount = song ? SongStateService.getVariationCount(song) : 0;
     
     if (!variationCount || variationCount <= 1 || !song?.variations) return;
     

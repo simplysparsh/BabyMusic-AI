@@ -31,6 +31,22 @@ To deploy the frontend:
 
 Netlify will automatically build and deploy your frontend application whenever changes are pushed to the connected Git repository.
 
+## Netlify Functions
+
+The application uses Netlify Functions for serverless backend operations. The following functions are deployed:
+
+- **waitlist.ts**: Handles email signup for the waitlist when user registration is disabled.
+
+To deploy Netlify Functions:
+
+1. Ensure your `netlify.toml` file has the functions directory specified:
+   ```
+   [build]
+     functions = "netlify/functions"
+   ```
+2. Set the required environment variables in the Netlify dashboard.
+3. Functions will be automatically deployed when you deploy your application to Netlify.
+
 ## Backend Deployment
 
 The Baby Music AI backend is deployed using Supabase Edge Functions, which are serverless functions that run on the Supabase infrastructure.

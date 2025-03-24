@@ -24,20 +24,27 @@ if (!VITE_WEBHOOK_SECRET) throw new Error('VITE_WEBHOOK_SECRET is required');
 
 const supabase = createClient(VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-// Suno API types
+// Types matching the application schema
+type MusicMood = 'calm' | 'playful' | 'learning' | 'energetic';
+type ThemeType = 
+  | 'pitchDevelopment' 
+  | 'cognitiveSpeech' 
+  | 'sleepRegulation'
+  | 'socialEngagement' 
+  | 'indianClassical' 
+  | 'westernClassical';
+type SongType = 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
+type PresetType = 'playing' | 'eating' | 'sleeping' | 'pooping';
+
+// PIAPI API types
 interface SunoClip {
   id: string;
-  video_url: string;
-  audio_url: string;
-  image_url: string;
-  image_large_url: string | null;
   status: string;
-  title: string;
-  metadata: {
-    duration: number;
-    error_type: string;
-    error_message: string;
-    // ... other metadata fields
+  audio_url: string;
+  title?: string;
+  metadata?: {
+    prompt?: string;
+    tags?: string;
   };
 }
 
@@ -46,263 +53,304 @@ interface SunoResponse {
   model: string;
   task_type: string;
   status: string;
-  config: {
-    service_mode: string;
-    webhook_config: {
-      endpoint: string;
-      secret: string;
-      secret_header: string;
-    };
-  };
-  output: {
-    clips: Record<string, SunoClip>;
-  };
-  meta: {
-    created_at: string;
-    started_at: string;
-    ended_at: string;
-    usage: {
-      type: string;
-      frozen: number;
-      consume: number;
-    };
-    is_using_private_pool: boolean;
-  };
-  error: {
-    code: number;
-    raw_message: string;
-    message: string;
-    detail: null;
-  };
+  clips: SunoClip[];
 }
 
-// Test data
-const TEST_EMAIL = 'test@example.com';
-const TEST_PASSWORD = 'test123456';
-let TEST_SONG_ID: string | null = null;
-
-async function deleteTestUser() {
-  // List all users to find our test user
-  const { data: users, error: listError } = await supabase.auth.admin.listUsers();
-  
-  if (listError) {
-    console.error('Failed to list users:', listError);
-    return;
-  }
-  
-  const testUser = users.users.find(u => u.email === TEST_EMAIL);
-  if (testUser) {
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(testUser.id);
-    if (deleteError) {
-      console.error('Failed to delete test user:', deleteError);
-    } else {
-      console.log('Test user deleted successfully');
+// Retry utility function for database operations
+const withRetry = async <T>(operation: () => Promise<T>, maxRetries = 3, timeoutMs = 2000): Promise<T> => {
+  let lastError: Error | null = null;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      console.error(`Attempt ${attempt}/${maxRetries} failed:`, error);
+      if (attempt < maxRetries) {
+        const delay = Math.min(timeoutMs, attempt * 1000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
-  } else {
-    console.log('No test user found to delete');
   }
-}
+  throw lastError;
+};
 
-async function setupTestData() {
-  console.log('\n=== Setting up test data ===');
+async function createTestUser() {
+  const TEST_EMAIL = 'test-suno@example.com';
+  const TEST_PASSWORD = 'test123456';
   
-  // First clean up any existing test data
-  await deleteTestUser();
+  // First, check if the user already exists
+  const { data: users } = await supabase.auth.admin.listUsers();
+  const existingUser = users.users.find(u => u.email === TEST_EMAIL);
+  
+  if (existingUser) {
+    console.log('Test user already exists:', existingUser.id);
+    return existingUser;
+  }
   
   // Create a new test user
-  const { data: { user }, error: signUpError } = await supabase.auth.admin.createUser({
+  const { data, error } = await supabase.auth.admin.createUser({
     email: TEST_EMAIL,
     password: TEST_PASSWORD,
     email_confirm: true
   });
-
-  if (signUpError) {
-    throw new Error(`Failed to create test user: ${signUpError.message}`);
+  
+  if (error) {
+    console.error('Failed to create test user:', error);
+    throw error;
   }
+  
+  console.log('Test user created successfully:', data.user.id);
+  return data.user;
+}
 
-  if (!user) {
-    throw new Error('Failed to create test user: No user returned');
-  }
-
-  console.log('Created test user:', user.id);
-
-  // Profile should be automatically created by the handle_new_user trigger
-  // But let's verify it exists
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  if (profileError) {
-    throw new Error(`Failed to verify profile: ${profileError.message}`);
-  }
-
-  console.log('Verified test profile:', profile);
-
-  // Create test song in Supabase first
-  const TEST_SONG = {
-    song_type: 'preset',
-    user_id: user.id,
-    name: 'Real Suno API Test Song',
-    theme: 'sleepRegulation',
-    mood: 'calm',
-    preset_type: 'sleeping',
-    is_instrumental: false,
-    retryable: false
-  };
-
-  // Create test song
-  const { data: song, error: songError } = await supabase
+async function generateSong(userId: string, songOptions: {
+  name: string;
+  theme?: ThemeType;
+  mood?: MusicMood;
+  songType: SongType;
+  presetType?: PresetType;
+  isInstrumental?: boolean;
+}) {
+  // Initialize the request
+  const API_URL = 'https://api.piapi.ai/api/v1';
+  const WEBHOOK_URL = `${VITE_SUPABASE_URL}/functions/v1/piapi-webhook`;
+  
+  console.log('Generating song with options:', songOptions);
+  
+  // Insert a placeholder song in the database
+  const { data: songData, error: songError } = await supabase
     .from('songs')
-    .insert(TEST_SONG)
-    .select()
-    .single();
-
+    .insert({
+      name: songOptions.name,
+      user_id: userId,
+      theme: songOptions.theme,
+      mood: songOptions.mood,
+      song_type: songOptions.songType,
+      preset_type: songOptions.presetType,
+      is_instrumental: songOptions.isInstrumental || false,
+      created_at: new Date().toISOString()
+    })
+    .select();
+  
   if (songError) {
-    throw new Error(`Failed to create test song: ${songError.message}`);
+    console.error('Failed to create song in database:', songError);
+    throw songError;
   }
-
-  TEST_SONG_ID = song.id;
-  console.log('Created test song:', song);
-
-  // Now create the song in Suno
-  const sunoPayload = {
+  
+  const songId = songData[0].id;
+  console.log('Created song placeholder with ID:', songId);
+  
+  // Prepare description based on song type and theme
+  const getDescription = () => {
+    if (songOptions.songType === 'preset') {
+      if (songOptions.presetType === 'sleeping') {
+        return 'A gentle lullaby to help a baby sleep.';
+      } else if (songOptions.presetType === 'playing') {
+        return 'An upbeat song for playtime with a baby.';
+      } else if (songOptions.presetType === 'eating') {
+        return 'A calming melody for mealtime with a baby.';
+      } else {
+        return 'A soothing song for a baby.';
+      }
+    } else if (songOptions.theme) {
+      if (songOptions.theme === 'sleepRegulation') {
+        return 'A soothing lullaby designed to help with sleep regulation.';
+      } else if (songOptions.theme === 'cognitiveSpeech') {
+        return 'A song that encourages cognitive development and speech.';
+      } else {
+        return 'A developmental song for babies.';
+      }
+    } else {
+      return 'A playful song for babies and toddlers.';
+    }
+  };
+  
+  // Construct the payload for the PIAPI API
+  const payload = {
     model: 'music-s',
     task_type: 'generate_music_custom',
     config: {
       webhook_config: {
-        endpoint: `${VITE_SUPABASE_URL}/functions/v1/piapi-webhook`,
-        secret: VITE_WEBHOOK_SECRET,
-        secret_header: 'x-webhook-secret',
-        include_output: true,
-      },
+        endpoint: WEBHOOK_URL,
+        secret: VITE_WEBHOOK_SECRET
+      }
     },
-    input: {
-      title: "Test Lullaby",
-      prompt: "A gentle lullaby with soft piano and strings, perfect for helping babies fall asleep",
-      tags: "Soft, gentle lullaby for sleep time",
-      make_instrumental: false,
-      negative_tags: 'rock, metal, aggressive, harsh',
-    },
+    parameters: {
+      title: songOptions.name,
+      description: getDescription(),
+      tags: `${songOptions.mood || 'calm'}, baby music, ${songOptions.isInstrumental ? 'instrumental' : 'vocals'}`,
+      guidance_preset: 'STORYTELLING',
+      variations_count: 2
+    }
   };
-
-  console.log('Creating song in Suno API...');
-  const sunoResponse = await fetch('https://api.piapi.ai/api/v1/task', {
-    method: 'POST',
-    headers: {
-      'x-api-key': VITE_PIAPI_KEY || '',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(sunoPayload)
-  });
-
-  if (!sunoResponse.ok) {
-    const error = await sunoResponse.text();
-    throw new Error(`Suno API request failed: ${sunoResponse.status} ${sunoResponse.statusText}\n${error}`);
+  
+  console.log('Sending API request with payload:', JSON.stringify(payload, null, 2));
+  
+  try {
+    const response = await fetch(`${API_URL}/tasks`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': VITE_PIAPI_KEY || ''
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API request failed:', response.status, errorText);
+      throw new Error(`API request failed: ${response.status} ${errorText}`);
+    }
+    
+    const apiResponse = await response.json() as SunoResponse;
+    console.log('API response:', apiResponse);
+    
+    // Update the song with the task ID
+    const { error: updateError } = await supabase
+      .from('songs')
+      .update({
+        task_id: apiResponse.task_id
+      })
+      .eq('id', songId);
+    
+    if (updateError) {
+      console.error('Failed to update song with task ID:', updateError);
+    } else {
+      console.log('Song updated with task ID:', apiResponse.task_id);
+    }
+    
+    return {
+      songId,
+      taskId: apiResponse.task_id
+    };
+  } catch (error) {
+    console.error('Error generating song:', error);
+    
+    // Update the song with error
+    await supabase
+      .from('songs')
+      .update({
+        error: error instanceof Error ? error.message : 'Unknown error',
+        retryable: true
+      })
+      .eq('id', songId);
+    
+    throw error;
   }
-
-  const sunoData = (await sunoResponse.json()) as { code: number, data: SunoResponse, message: string };
-  console.log('Suno API response:', sunoData);
-
-  // Update our song with the task ID from Suno
-  const { error: updateError } = await supabase
-    .from('songs')
-    .update({ task_id: sunoData.data.task_id })
-    .eq('id', TEST_SONG_ID);
-
-  if (updateError) {
-    throw new Error(`Failed to update song with task_id: ${updateError.message}`);
-  }
-
-  console.log('Updated song with Suno task_id:', sunoData.data.task_id);
-  return { user, song, sunoData: sunoData.data };
 }
 
-async function waitForCompletion(timeoutMinutes = 5) {
-  console.log('\n=== Waiting for song completion ===');
+async function pollForCompletion(songId: string, intervalMs = 5000, timeoutMs = 300000) {
+  console.log(`Polling for song ${songId} completion...`);
   const startTime = Date.now();
-  const timeoutMs = timeoutMinutes * 60 * 1000;
-
+  
   while (Date.now() - startTime < timeoutMs) {
-    // Get current state from database
-    const { data: song } = await supabase
+    // Check the song status
+    const { data: song, error } = await supabase
       .from('songs')
-      .select('*')
-      .eq('id', TEST_SONG_ID)
+      .select('id, audio_url, task_id, error')
+      .eq('id', songId)
       .single();
-
-    console.log('Current song state:', {
-      id: song.id,
-      task_id: song.task_id,
-      audio_url: song.audio_url,
-      error: song.error
-    });
-
-    // Check webhook logs for this task
-    if (song.task_id) {
-      const { data: logs, error: logsError } = await supabase
-        .from('webhook_logs')
-        .select('*')
-        .eq('task_id', song.task_id)
-        .order('created_at', { ascending: false });
-
-      if (!logsError && logs && logs.length > 0) {
-        console.log('\nWebhook logs for task:', song.task_id);
-        logs.forEach(log => {
-          console.log(`\nWebhook log at ${log.created_at}:`);
-          console.log('Headers:', log.headers);
-          console.log('Body:', log.body);
-          if (log.error) console.log('Error:', log.error);
+    
+    if (error) {
+      console.error('Error checking song status:', error);
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+      continue;
+    }
+    
+    if (song.audio_url) {
+      console.log('Song generation completed!');
+      console.log('Audio URL:', song.audio_url);
+      
+      // Check for variations
+      const { data: variations, error: varError } = await supabase
+        .from('song_variations')
+        .select('id, audio_url, title, created_at')
+        .eq('song_id', songId);
+      
+      if (!varError && variations && variations.length > 0) {
+        console.log(`Found ${variations.length} variations:`);
+        variations.forEach((v, i) => {
+          console.log(`Variation ${i+1}:`, v.audio_url);
         });
       }
-    }
-
-    if (song.error) {
-      throw new Error(`Song generation failed: ${song.error}`);
-    }
-
-    if (song.audio_url) {
-      console.log('Song generation completed successfully!');
+      
       return song;
     }
-
-    // Wait 10 seconds before checking again
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    console.log('Still waiting...');
-  }
-
-  throw new Error(`Timeout after ${timeoutMinutes} minutes`);
-}
-
-async function main() {
-  try {
-    const { sunoData } = await setupTestData();
-    console.log('Test setup complete. Suno task_id:', sunoData.task_id);
-
-    await waitForCompletion();
-  } catch (error) {
-    console.error('\nTest failed:', error);
-  }
-  // Commenting out cleanup to keep test data for webhook testing
-  // finally {
-  //   console.log('\n=== Cleaning up test data ===');
-  //   if (TEST_SONG_ID) {
-  //     const { error: deleteError } = await supabase
-  //       .from('songs')
-  //       .delete()
-  //       .eq('id', TEST_SONG_ID);
-      
-  //     if (deleteError) {
-  //       console.error('Failed to clean up test song:', deleteError);
-  //     } else {
-  //       console.log('Test song cleaned up successfully');
-  //     }
-  //   }
     
-  //   await deleteTestUser();
-  // }
+    if (song.error) {
+      console.error('Song generation failed with error:', song.error);
+      return song;
+    }
+    
+    if (!song.task_id) {
+      console.error('Song has no task ID but also no audio or error');
+      return song;
+    }
+    
+    console.log('Song still generating, checking again in', intervalMs / 1000, 'seconds...');
+    await new Promise(resolve => setTimeout(resolve, intervalMs));
+  }
+  
+  console.error('Timed out waiting for song generation');
+  return null;
 }
 
-// Run the test
-main().catch(console.error); 
+async function cleanupTestData(userId: string, songId: string) {
+  console.log('Cleaning up test data...');
+  
+  if (songId) {
+    const { error: deleteError } = await supabase
+      .from('songs')
+      .delete()
+      .eq('id', songId);
+    
+    if (deleteError) {
+      console.error('Failed to delete test song:', deleteError);
+    } else {
+      console.log('Test song deleted successfully');
+    }
+  }
+  
+  if (userId) {
+    const { error: userError } = await supabase.auth.admin.deleteUser(userId);
+    
+    if (userError) {
+      console.error('Failed to delete test user:', userError);
+    } else {
+      console.log('Test user deleted successfully');
+    }
+  }
+}
+
+async function runTest() {
+  try {
+    console.log('Starting PIAPI integration test...');
+    
+    // Create test user
+    const user = await createTestUser();
+    
+    // Generate a song
+    const { songId, taskId } = await generateSong(user.id, {
+      name: 'Test Lullaby',
+      mood: 'calm',
+      theme: 'sleepRegulation',
+      songType: 'theme',
+      isInstrumental: false
+    });
+    
+    console.log(`Generated song with ID ${songId} and task ID ${taskId}`);
+    
+    // Poll for completion (but don't wait more than 5 minutes)
+    console.log('Waiting for song to be generated...');
+    await pollForCompletion(songId);
+    
+    // Cleanup is optional - comment this out if you want to keep the test data
+    // await cleanupTestData(user.id, songId);
+    
+    console.log('Test completed successfully');
+  } catch (error) {
+    console.error('Test failed:', error);
+  }
+}
+
+runTest(); 

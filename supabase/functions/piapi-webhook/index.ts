@@ -1,8 +1,9 @@
 // @ts-ignore
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 // @ts-ignore
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 
+// Types
 interface AudioClip {
   id: string;
   audio_url: string;
@@ -13,396 +14,536 @@ interface AudioClip {
   };
 }
 
-const WEBHOOK_SECRET = Deno.env.get('VITE_WEBHOOK_SECRET')
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+interface WebhookResponse {
+  success: boolean;
+  status?: string;
+  error?: string;
+}
 
-console.log('Edge Function started:', {
-  hasWebhookSecret: !!WEBHOOK_SECRET,
-  hasSupabaseUrl: !!SUPABASE_URL,
-  hasServiceRoleKey: !!SUPABASE_SERVICE_ROLE_KEY,
-  timestamp: new Date().toISOString()
-});
+interface TaskData {
+  task_id: string;
+  status: string;
+  error?: any;
+  output?: {
+    progress?: number;
+    clips?: Record<string, AudioClip>;
+  };
+}
 
-serve(async (req) => {
-  try {
-    // Log ALL headers (names only) to see what PIAPI is sending
-    const allHeaders = [...req.headers.keys()];
-    console.log('All received headers:', {
-      headerNames: allHeaders,
+interface Song {
+  id: string;
+  task_id?: string;
+  audio_url?: string;
+  error?: string;
+}
+
+// Configuration
+class Config {
+  static WEBHOOK_SECRET = Deno.env.get('VITE_WEBHOOK_SECRET');
+  static SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+  static SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+  static logStartup(): void {
+    console.log('Edge Function started:', {
+      hasWebhookSecret: !!this.WEBHOOK_SECRET,
+      hasSupabaseUrl: !!this.SUPABASE_URL,
+      hasServiceRoleKey: !!this.SUPABASE_SERVICE_ROLE_KEY,
       timestamp: new Date().toISOString()
     });
+  }
+}
 
-    // Log incoming request with full details (excluding secrets)
-    const requestHeaders = Object.fromEntries([...req.headers].filter(([key]) => !key.toLowerCase().includes('secret')));
-    console.log('Webhook received:', {
-      method: req.method,
-      headers: requestHeaders,
-      timestamp: new Date().toISOString()
-    });
-
-    // Try multiple possible header names for the secret
-    const secret = req.headers.get('x-webhook-secret') || 
-                  req.headers.get('x-secret') ||
-                  req.headers.get('webhook-secret') ||
-                  req.headers.get('secret');
-
-    console.log('Webhook secret check:', {
-      hasSecret: !!secret,
-      expectedSecret: !!WEBHOOK_SECRET,
-      checkedHeaders: ['x-webhook-secret', 'x-secret', 'webhook-secret', 'secret'],
-      timestamp: new Date().toISOString()
-    });
-
-    if (!secret) {
-      console.error('Missing webhook secret header');
-      return new Response(JSON.stringify({ 
-        error: 'Missing webhook secret header',
-        status: 'error'
-      }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
+// Logger service with consistent formatting
+class Logger {
+  static log(message: string, data?: Record<string, any>): void {
+    if (data) {
+      console.log(message, {
+        ...data,
+        timestamp: new Date().toISOString()
       });
+    } else {
+      console.log(message, { timestamp: new Date().toISOString() });
     }
+  }
 
-    if (secret !== WEBHOOK_SECRET) {
-      console.error('Invalid webhook secret');
-      return new Response(JSON.stringify({ 
-        error: 'Invalid webhook secret',
-        status: 'error'
-      }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+  static error(message: string, error?: any): void {
+    console.error(message, error);
+  }
 
-    // Parse request body with error handling
-    let body;
-    try {
-      body = await req.json();
-      console.log('Webhook body:', JSON.stringify(body, null, 2));
-    } catch (error) {
-      console.error('Failed to parse webhook body:', error);
-      return new Response(JSON.stringify({ 
-        error: 'Invalid JSON body',
-        status: 'error'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Extract data from the nested structure
-    const { data } = body;
-    if (!data) {
-      console.error('Missing data object in webhook body');
-      return new Response(JSON.stringify({ 
-        error: 'Missing data object in webhook body',
-        status: 'error'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Validate required fields from the data object
-    const { task_id, status, error: taskError, output } = data;
-    if (!task_id) {
-      console.error('Missing task_id in webhook body');
-      return new Response(JSON.stringify({ 
-        error: 'Missing task_id in webhook body',
-        status: 'error'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Initialize Supabase client
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Find the song with detailed logging
-    console.log('Looking for song with task_id:', task_id);
-    const { data: songs, error: findError } = await supabase
-      .from('songs')
-      .select('id, task_id, audio_url, error')
-      .eq('task_id', task_id.toString())
-      .maybeSingle();
-
-    if (findError) {
-      console.error('Database error finding song:', findError);
-      throw findError;
-    }
-
-    if (!songs) {
-      console.error(`No song found for task_id: ${task_id}`);
-      return new Response(JSON.stringify({ 
-        error: `No song found for task_id: ${task_id}`,
-        status: 'error'
-      }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    console.log('Processing webhook:', {
-      task_id,
-      status,
-      error: taskError,
-      hasOutput: !!output
-    });
-
-    // Log status update in a clear format
+  static logStatusUpdate(status: string, taskId: string, progress?: number): void {
     console.log('\n#######################');
     console.log('# Status now:', status);
-    console.log('# Task ID:', task_id);
-    console.log('# Progress:', output?.progress || 'N/A');
+    console.log('# Task ID:', taskId);
+    console.log('# Progress:', progress || 'N/A');
     console.log('#######################\n');
     
-    // Log status update in a clear format
     console.log('\n##### Status now:', status, '#####\n');
-    
-    // Check for errors in the response
-    const hasError = taskError && typeof taskError === 'object' && 
-      'code' in taskError && taskError.code !== 0 && 
-      ('message' in taskError || 'raw_message' in taskError) && 
-      (taskError.message || taskError.raw_message);
+  }
+}
 
+// Response factory for consistent response formatting
+class ResponseFactory {
+  static createSuccessResponse(data: Partial<WebhookResponse> = {}): Response {
+    return new Response(
+      JSON.stringify({ success: true, ...data }),
+      { 
+        headers: { 'Content-Type': 'application/json' },
+        status: 200
+      }
+    );
+  }
+
+  static createErrorResponse(error: string, status: number): Response {
+    return new Response(
+      JSON.stringify({ 
+        error, 
+        status: 'error',
+        success: false
+      }),
+      {
+        headers: { 'Content-Type': 'application/json' },
+        status
+      }
+    );
+  }
+}
+
+// Authentication service to validate webhook requests
+class WebhookAuthenticator {
+  static extractSecret(headers: Headers): string | null {
+    return headers.get('x-webhook-secret') || 
+           headers.get('x-secret') ||
+           headers.get('webhook-secret') ||
+           headers.get('secret');
+  }
+
+  static validateSecret(secret: string | null): boolean {
+    return !!secret && secret === Config.WEBHOOK_SECRET;
+  }
+
+  static logHeaders(headers: Headers): void {
+    const allHeaders = [...headers.keys()];
+    Logger.log('All received headers:', { headerNames: allHeaders });
+
+    const requestHeaders = Object.fromEntries(
+      [...headers].filter(([key]) => !key.toLowerCase().includes('secret'))
+    );
+    
+    Logger.log('Webhook received:', {
+      headers: requestHeaders
+    });
+
+    Logger.log('Webhook secret check:', {
+      hasSecret: !!this.extractSecret(headers),
+      expectedSecret: !!Config.WEBHOOK_SECRET,
+      checkedHeaders: ['x-webhook-secret', 'x-secret', 'webhook-secret', 'secret']
+    });
+  }
+}
+
+// Database service to handle all Supabase interactions
+class SongDatabase {
+  private supabase: SupabaseClient;
+
+  constructor() {
+    this.supabase = createClient(Config.SUPABASE_URL, Config.SUPABASE_SERVICE_ROLE_KEY);
+  }
+
+  async findSongByTaskId(taskId: string): Promise<Song | null> {
+    Logger.log(`Looking for song with task_id: ${taskId}`);
+    const { data, error } = await this.supabase
+      .from('songs')
+      .select('id, task_id, audio_url, error')
+      .eq('task_id', taskId.toString())
+      .maybeSingle();
+
+    if (error) {
+      Logger.error('Database error finding song:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  async getSongCurrentState(songId: string): Promise<Song | null> {
+    const { data, error } = await this.supabase
+      .from('songs')
+      .select('id, task_id, audio_url, error')
+      .eq('id', songId)
+      .single();
+      
+    if (error) {
+      Logger.error('Error checking song current state:', error);
+      throw error;
+    }
+    
+    return data;
+  }
+
+  async markSongAsCompleted(songId: string): Promise<void> {
+    Logger.log(`Updating song ${songId} to mark as completed`);
+    const { error } = await this.supabase
+      .from('songs')
+      .update({ 
+        task_id: null,
+        error: null
+      })
+      .eq('id', songId);
+      
+    if (error) {
+      Logger.error('Failed to update song completion status:', error);
+    }
+  }
+
+  async updateSongWithAudioUrl(songId: string, audioUrl: string, isComplete: boolean): Promise<void> {
+    const updateStart = Date.now();
+    Logger.log(`Updating song ${songId} with audio URL - START`);
+    
+    const updateData = { 
+      audio_url: audioUrl,
+      error: null,
+      retryable: false
+    };
+    
+    if (isComplete) {
+      // Add task_id: null only if the song is complete
+      Object.assign(updateData, { task_id: null });
+    }
+    
+    const { error } = await this.supabase
+      .from('songs')
+      .update(updateData)
+      .eq('id', songId);
+      
+    if (error) {
+      Logger.error(`Failed to update song with ${isComplete ? 'complete' : 'partial'} status:`, error);
+      throw error;
+    }
+    
+    Logger.log(`Song update successful in ${Date.now() - updateStart}ms:`, {
+      songId,
+      isComplete
+    });
+  }
+
+  async updateSongWithError(songId: string, errorMsg: string, retryable: boolean): Promise<void> {
+    Logger.log(`Marking song ${songId} as failed with error: ${errorMsg}`);
+    const { error } = await this.supabase
+      .from('songs')
+      .update({
+        error: errorMsg,
+        retryable,
+        task_id: null,
+        audio_url: null
+      })
+      .eq('id', songId);
+
+    if (error) {
+      Logger.error('Failed to update song with error:', error);
+      throw error;
+    }
+    
+    Logger.log(`Successfully marked song ${songId} as failed`);
+  }
+}
+
+// Task processors for different webhook scenarios
+class AudioClipProcessor {
+  private db: SongDatabase;
+  
+  constructor(db: SongDatabase) {
+    this.db = db;
+  }
+  
+  async processAudioClip(song: Song, taskData: TaskData): Promise<Response | null> {
+    const { task_id, status, output } = taskData;
+    
+    if (!output?.clips) {
+      return null;
+    }
+    
+    Logger.log('Processing clip output with status:', { status });
+    
+    const clip = Object.values(output.clips)[0] as AudioClip;
+    
+    Logger.log('Processing audio clips:', {
+      songId: song.id,
+      hasAudio: !!clip?.audio_url,
+      audioUrl: clip?.audio_url ? clip.audio_url.substring(0, 30) + '...' : 'none',
+      status
+    });
+    
+    if (!clip?.audio_url) {
+      Logger.log(`Task received but no audio URL found for song ${song.id}`);
+      return null;
+    }
+    
+    try {
+      Logger.log(`Received audio URL from API for song with task: ${task_id}`);
+      
+      // Check current state to avoid race conditions
+      const currentSong = await this.db.getSongCurrentState(song.id);
+      
+      // If the song already has an audio URL, only update task_id if this is complete
+      if (currentSong?.audio_url) {
+        Logger.log(`Song ${song.id} already has audio URL: ${currentSong.audio_url}`);
+        
+        // Only clear task_id if the status is complete/completed
+        if (status === 'completed' || status === 'complete') {
+          await this.db.markSongAsCompleted(song.id);
+        }
+        
+        return ResponseFactory.createSuccessResponse({ status: 'already_has_audio' });
+      }
+      
+      const isComplete = status === 'completed' || status === 'complete';
+      
+      if (isComplete) {
+        Logger.log('COMPLETED status detected:', {
+          songId: song.id,
+          status,
+          clipCount: output?.clips ? Object.keys(output.clips).length : 0,
+          // @ts-ignore - We know the structure of clips at runtime
+          clipStatus: output?.clips ? Object.values(output.clips)[0]?.status ?? 'unknown' : 'unknown'
+        });
+      }
+      
+      await this.db.updateSongWithAudioUrl(song.id, clip.audio_url, isComplete);
+      
+      return null; // Continue processing
+    } catch (err) {
+      Logger.error('Error processing audio URL update:', err);
+      // Don't rethrow - we want to return success even if there was an error
+      return null; // Continue processing
+    }
+  }
+}
+
+class ErrorProcessor {
+  private db: SongDatabase;
+  
+  constructor(db: SongDatabase) {
+    this.db = db;
+  }
+  
+  isActualError(taskError: any): boolean {
+    return taskError && 
+           typeof taskError === 'object' && 
+           'code' in taskError && 
+           taskError.code !== 0 && 
+           ('message' in taskError || 'raw_message' in taskError) && 
+           (taskError.message || taskError.raw_message);
+  }
+  
+  async processError(song: Song, taskData: TaskData): Promise<Response | null> {
+    const { task_id, error: taskError } = taskData;
+    
+    if (!this.isActualError(taskError)) {
+      return null;
+    }
+    
+    Logger.log('Error object received from API:', taskError);
+    
+    // Use message or raw_message from the error object
+    let errorMsg = taskError.message || taskError.raw_message || 'Music generation failed';
+    let retryable = false;
+
+    // Handle specific error cases
+    if (errorMsg.includes("doesn't have enough credits")) {
+      errorMsg = 'Service temporarily unavailable. Please try again.';
+      retryable = true;
+    } else if (errorMsg.includes('suno api status: 429')) {
+      errorMsg = 'Too many requests. Please wait a moment and try again.';
+      retryable = true;
+    }
+
+    Logger.log('Task failed:', {
+      taskId: task_id,
+      error: errorMsg,
+      retryable
+    });
+
+    try {
+      // First check if the song already has an audio URL
+      const currentSong = await this.db.getSongCurrentState(song.id);
+      
+      // If the song already has an audio URL, don't mark it as failed
+      if (currentSong?.audio_url) {
+        Logger.log(`Song ${song.id} already has audio URL, not marking as failed`);
+        return ResponseFactory.createSuccessResponse({ status: 'has_audio_ignoring_error' });
+      }
+
+      await this.db.updateSongWithError(song.id, errorMsg, retryable);
+      
+      return null; // Continue processing
+    } catch (err) {
+      Logger.error('Error handling song failure:', err);
+      // Don't rethrow to ensure the webhook doesn't retry
+      return null; // Continue processing
+    }
+  }
+}
+
+// Main webhook handler
+class WebhookHandler {
+  private db: SongDatabase;
+  private audioProcessor: AudioClipProcessor;
+  private errorProcessor: ErrorProcessor;
+  
+  constructor() {
+    this.db = new SongDatabase();
+    this.audioProcessor = new AudioClipProcessor(this.db);
+    this.errorProcessor = new ErrorProcessor(this.db);
+  }
+  
+  async validateRequest(req: Request): Promise<{ valid: boolean; response?: Response }> {
+    WebhookAuthenticator.logHeaders(req.headers);
+    
+    const secret = WebhookAuthenticator.extractSecret(req.headers);
+    
+    if (!secret) {
+      return {
+        valid: false,
+        response: ResponseFactory.createErrorResponse('Missing webhook secret header', 401)
+      };
+    }
+
+    if (!WebhookAuthenticator.validateSecret(secret)) {
+      return {
+        valid: false,
+        response: ResponseFactory.createErrorResponse('Invalid webhook secret', 401)
+      };
+    }
+    
+    return { valid: true };
+  }
+  
+  async parseBody(req: Request): Promise<{ valid: boolean; data?: any; response?: Response }> {
+    try {
+      const body = await req.json();
+      Logger.log(`Webhook body: ${JSON.stringify(body, null, 2)}`);
+      
+      const { data } = body;
+      if (!data) {
+        return {
+          valid: false,
+          response: ResponseFactory.createErrorResponse('Missing data object in webhook body', 400)
+        };
+      }
+      
+      const { task_id } = data;
+      if (!task_id) {
+        return {
+          valid: false,
+          response: ResponseFactory.createErrorResponse('Missing task_id in webhook body', 400)
+        };
+      }
+      
+      return { valid: true, data };
+    } catch (error) {
+      Logger.error('Failed to parse webhook body:', error);
+      return {
+        valid: false,
+        response: ResponseFactory.createErrorResponse('Invalid JSON body', 400)
+      };
+    }
+  }
+  
+  async processWebhook(taskData: TaskData): Promise<Response> {
+    const { task_id, status, output } = taskData;
+    
+    // Find the song with the given task_id
+    const song = await this.db.findSongByTaskId(task_id);
+    
+    if (!song) {
+      return ResponseFactory.createErrorResponse(`No song found for task_id: ${task_id}`, 404);
+    }
+    
+    Logger.log('Processing webhook:', {
+      task_id,
+      status,
+      error: taskData.error,
+      hasOutput: !!output
+    });
+    
+    Logger.logStatusUpdate(status, task_id, output?.progress);
+    
     // Log status update with error info if present
-    console.log('Task status update:', {
+    const hasError = this.errorProcessor.isActualError(taskData.error);
+    Logger.log('Task status update:', {
       taskId: task_id,
       status,
       hasError,
-      errorDetails: taskError && typeof taskError === 'object' ? {
-        code: 'code' in taskError ? taskError.code : 0,
-        message: 'message' in taskError ? taskError.message : 
-                 ('raw_message' in taskError ? taskError.raw_message : ''),
-        detail: 'detail' in taskError ? taskError.detail : null
+      errorDetails: taskData.error && typeof taskData.error === 'object' ? {
+        code: 'code' in taskData.error ? taskData.error.code : 0,
+        message: 'message' in taskData.error ? taskData.error.message : 
+                 ('raw_message' in taskData.error ? taskData.error.raw_message : ''),
+        detail: 'detail' in taskData.error ? taskData.error.detail : null
       } : null
     });
 
-    console.log('Webhook received:', {
+    Logger.log('Webhook received:', {
       taskId: task_id,
       status,
       hasOutput: !!output,
       clipCount: output?.clips ? Object.keys(output.clips).length : 0
     });
-
-    // SIMPLIFIED LOGIC: Handle audio clips if present
+    
+    // Process audio clips if present
     if (output?.clips) {
-      console.log('Processing clip output with status:', status);
-      
-      // Handle different statuses
-      const clip = Object.values(output.clips)[0] as AudioClip;
-      
-      console.log('Processing audio clips:', {
-        songId: songs.id,
-        hasAudio: !!clip?.audio_url,
-        audioUrl: clip?.audio_url ? clip.audio_url.substring(0, 30) + '...' : 'none',
-        status: status
-      });
-      
-      if (clip?.audio_url) {
-        try {
-          console.log(`Received audio URL from API for song with task: ${task_id}`, new Date().toISOString());
-          
-          // Check current state to avoid race conditions
-          const { data: currentSong, error: checkError } = await supabase
-            .from('songs')
-            .select('id, task_id, audio_url, error')
-            .eq('id', songs.id)
-            .single();
-            
-          if (checkError) {
-            console.error('Error checking song current state:', checkError);
-            throw checkError;
-          }
-          
-          // If the song already has an audio URL, only update task_id if this is complete
-          if (currentSong?.audio_url) {
-            console.log(`Song ${songs.id} already has audio URL: ${currentSong.audio_url}`);
-            
-            // Only clear task_id if the status is complete/completed
-            if (status === 'completed' || status === 'complete') {
-              console.log(`Updating song ${songs.id} to mark as completed`);
-              const { error: completeError } = await supabase
-                .from('songs')
-                .update({ 
-                  task_id: null, // Clear task_id only when fully complete
-                  error: null
-                })
-                .eq('id', songs.id);
-                
-              if (completeError) {
-                console.error('Failed to update song completion status:', completeError);
-              }
-            }
-            
-            return new Response(JSON.stringify({ success: true, status: 'already_has_audio' }), {
-              headers: { 'Content-Type': 'application/json' },
-              status: 200
-            });
-          }
-          
-          console.log(`Updating song ${songs.id} with audio URL - START`, new Date().toISOString());
-          const updateStart = Date.now();
-          
-          // Update logic based on status
-          if (status === 'completed' || status === 'complete') {
-            // ENHANCED LOGGING: Log when we receive completed status
-            console.log('COMPLETED status detected:', {
-              songId: songs.id,
-              status,
-              clipCount: output?.clips ? Object.keys(output.clips).length : 0,
-              // @ts-ignore - We know the structure of clips at runtime
-              clipStatus: output?.clips ? Object.values(output.clips)[0]?.status ?? 'unknown' : 'unknown',
-              timestamp: new Date().toISOString()
-            });
-            
-            // Song is complete - update audio_url and clear task_id
-            const { error: completeUpdateError } = await supabase
-              .from('songs')
-              .update({ 
-                audio_url: clip.audio_url,
-                error: null,
-                retryable: false,
-                task_id: null // Clear task_id since the song is complete
-              })
-              .eq('id', songs.id);
-              
-            if (completeUpdateError) {
-              console.error('Failed to update song with complete status:', completeUpdateError);
-              throw completeUpdateError;
-            }
-            
-            console.log(`Song ${songs.id} marked as complete with audio URL`);
-          } else {
-            // Song is partially ready - update audio_url but keep task_id
-            const { error: progressUpdateError } = await supabase
-              .from('songs')
-              .update({ 
-                audio_url: clip.audio_url,
-                error: null,
-                retryable: false
-                // Keep task_id to indicate generation is still in progress
-              })
-              .eq('id', songs.id);
-              
-            if (progressUpdateError) {
-              console.error('Failed to update song with partial audio:', progressUpdateError);
-              throw progressUpdateError;
-            }
-            
-            console.log(`Song ${songs.id} updated with partial audio URL`);
-          }
-          
-          console.log(`Song update successful in ${Date.now() - updateStart}ms:`, {
-            songId: songs.id,
-            taskId: task_id,
-            status: status,
-            timestamp: new Date().toISOString()
-          });
-        } catch (err) {
-          console.error('Error processing audio URL update:', err);
-          // Don't rethrow - we want to return success even if there was an error
-          // This prevents the API from retrying the webhook call
-        }
-      } else {
-        console.warn(`Task received but no audio URL found for song ${songs.id}`);
-      }
+      const audioResponse = await this.audioProcessor.processAudioClip(song, taskData);
+      if (audioResponse) return audioResponse;
     }
-    // SIMPLIFIED ERROR HANDLING: Only handle errors when the error object has a non-zero code and a message
+    // Process errors if present
     else if (hasError) {
-      console.log('Error object received from API:', taskError);
-      
-      // Use message or raw_message from the error object
-      let errorMsg = taskError.message || taskError.raw_message || 'Music generation failed';
-      let retryable = false;
-
-      // Handle specific error cases
-      if (errorMsg.includes("doesn't have enough credits")) {
-        errorMsg = 'Service temporarily unavailable. Please try again.';
-        retryable = true;
-      } else if (errorMsg.includes('suno api status: 429')) {
-        errorMsg = 'Too many requests. Please wait a moment and try again.';
-        retryable = true;
-      }
-
-      console.log('Task failed:', {
-        taskId: task_id,
-        error: errorMsg,
-        retryable
-      });
-
-      try {
-        // First check if the song already has an audio URL
-        const { data: currentSong, error: checkError } = await supabase
-          .from('songs')
-          .select('id, audio_url')
-          .eq('id', songs.id)
-          .single();
-          
-        if (checkError) {
-          console.error('Error checking song before marking as failed:', checkError);
-          throw checkError;
-        }
-        
-        // If the song already has an audio URL, don't mark it as failed
-        if (currentSong?.audio_url) {
-          console.log(`Song ${songs.id} already has audio URL, not marking as failed`);
-          return new Response(JSON.stringify({ success: true, status: 'has_audio_ignoring_error' }), {
-            headers: { 'Content-Type': 'application/json' },
-            status: 200
-          });
-        }
-
-        // Update the song with the error
-        console.log(`Marking song ${songs.id} as failed with error: ${errorMsg}`);
-        const { error: updateError } = await supabase
-          .from('songs')
-          .update({
-            error: errorMsg,
-            retryable,
-            task_id: null, // Clear task_id to indicate it's no longer in the queue
-            audio_url: null // Ensure no audio_url is set
-          })
-          .eq('id', songs.id);
-
-        if (updateError) {
-          console.error('Failed to update song with error:', updateError);
-          throw updateError;
-        }
-        
-        console.log(`Successfully marked song ${songs.id} as failed`);
-      } catch (err) {
-        console.error('Error handling song failure:', err);
-        // Don't rethrow to ensure the webhook doesn't retry
-      }
+      const errorResponse = await this.errorProcessor.processError(song, taskData);
+      if (errorResponse) return errorResponse;
     }
     else {
-      console.log('Unhandled task status:', { taskId: task_id, status });
+      Logger.log('Unhandled task status:', { taskId: task_id, status });
     }
-
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json' },
-      status: 200
-    });
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-    console.error('Webhook error:', {
-      error: errorMessage,
-      stack: err instanceof Error ? err.stack : undefined,
-      details: err,
-      timestamp: new Date().toISOString()
-    });
     
-    // Don't expose detailed error information in the response
-    return new Response(JSON.stringify({ 
-      error: 'An error occurred processing the webhook',
-      status: 'error'
-    }), {
-      headers: { 'Content-Type': 'application/json' },
-      status: err instanceof Error && err.message.includes('not found') ? 404 : 500
-    });
+    return ResponseFactory.createSuccessResponse();
   }
+  
+  async handleRequest(req: Request): Promise<Response> {
+    try {
+      // Validate the request
+      const validationResult = await this.validateRequest(req);
+      if (!validationResult.valid) {
+        return validationResult.response!;
+      }
+      
+      // Parse the request body
+      const parseResult = await this.parseBody(req);
+      if (!parseResult.valid) {
+        return parseResult.response!;
+      }
+      
+      // Process the webhook
+      return await this.processWebhook(parseResult.data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      Logger.error('Webhook error:', {
+        error: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined,
+        details: err
+      });
+      
+      // Don't expose detailed error information in the response
+      return ResponseFactory.createErrorResponse(
+        'An error occurred processing the webhook',
+        err instanceof Error && err.message.includes('not found') ? 404 : 500
+      );
+    }
+  }
+}
+
+// Initialize the application
+Config.logStartup();
+
+// Start the server
+serve(async (req) => {
+  const handler = new WebhookHandler();
+  return await handler.handleRequest(req);
 })

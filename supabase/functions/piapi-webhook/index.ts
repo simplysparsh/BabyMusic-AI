@@ -180,21 +180,6 @@ class SongDatabase {
     return data;
   }
 
-  async markSongAsCompleted(songId: string): Promise<void> {
-    Logger.log(`Updating song ${songId} to mark as completed`);
-    const { error } = await this.supabase
-      .from('songs')
-      .update({ 
-        task_id: null,
-        error: null
-      })
-      .eq('id', songId);
-      
-    if (error) {
-      Logger.error('Failed to update song completion status:', error);
-    }
-  }
-
   async updateSongWithAudioUrl(songId: string, audioUrl: string, isComplete: boolean): Promise<void> {
     const updateStart = Date.now();
     Logger.log(`Updating song ${songId} with audio URL - START`);
@@ -284,31 +269,31 @@ class AudioClipProcessor {
       // Check current state to avoid race conditions
       const currentSong = await this.db.getSongCurrentState(song.id);
       
-      // If the song already has an audio URL, only update task_id if this is complete
-      if (currentSong?.audio_url) {
-        Logger.log(`Song ${song.id} already has audio URL: ${currentSong.audio_url}`);
-        
-        // Only clear task_id if the status is complete/completed
-        if (status === 'completed' || status === 'complete') {
-          await this.db.markSongAsCompleted(song.id);
-        }
-        
-        return ResponseFactory.createSuccessResponse({ status: 'already_has_audio' });
-      }
-      
       const isComplete = status === 'completed' || status === 'complete';
       
+      // If we have a complete status, always update the URL as it will be the permanent one
       if (isComplete) {
-        Logger.log('COMPLETED status detected:', {
+        Logger.log('COMPLETED status detected - updating to permanent URL:', {
           songId: song.id,
           status,
+          oldUrl: currentSong?.audio_url ? currentSong.audio_url.substring(0, 30) + '...' : 'none',
+          newUrl: clip.audio_url.substring(0, 30) + '...',
           clipCount: output?.clips ? Object.keys(output.clips).length : 0,
           // @ts-ignore - We know the structure of clips at runtime
           clipStatus: output?.clips ? Object.values(output.clips)[0]?.status ?? 'unknown' : 'unknown'
         });
+        
+        await this.db.updateSongWithAudioUrl(song.id, clip.audio_url, true);
+        return null;
       }
       
-      await this.db.updateSongWithAudioUrl(song.id, clip.audio_url, isComplete);
+      // For non-complete status, only update if we don't have a URL yet
+      if (!currentSong?.audio_url) {
+        Logger.log(`Setting initial temporary URL for song ${song.id}`);
+        await this.db.updateSongWithAudioUrl(song.id, clip.audio_url, false);
+      } else {
+        Logger.log(`Keeping existing temporary URL for song ${song.id}`);
+      }
       
       return null; // Continue processing
     } catch (err) {

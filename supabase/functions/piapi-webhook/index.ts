@@ -133,6 +133,26 @@ class WebhookAuthenticator {
       headers: requestHeaders
     });
 
+    // Log JWT verification status
+    Logger.log('JWT VERIFICATION STATUS:', {
+      status: 'DISABLED',
+      reason: 'JWT verification is explicitly disabled by design for this webhook function',
+      deploymentFlag: '--no-verify-jwt'
+    });
+
+    // Log if Authorization header is present (JWT might be required)
+    if (headers.has('Authorization')) {
+      Logger.log('JWT VERIFICATION CHECK: Authorization header is present', {
+        headerValue: headers.get('Authorization')?.substring(0, 20) + '...',
+        jwtMightBeRequired: false
+      });
+    } else {
+      Logger.log('JWT VERIFICATION CHECK: No Authorization header found', {
+        jwtMightBeRequired: false,
+        note: 'JWT verification is disabled by design, so no Authorization header is required'
+      });
+    }
+
     Logger.log('Webhook secret check:', {
       hasSecret: !!this.extractSecret(headers),
       expectedSecret: !!Config.WEBHOOK_SECRET,
@@ -143,7 +163,7 @@ class WebhookAuthenticator {
 
 // Database service to handle all Supabase interactions
 class SongDatabase {
-  private supabase: SupabaseClient;
+  public supabase: SupabaseClient;  // Make it public for emergency fixes
 
   constructor() {
     this.supabase = createClient(Config.SUPABASE_URL, Config.SUPABASE_SERVICE_ROLE_KEY);
@@ -184,7 +204,8 @@ class SongDatabase {
     const updateStart = Date.now();
     Logger.log(`Updating song ${songId} with audio URL - START`);
     
-    const updateData = { 
+    // Use a more flexible type with index signature
+    const updateData: Record<string, any> = { 
       audio_url: audioUrl,
       error: null,
       retryable: false
@@ -192,7 +213,18 @@ class SongDatabase {
     
     if (isComplete) {
       // Add task_id: null only if the song is complete
-      Object.assign(updateData, { task_id: null });
+      // Also add updated_at to force React to detect the change
+      Object.assign(updateData, { 
+        task_id: null,
+        updated_at: new Date().toISOString(), // Use updated_at instead of _lastUpdated
+        _stateTransition: 'PARTIALLY_READY_TO_READY' // Explicit state transition marker
+      });
+    } else {
+      // For partial updates, still mark the transition if we're adding the first audio URL
+      Object.assign(updateData, {
+        updated_at: new Date().toISOString(), // Use updated_at instead of _lastUpdated
+        _stateTransition: 'GENERATING_TO_PARTIALLY_READY'
+      });
     }
     
     const { error } = await this.supabase
@@ -207,7 +239,9 @@ class SongDatabase {
     
     Logger.log(`Song update successful in ${Date.now() - updateStart}ms:`, {
       songId,
-      isComplete
+      isComplete,
+      stateTransition: updateData._stateTransition,
+      fields: Object.keys(updateData).join(', ')
     });
   }
 
@@ -219,7 +253,9 @@ class SongDatabase {
         error: errorMsg,
         retryable,
         task_id: null,
-        audio_url: null
+        audio_url: null,
+        updated_at: new Date().toISOString(), // Use updated_at instead of _lastUpdated
+        _stateTransition: 'TO_ERROR_STATE' // Explicit error state transition
       })
       .eq('id', songId);
 
@@ -244,62 +280,88 @@ class AudioClipProcessor {
     const { task_id, status, output } = taskData;
     
     if (!output?.clips) {
+      Logger.log(`No clips found in webhook for task ${task_id}`);
       return null;
     }
     
-    Logger.log('Processing clip output with status:', { status });
+    Logger.log(`[WEBHOOK] Processing clip output with status: ${status}`, { 
+      songId: song.id,
+      taskId: task_id
+    });
     
     const clip = Object.values(output.clips)[0] as AudioClip;
     
-    Logger.log('Processing audio clips:', {
-      songId: song.id,
-      hasAudio: !!clip?.audio_url,
-      audioUrl: clip?.audio_url ? clip.audio_url.substring(0, 30) + '...' : 'none',
-      status
-    });
-    
     if (!clip?.audio_url) {
-      Logger.log(`Task received but no audio URL found for song ${song.id}`);
+      Logger.log(`[WEBHOOK] Task received but no audio URL found for song ${song.id}`);
       return null;
     }
     
     try {
-      Logger.log(`Received audio URL from API for song with task: ${task_id}`);
-      
-      // Check current state to avoid race conditions
-      const currentSong = await this.db.getSongCurrentState(song.id);
-      
+      // Determine if this is a completion status
       const isComplete = status === 'completed' || status === 'complete';
       
-      // If we have a complete status, always update the URL as it will be the permanent one
+      Logger.log(`[WEBHOOK] Processing audio for song ${song.id}`, {
+        status,
+        isComplete,
+        audioUrl: clip.audio_url.substring(0, 30) + '...',
+        taskId: task_id
+      });
+      
+      // SIMPLIFY: Direct database update for all cases
       if (isComplete) {
-        Logger.log('COMPLETED status detected - updating to permanent URL:', {
-          songId: song.id,
-          status,
-          oldUrl: currentSong?.audio_url ? currentSong.audio_url.substring(0, 30) + '...' : 'none',
-          newUrl: clip.audio_url.substring(0, 30) + '...',
-          clipCount: output?.clips ? Object.keys(output.clips).length : 0,
-          // @ts-ignore - We know the structure of clips at runtime
-          clipStatus: output?.clips ? Object.values(output.clips)[0]?.status ?? 'unknown' : 'unknown'
-        });
+        // When completed, set permanent URL and clear task_id
+        Logger.log(`[WEBHOOK] Marking song ${song.id} as COMPLETED with permanent URL`);
         
-        await this.db.updateSongWithAudioUrl(song.id, clip.audio_url, true);
-        return null;
-      }
-      
-      // For non-complete status, only update if we don't have a URL yet
-      if (!currentSong?.audio_url) {
-        Logger.log(`Setting initial temporary URL for song ${song.id}`);
-        await this.db.updateSongWithAudioUrl(song.id, clip.audio_url, false);
+        const { error } = await this.db.supabase
+          .from('songs')
+          .update({
+            audio_url: clip.audio_url,
+            task_id: null,
+            error: null,
+            retryable: false,
+            updated_at: new Date().toISOString(), // Use updated_at instead of _lastUpdated
+            _stateTransition: 'COMPLETED_WITH_PERMANENT_URL'
+          })
+          .eq('id', song.id);
+        
+        if (error) {
+          Logger.error(`[WEBHOOK] Failed to update song ${song.id} with completed status:`, error);
+        } else {
+          Logger.log(`[WEBHOOK] Successfully updated song ${song.id} with COMPLETED status and permanent URL`);
+        }
       } else {
-        Logger.log(`Keeping existing temporary URL for song ${song.id}`);
+        // For non-complete statuses, check if we need to set a temporary URL
+        const currentSong = await this.db.getSongCurrentState(song.id);
+        
+        if (!currentSong?.audio_url) {
+          Logger.log(`[WEBHOOK] Setting initial temporary URL for song ${song.id}`);
+          
+          const { error } = await this.db.supabase
+            .from('songs')
+            .update({
+              audio_url: clip.audio_url,
+              // Keep task_id as is for temporary URL
+              error: null,
+              retryable: false,
+              updated_at: new Date().toISOString(), // Use updated_at instead of _lastUpdated
+              _stateTransition: 'GENERATING_WITH_TEMP_URL'
+            })
+            .eq('id', song.id);
+          
+          if (error) {
+            Logger.error(`[WEBHOOK] Failed to update song ${song.id} with temporary URL:`, error);
+          } else {
+            Logger.log(`[WEBHOOK] Successfully updated song ${song.id} with temporary URL`);
+          }
+        } else {
+          Logger.log(`[WEBHOOK] Song ${song.id} already has a URL, keeping existing URL for non-complete status`);
+        }
       }
       
-      return null; // Continue processing
+      return null;
     } catch (err) {
-      Logger.error('Error processing audio URL update:', err);
-      // Don't rethrow - we want to return success even if there was an error
-      return null; // Continue processing
+      Logger.error(`[WEBHOOK] Error processing audio update for song ${song.id}:`, err);
+      return null;
     }
   }
 }

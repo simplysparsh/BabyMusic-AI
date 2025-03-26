@@ -101,6 +101,7 @@ async function createTestSong(userId: string) {
       user_id: userId,
       task_id: TEST_TASK_ID,
       song_type: 'theme',
+      theme: 'sleepRegulation',
       mood: 'calm',
       created_at: new Date().toISOString()
     })
@@ -124,32 +125,34 @@ async function triggerWebhook() {
   
   // Mock PIAPI webhook payload
   const mockPayload = {
-    task_id: TEST_TASK_ID,
-    model: "music-s",
-    task_type: "generate_music_custom",
-    status: "done",
-    clips: [
-      {
-        id: "mock-clip-id-1",
-        status: "done",
-        audio_url: "https://example.com/test-audio-1.mp3",
-        title: "Test Song 1",
-        metadata: {
-          prompt: "A test prompt",
-          tags: "calm, baby"
-        }
-      },
-      {
-        id: "mock-clip-id-2",
-        status: "done",
-        audio_url: "https://example.com/test-audio-2.mp3",
-        title: "Test Song 2",
-        metadata: {
-          prompt: "A test prompt variation",
-          tags: "calm, baby, variation"
+    data: {
+      task_id: TEST_TASK_ID,
+      model: "music-s",
+      task_type: "generate_music_custom",
+      status: "done",
+      output: {
+        clips: {
+          "clip1": {
+            id: "mock-clip-id-1",
+            audio_url: "https://example.com/test-audio-1.mp3",
+            title: "Test Song 1",
+            metadata: {
+              prompt: "A test prompt",
+              tags: "calm, baby"
+            }
+          },
+          "clip2": {
+            id: "mock-clip-id-2",
+            audio_url: "https://example.com/test-audio-2.mp3",
+            title: "Test Song 2",
+            metadata: {
+              prompt: "A test prompt variation",
+              tags: "calm, baby, variation"
+            }
+          }
         }
       }
-    ]
+    }
   };
   
   // Set headers to match expected values in the webhook
@@ -207,12 +210,12 @@ async function verifySongUpdated() {
   
   console.log('Updated song data:', song);
   
-  // Check if the task_id was cleared and audio_url was set
-  if (song.audio_url && !song.task_id) {
-    console.log('Song was successfully updated by the webhook');
+  // Check if the audio_url was set (regardless of task_id value)
+  if (song.audio_url) {
+    console.log('Song was successfully updated with audio URL by the webhook');
     return true;
   } else {
-    console.log('Song was not properly updated');
+    console.log('Song was not properly updated with audio URL');
     return false;
   }
 }

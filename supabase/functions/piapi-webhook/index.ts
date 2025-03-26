@@ -216,14 +216,12 @@ class SongDatabase {
       // Also add updated_at to force React to detect the change
       Object.assign(updateData, { 
         task_id: null,
-        updated_at: new Date().toISOString(), // Use updated_at instead of _lastUpdated
-        _stateTransition: 'PARTIALLY_READY_TO_READY' // Explicit state transition marker
+        updated_at: new Date().toISOString() // Use updated_at instead of _lastUpdated
       });
     } else {
-      // For partial updates, still mark the transition if we're adding the first audio URL
+      // For partial updates, still update the timestamp
       Object.assign(updateData, {
-        updated_at: new Date().toISOString(), // Use updated_at instead of _lastUpdated
-        _stateTransition: 'GENERATING_TO_PARTIALLY_READY'
+        updated_at: new Date().toISOString() // Use updated_at instead of _lastUpdated
       });
     }
     
@@ -240,7 +238,6 @@ class SongDatabase {
     Logger.log(`Song update successful in ${Date.now() - updateStart}ms:`, {
       songId,
       isComplete,
-      stateTransition: updateData._stateTransition,
       fields: Object.keys(updateData).join(', ')
     });
   }
@@ -254,8 +251,7 @@ class SongDatabase {
         retryable,
         task_id: null,
         audio_url: null,
-        updated_at: new Date().toISOString(), // Use updated_at instead of _lastUpdated
-        _stateTransition: 'TO_ERROR_STATE' // Explicit error state transition
+        updated_at: new Date().toISOString() // Use updated_at instead of _lastUpdated
       })
       .eq('id', songId);
 
@@ -319,8 +315,7 @@ class AudioClipProcessor {
             task_id: null,
             error: null,
             retryable: false,
-            updated_at: new Date().toISOString(), // Use updated_at instead of _lastUpdated
-            _stateTransition: 'COMPLETED_WITH_PERMANENT_URL'
+            updated_at: new Date().toISOString() // Use updated_at instead of _lastUpdated
           })
           .eq('id', song.id);
         
@@ -343,8 +338,7 @@ class AudioClipProcessor {
               // Keep task_id as is for temporary URL
               error: null,
               retryable: false,
-              updated_at: new Date().toISOString(), // Use updated_at instead of _lastUpdated
-              _stateTransition: 'GENERATING_WITH_TEMP_URL'
+              updated_at: new Date().toISOString() // Use updated_at instead of _lastUpdated
             })
             .eq('id', song.id);
           

@@ -24,5 +24,25 @@ export default {
       }
     },
   },
-  plugins: [],
+  plugins: [require("daisyui")],
+  daisyui: {
+    themes: [
+      {
+        babymusic: {
+          "primary": "#FFB5E8",
+          "secondary": "#B5DEFF",
+          "accent": "#AFF6D6",
+          "neutral": "#2A2D3E",
+          "base-100": "#F8F9FF",
+          "info": "#3ABFF8",
+          "success": "#36D399",
+          "warning": "#FBBD23",
+          "error": "#F87272",
+        },
+      },
+      "light",
+      "dark",
+    ],
+    darkTheme: "dark",
+  },
 };

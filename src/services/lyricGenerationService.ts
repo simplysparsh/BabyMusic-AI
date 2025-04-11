@@ -166,7 +166,7 @@ export class LyricGenerationService {
 
         // Race between the API call and the timeout
         const lyrics = await Promise.race([
-          ClaudeAPI.makeRequest(completePrompt),
+          ClaudeAPI.makeRequest(completePrompt, undefined, name),
           timeoutPromise
         ]);
         

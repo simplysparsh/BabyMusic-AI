@@ -24,7 +24,7 @@ export class ClaudeAPI {
     return this.client;
   }
 
-  private static validateResponse(text: string, prompt: string): ValidatedResponse {
+  private static validateResponse(text: string, babyName?: string): ValidatedResponse {
     const trimmedText = text.trim();
     
     // Clean the response text
@@ -37,10 +37,8 @@ export class ClaudeAPI {
       .replace(/^\s*\n/, '')
       .trim();
     
-    // Check if response contains the name from the prompt
-    const nameMatch = prompt.match(/for\s+(\w+)/);
-    const expectedName = nameMatch ? nameMatch[1] : null;
-    const hasName = expectedName ? cleanedText.includes(expectedName) : true;
+    // Check if response contains the babyName directly
+    const hasName = babyName ? cleanedText.includes(babyName) : true;
 
     return {
       text: cleanedText.length > 3000 ? cleanedText.slice(0, 3000) : cleanedText,
@@ -51,10 +49,11 @@ export class ClaudeAPI {
     };
   }
 
-  static async makeRequest(userPrompt: string, systemPrompt?: string): Promise<ValidatedResponse> {
+  static async makeRequest(userPrompt: string, systemPrompt?: string, babyName?: string): Promise<ValidatedResponse> {
     console.log('Making Claude API request:', {
       userPromptLength: userPrompt.length,
-      hasSystemPrompt: !!systemPrompt
+      hasSystemPrompt: !!systemPrompt,
+      hasBabyName: !!babyName
     });
 
     // Add timeout to the fetch request
@@ -95,8 +94,8 @@ export class ClaudeAPI {
         ? response.content[0].text 
         : '';
       
-      // Validate and process the response
-      const validatedResponse = this.validateResponse(rawResponse, userPrompt);
+      // Validate and process the response with the baby name
+      const validatedResponse = this.validateResponse(rawResponse, babyName);
       
       // Log validation results
       console.log('Claude response validation:', {

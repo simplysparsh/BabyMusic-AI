@@ -90,7 +90,7 @@ export class ClaudeAPI {
       clearTimeout(timeoutId);
 
       // Extract the text content from the response
-      const rawResponse = typeof response.content[0].text === 'string' 
+      const rawResponse = response.content[0].type === 'text' 
         ? response.content[0].text 
         : '';
       

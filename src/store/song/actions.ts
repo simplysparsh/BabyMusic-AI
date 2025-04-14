@@ -230,13 +230,11 @@ export const createSongActions = (set: SetState, get: GetState) => ({
             });
           } else {
             // Song exists, update it with error
-            await supabase
-              .from('songs')
-              .update({ 
-                error: 'Failed to start music generation',
-                task_id: null // Clear task ID to prevent stuck state
-              })
-              .eq('id', createdSong!.id);
+            await SongService.updateSongWithError(createdSong!.id, 'Failed to start music generation', {
+              retryable: true,
+              clearTaskId: true,
+              clearAudioUrl: false
+            });
           }
         } catch (updateError) {
           console.error('Failed to update song error state:', updateError);
@@ -345,9 +343,14 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       // Update each song in the database to clear task_id and mark as retryable
       for (const song of songsToReset) {
         try {
-          await SongStateService.updateSongWithError(
+          await SongService.updateSongWithError(
             song.id,
-            'Generation timed out - please try again'
+            'Generation timed out - please try again',
+            {
+              retryable: true,
+              clearTaskId: true,
+              clearAudioUrl: false
+            }
           );
           
           console.log(`Reset generating state for song ${song.id}`);

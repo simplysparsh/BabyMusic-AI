@@ -242,17 +242,49 @@ class SongDatabase {
     });
   }
 
-  async updateSongWithError(songId: string, errorMsg: string, retryable: boolean): Promise<void> {
+  /**
+   * Updates a song with an error status
+   * @param songId The ID of the song to update
+   * @param errorMsg The error message to set
+   * @param options Optional parameters for the update
+   * @param options.retryable Whether the song can be retried (defaults to false)
+   * @param options.clearTaskId Whether to clear the task_id (defaults to true)
+   * @param options.clearAudioUrl Whether to clear the audio_url (defaults to true)
+   */
+  async updateSongWithError(
+    songId: string,
+    errorMsg: string,
+    options: {
+      retryable?: boolean;
+      clearTaskId?: boolean;
+      clearAudioUrl?: boolean;
+    } = {}
+  ): Promise<void> {
+    const {
+      retryable = false,
+      clearTaskId = true,
+      clearAudioUrl = true
+    } = options;
+
     Logger.log(`Marking song ${songId} as failed with error: ${errorMsg}`);
+    
+    const updateData: Record<string, any> = {
+      error: errorMsg,
+      retryable,
+      updated_at: new Date().toISOString()
+    };
+
+    if (clearTaskId) {
+      updateData.task_id = null;
+    }
+
+    if (clearAudioUrl) {
+      updateData.audio_url = null;
+    }
+
     const { error } = await this.supabase
       .from('songs')
-      .update({
-        error: errorMsg,
-        retryable,
-        task_id: null,
-        audio_url: null,
-        updated_at: new Date().toISOString() // Use updated_at instead of _lastUpdated
-      })
+      .update(updateData)
       .eq('id', songId);
 
     if (error) {
@@ -414,7 +446,11 @@ class ErrorProcessor {
         return ResponseFactory.createSuccessResponse({ status: 'has_audio_ignoring_error' });
       }
 
-      await this.db.updateSongWithError(song.id, errorMsg, retryable);
+      await this.db.updateSongWithError(song.id, errorMsg, {
+        retryable,
+        clearTaskId: true,
+        clearAudioUrl: true
+      });
       
       return null; // Continue processing
     } catch (err) {

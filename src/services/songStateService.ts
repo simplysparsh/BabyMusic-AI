@@ -1,4 +1,3 @@
-import { supabase } from '../lib/supabase';
 import type { PresetType, Song } from '../types';
 
 /**
@@ -178,29 +177,5 @@ export class SongStateService {
     if (song.audio_url) return 'Play';
     
     return 'Generate';
-  }
-
-  /**
-   * Updates a song with an error message
-   */
-  static async updateSongWithError(songId: string, errorMessage: string): Promise<void> {
-    if (!songId) return;
-    
-    try {
-      const { error } = await supabase
-        .from('songs')
-        .update({ 
-          error: errorMessage,
-          retryable: true,
-          task_id: null // Clear task_id to prevent stuck generation
-        })
-        .eq('id', songId);
-        
-      if (error) {
-        console.error(`Failed to update song ${songId} with error:`, error);
-      }
-    } catch (err) {
-      console.error(`Error updating song ${songId} with error:`, err);
-    }
   }
 }

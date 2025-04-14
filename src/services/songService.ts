@@ -90,20 +90,47 @@ export class SongService {
    * Updates a song with an error status
    * @param songId The ID of the song to update
    * @param errorMessage The error message to set
-   * @param retryable Whether the song can be retried
+   * @param options Optional parameters for the update
+   * @param options.retryable Whether the song can be retried (defaults to true)
+   * @param options.clearTaskId Whether to clear the task_id (defaults to true)
+   * @param options.clearAudioUrl Whether to clear the audio_url (defaults to false)
    */
-  static async updateSongWithError(songId: string, errorMessage: string, retryable: boolean = true): Promise<void> {
+  static async updateSongWithError(
+    songId: string,
+    errorMessage: string,
+    options: {
+      retryable?: boolean;
+      clearTaskId?: boolean;
+      clearAudioUrl?: boolean;
+    } = {}
+  ): Promise<void> {
     if (!songId) return;
-    
+
+    const {
+      retryable = true,
+      clearTaskId = true,
+      clearAudioUrl = false
+    } = options;
+
     try {
+      const updateData: Record<string, any> = {
+        error: errorMessage,
+        retryable,
+        updated_at: new Date().toISOString()
+      };
+
+      if (clearTaskId) {
+        updateData.task_id = null;
+      }
+
+      if (clearAudioUrl) {
+        updateData.audio_url = null;
+      }
+
       const result = await withRetry(() => 
         supabase
           .from('songs')
-          .update({
-            error: errorMessage,
-            retryable: retryable,
-            task_id: null // Clear task_id to indicate it's no longer in the queue
-          })
+          .update(updateData)
           .eq('id', songId)
       );
         

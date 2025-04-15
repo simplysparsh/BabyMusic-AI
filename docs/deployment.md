@@ -31,6 +31,18 @@ To deploy the frontend:
 
 Netlify will automatically build and deploy your frontend application whenever changes are pushed to the connected Git repository.
 
+## Quick Deploy Commands
+
+For a quick deployment of updated code, use:
+
+```bash
+# Build the application
+npm run build
+
+# Deploy to production
+netlify deploy --prod
+```
+
 ## Netlify Functions
 
 The application uses Netlify Functions for serverless backend operations. The following functions are deployed:
@@ -51,19 +63,55 @@ To deploy Netlify Functions:
 
 The Baby Music AI backend is deployed using Supabase Edge Functions, which are serverless functions that run on the Supabase infrastructure.
 
+### Deploy Edge Functions
+
 To deploy the backend:
 
 1. Install the Supabase CLI by running `npm install -g supabase`.
 2. Log in to your Supabase account using `supabase login`.
 3. Link your local project to your Supabase project using `supabase link --project-ref your-project-ref`.
-4. Deploy the Edge Functions by running `supabase functions deploy --no-verify-jwt`.
-5. Set the required environment variables for your Edge Functions using `supabase secrets set`:
+
+### ⚠️ CRITICAL: Webhook Function Deployment
+
+When deploying webhook functions (e.g., `piapi-webhook`), you **MUST** disable JWT verification:
+
+```bash
+supabase functions deploy piapi-webhook --no-verify-jwt
+```
+
+**Reason:** External services calling webhooks don't have Supabase JWT tokens. Without this flag, the webhook will reject all external calls with 401 Unauthorized errors.
+
+**Verification:** After deployment, check the Supabase Dashboard to confirm JWT verification is disabled:
+1. Go to the Supabase dashboard > Edge Functions
+2. Select the webhook function
+3. Verify "JWT verification" is set to "Disabled"
+
+### Regular Functions (Non-Webhooks)
+
+For functions that should only be called by authenticated users, use:
+
+```bash
+supabase functions deploy function-name
+```
+
+The default behavior will require valid JWT tokens.
+
+### Environment Variables and Database
+
+4. Set the required environment variables for your Edge Functions using `supabase secrets set`:
    - `PIAPI_KEY`: Your PIAPI.ai API key
    - `CLAUDE_API_KEY`: Your Anthropic Claude API key
    - `WEBHOOK_SECRET`: Your webhook secret for handling PIAPI.ai callbacks
-6. Push the database schema and migrations using `supabase db push`.
+5. Push the database schema and migrations using `supabase db push`.
 
 Your backend Edge Functions and database schema will now be deployed and ready to handle requests from the frontend.
+
+## Troubleshooting Webhooks
+
+If webhook is not receiving events:
+1. Check JWT verification is disabled
+2. Verify webhook secret matches between sender and receiver
+3. Check Supabase logs for any errors
 
 ## Continuous Deployment
 
@@ -84,6 +132,14 @@ The basic steps for setting up a CI/CD pipeline are:
    - Push the database schema and migrations
 5. Commit and push the workflow file to your Git repository.
 
+**Important:** In CI/CD pipelines, always include the `--no-verify-jwt` flag when deploying webhook functions:
+
+```yaml
+# Example GitHub Action step
+- name: Deploy webhook functions
+  run: supabase functions deploy piapi-webhook --no-verify-jwt
+```
+
 With a CI/CD pipeline in place, your application will be automatically deployed whenever changes are pushed to the specified branch or a new release is created.
 
 ## Monitoring and Error Tracking
@@ -98,6 +154,12 @@ Some popular tools for monitoring and error tracking include:
 - Netlify Analytics: For tracking frontend usage and performance metrics
 
 By setting up these tools and configuring appropriate alerts, you can proactively identify and resolve issues in your production environment.
+
+## Key URLs
+
+- Production site: https://www.babymusic.ai
+- Netlify dashboard: https://app.netlify.com/sites/babymusic
+- Supabase dashboard: https://supabase.com/dashboard/project/ustflrmqamppbghixjyl
 
 ## Conclusion
 

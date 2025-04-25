@@ -8,7 +8,7 @@ import type { SongState, SongPayload } from '../types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SongStateService, SongState as SongStateEnum } from '../../../services/songStateService';
 
-type SetState = (state: Partial<SongState>) => void;
+type SetState = (state: Partial<SongState> | ((prevState: SongState) => Partial<SongState>)) => void;
 type GetState = () => SongState;
 
 /**
@@ -94,9 +94,8 @@ export async function handleSongUpdate(
   // Determine if we need to fetch variations
   // Only fetch the complete song if we actually need the variations
   // or if this is a critical state change that might have complex data
-  const needsCompleteData = songHasAudio || // We need variations for newly ready songs
-                           songHasError || // We need error details
-                           get().songs.findIndex(s => s.id === newSong.id) === -1; // New song
+  const needsCompleteData = songHasError || // Fetch on error to get full error details
+                           get().songs.findIndex(s => s.id === newSong.id) === -1; // Fetch if song is not in store yet
   
   let updatedSong;
   
@@ -167,164 +166,65 @@ export async function handleSongUpdate(
   // Handle state-specific updates
   switch (songState) {
     case SongStateEnum.READY:
-      // Song is ready to play (has audio_url)
-      if (songHasAudio || isTaskIdNull) {
-        console.log(`Song ${updatedSong.id} is now ready to play with audio_url: ${updatedSong.audio_url}`);
+      // Song is ready to play (has audio_url and no task_id)
+      console.log(`Song ${updatedSong.id} is now READY to play with audio_url: ${updatedSong.audio_url}`);
         
-        // Add log when a song transitions to READY due to task_id being cleared
-        if (isTaskIdNull) {
-          console.log(`Log from SongStateEnum.READY: Song ${updatedSong.id} transitioned to READY state because task_id was cleared`);
-        }
-        
-        // Use batch update to update song and clear processing states in one operation
-        get().batchUpdate({
-          updateSong: {
-            id: updatedSong.id,
-            updatedSong: updatedSong as Song
-          },
-          taskIdsToRemoveFromProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined,
-          songIdsToRemoveFromRetrying: [updatedSong.id]
-        });
-        
-        // Force refresh the songs array to trigger UI updates - same as PARTIALLY_READY
-        const readySongs = [...get().songs];
-        const readySongIndex = readySongs.findIndex(s => s.id === updatedSong.id);
-        
-        if (readySongIndex !== -1) {
-          readySongs[readySongIndex] = updatedSong as Song;
-          set({ songs: readySongs });
-        }
-        
-        // Log the complete updated song state for debugging
-        console.log(`Updated song state in store:`, {
-          id: updatedSong.id,
-          hasAudioUrl: !!updatedSong.audio_url,
-          hasTaskId: !!updatedSong.task_id,
-          hasError: !!updatedSong.error,
-          state: 'READY'
-        });
-        
-        // Clear all processing states
-        updateSongProcessingState(updatedSong.task_id, false, get);
-        return;
-      }
-      
-      // Clear all processing states
-      updateSongProcessingState(updatedSong.task_id, false, get);
-      break;
-      
-    case SongStateEnum.PARTIALLY_READY:
-      // Song has audio but is still generating
-      if (songHasAudio || isTaskIdNull) {
-        // If task_id is cleared, the song is now fully ready
-        if (isTaskIdNull) {
-          console.log(`[TRANSITION FROM PARTIALLY_READY TO READY] Song ${updatedSong.id} transitioning to READY: task_id cleared`, {
-            before: {
-              state: SongStateEnum.PARTIALLY_READY,
-              hasTaskId: true,
-              hasAudio: songHasAudio
-            },
-            after: {
-              state: SongStateEnum.READY,
-              hasTaskId: false,
-              hasAudio: songHasAudio
-            },
-            song: updatedSong
-          });
-          
-          // CRITICAL FIX: Force a more aggressive UI update by removing the song and re-adding it
-          const readySongs = [...get().songs];
-          const readySongIndex = readySongs.findIndex(s => s.id === updatedSong.id);
-          
-          if (readySongIndex !== -1) {
-            // Create a new song object to ensure React detects the change
-            const updatedSongWithNewRef = {
-              ...updatedSong as Song,
-              // Add a dummy property to force React to see this as a new object
-              _lastUpdated: Date.now()
-            };
-            
-            // Replace the song in the array
-            readySongs[readySongIndex] = updatedSongWithNewRef;
-            
-            // Log before setting state
-            console.log(`[CRITICAL FIX - PARTIALLY_READY→READY] Forcing UI update for song ${updatedSong.id}`);
-            
-            // Set the state and trigger UI updates - This is the critical part
-            set({ songs: readySongs });
-            
-            // Verify the update was applied
-            setTimeout(() => {
-              const songInStore = get().songs.find(s => s.id === updatedSong.id);
-              console.log(`[VERIFICATION - PARTIALLY_READY→READY] Song ${updatedSong.id} state after update:`, {
-                state: songInStore ? SongStateService.getSongState(songInStore) : 'not found',
-                hasTaskId: songInStore?.task_id ? true : false, 
-                isTaskIdNull: songInStore?.task_id === null,
-                hasAudio: songInStore?.audio_url ? true : false,
-                audioUrl: songInStore?.audio_url?.substring(0, 30) + '...' || 'none'
-              });
-            }, 10);
-          }
-          
-          // Use batch update for other state changes
-          get().batchUpdate({
-            taskIdsToRemoveFromProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined,
-            songIdsToRemoveFromRetrying: [updatedSong.id]
-          });
-          
-          return;
-        }
-        
-        console.log(`Song ${updatedSong.id} is now partially ready with audio_url: ${updatedSong.audio_url}`);
-        
-        // Force update the UI immediately since we have audio
-        get().batchUpdate({
-          updateSong: {
-            id: updatedSong.id,
-            updatedSong: updatedSong as Song
-          }
-        });
-        
-        // Force refresh the songs array to trigger UI updates
-        const currentSongs = [...get().songs];
-        const songIndex = currentSongs.findIndex(s => s.id === updatedSong.id);
-        
-        if (songIndex !== -1) {
-          currentSongs[songIndex] = updatedSong as Song;
-          set({ songs: currentSongs });
-        }
-        
-        console.log(`Updated partially ready song in store:`, {
-          id: updatedSong.id,
-          hasAudioUrl: !!updatedSong.audio_url,
-          hasTaskId: !!updatedSong.task_id,
-          state: 'PARTIALLY_READY'
-        });
-        
-        return;
-      }
-      break;
-      
-    case SongStateEnum.FAILED:
-      // Update song to reflect it's now in a failed state
+      // Use batch update to clear processing/retrying states
       get().batchUpdate({
-        updateSong: {
-          id: updatedSong.id,
-          updatedSong: updatedSong as Song
-        },
-        songIdsToAddToRetrying: updatedSong.retryable ? [updatedSong.id] : undefined
+        taskIdsToRemoveFromProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined, // Clear task ID if it was present
+        songIdsToRemoveFromRetrying: [updatedSong.id]
       });
       
-      // Force refresh the songs array to trigger UI updates
-      const failedSongs = [...get().songs];
-      const failedSongIndex = failedSongs.findIndex(s => s.id === updatedSong.id);
+      // IMMUTABLE UPDATE: Update song in the store
+      set((state: SongState) => ({
+        songs: state.songs.map(song => 
+          song.id === updatedSong.id 
+            ? { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
+            : song 
+        )
+      }));
       
-      if (failedSongIndex !== -1) {
-        failedSongs[failedSongIndex] = updatedSong as Song;
-        set({ songs: failedSongs });
-      }
+      // Log the complete updated song state for debugging
+      console.log(`Updated song state in store to READY:`, {
+        id: updatedSong.id,
+        hasAudioUrl: !!updatedSong.audio_url,
+        hasTaskId: !!updatedSong.task_id, // Should be false or null now
+        hasError: !!updatedSong.error,
+        state: 'READY'
+      });
       
-      console.log(`Updated song state to FAILED:`, {
+      // Clear all processing states (redundant with batch update but safe)
+      updateSongProcessingState(updatedSong.task_id, false, get);
+      return; // Exit after handling READY state
+
+    // NOTE: There is no explicit PARTIALLY_READY state in SongStateEnum.
+    // This condition (has audio, has task_id) is now handled within GENERATING.
+      
+    case SongStateEnum.FAILED:
+      // Song generation failed (has error or retryable flag)
+      console.log(`Song ${updatedSong.id} state is FAILED. Error: ${updatedSong.error}`);
+      
+      // Use batch update to update song and mark for retry if applicable
+      get().batchUpdate({
+        updateSong: { // Still useful to update error/retryable flags via batch
+          id: updatedSong.id,
+          updatedSong: updatedSong as Song 
+        },
+        songIdsToRemoveFromRetrying: [updatedSong.id], // Clear previous retrying state first
+        songIdsToAddToRetrying: updatedSong.retryable ? [updatedSong.id] : undefined,
+        taskIdsToRemoveFromProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined // Clear processing
+      });
+      
+      // IMMUTABLE UPDATE: Update song in the store
+      set((state: SongState) => ({
+        songs: state.songs.map(song => 
+          song.id === updatedSong.id 
+            ? { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
+            : song 
+        )
+      }));
+      
+      console.log(`Updated song state in store to FAILED:`, {
         id: updatedSong.id,
         hasAudioUrl: !!updatedSong.audio_url,
         hasTaskId: !!updatedSong.task_id,
@@ -333,142 +233,131 @@ export async function handleSongUpdate(
         state: 'FAILED'
       });
       
-      // Clear processing state
+      // Clear processing state (redundant with batch update but safe)
       updateSongProcessingState(updatedSong.task_id, false, get);
-      return;
+      return; // Exit after handling FAILED state
       
     case SongStateEnum.GENERATING:
       // Song is generating (has task_id, no audio_url, no error)
+      // OR potentially has audio_url but still has task_id (implicitly "partially ready")
       
-      // Check if this update is changing the song to PARTIALLY_READY
       if (songHasAudio && hasTaskId) {
-        console.log(`[TRANSITION TO PARTIALLY_READY] Song ${updatedSong.id} is now partially ready with audio_url: ${updatedSong.audio_url}`);
+        // This is the "partially ready" scenario: has audio but still processing
+        console.log(`[TRANSITION DETECTED] Song ${updatedSong.id} has audio but still has task_id (partially ready): ${updatedSong.audio_url}`);
         
-        // CRITICAL FIX: Force React to detect the change by creating a new object
-        const songsArray = [...get().songs];
-        const songIndex = songsArray.findIndex(s => s.id === updatedSong.id);
-        
-        if (songIndex !== -1) {
-          // Create a completely new object reference to ensure React detects the change
-          const updatedSongWithNewRef = {
-            ...updatedSong as Song
-          };
-          
-          // Replace the song in the array with the new reference
-          songsArray[songIndex] = updatedSongWithNewRef;
-          
-          // Log before setting state
-          console.log(`[CRITICAL FIX - GENERATING→PARTIALLY_READY] About to update song ${updatedSong.id} in store`);
-          
-          // Force a state update that React will detect
-          set({ songs: songsArray });
-          
-          // Verify the update was applied
-          setTimeout(() => {
-            const updatedSongInStore = get().songs.find(s => s.id === updatedSong.id);
-            console.log(`[VERIFICATION - GENERATING→PARTIALLY_READY] Song ${updatedSong.id} in store after update:`, {
-              songState: updatedSongInStore ? SongStateService.getSongState(updatedSongInStore) : 'not found',
-              hasTaskId: updatedSongInStore?.task_id ? true : false,
-              hasAudio: updatedSongInStore?.audio_url ? true : false
-            });
-          }, 10);
-        }
-        
-        // Update processing state - if song is generating, add it to processing
+        // IMMUTABLE UPDATE: Update song in the store
+        set((state: SongState) => ({
+          songs: state.songs.map(song => 
+            song.id === updatedSong.id
+              ? { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
+              : song
+          )
+        }));
+
+        // Verify the update was applied
+        setTimeout(() => {
+          const updatedSongInStore = get().songs.find(s => s.id === updatedSong.id);
+          console.log(`[VERIFICATION - PARTIALLY READY SCENARIO] Song ${updatedSong.id} in store after update:`, {
+            songState: updatedSongInStore ? SongStateService.getSongState(updatedSongInStore) : 'not found',
+            hasTaskId: updatedSongInStore?.task_id ? true : false,
+            hasAudio: updatedSongInStore?.audio_url ? true : false
+          });
+        }, 10);
+
+        // Update processing state - ensure it's marked as processing
         updateSongProcessingState(updatedSong.task_id, true, get);
         
-        // Update metadata via batch update to ensure all state changes are applied
-        get().batchUpdate({
-          updateSong: {
-            id: updatedSong.id,
-            updatedSong: updatedSong as Song
-          }
-        });
+        // Update metadata via batch update if needed (might be redundant if set handles it)
+        // get().batchUpdate({
+        //   updateSong: { id: updatedSong.id, updatedSong: updatedSong as Song }
+        // });
         
-        return;
+        return; // Exit after handling this specific generating sub-state
       }
       
-      // Regular update for a generating song (no transition)
+      // Regular update for a generating song (no audio yet)
+      console.log(`Song ${updatedSong.id} state is GENERATING (no audio yet).`);
+
+      // Use batch update primarily for processing state
       get().batchUpdate({
-        updateSong: {
-          id: updatedSong.id,
-          updatedSong: updatedSong as Song
-        }
+         taskIdsToAddToProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined
       });
+
+      // IMMUTABLE UPDATE: Update song in the store
+      set((state: SongState) => ({
+        songs: state.songs.map(song => 
+          song.id === updatedSong.id 
+            ? { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
+            : song 
+        )
+      }));
       
-      // Force refresh the songs array to trigger UI updates
-      const songsArray = [...get().songs];
-      const songIndex = songsArray.findIndex(s => s.id === updatedSong.id);
-      
-      if (songIndex !== -1) {
-        songsArray[songIndex] = updatedSong as Song;
-        set({ songs: songsArray });
-      }
-      
-      // Update processing state - if song is generating, add it to processing
+      // Update processing state (redundant with batch update but safe)
       updateSongProcessingState(updatedSong.task_id, true, get);
       
-      console.log(`Updated song state to GENERATING:`, {
+      console.log(`Updated song state in store to GENERATING:`, {
         id: updatedSong.id,
-        hasAudioUrl: !!updatedSong.audio_url,
-        hasTaskId: !!updatedSong.task_id,
+        hasAudioUrl: !!updatedSong.audio_url, // Should be false here
+        hasTaskId: !!updatedSong.task_id, // Should be true here
         state: 'GENERATING'
       });
-      return;
+      return; // Exit after handling GENERATING state
       
-    default:
-      // Initial or unknown state
-      // If the song has audio_url and null task_id, treat as READY
-      if (songHasAudio && isTaskIdNull) {
-        console.log(`Song ${updatedSong.id} is in INITIAL state with audio_url and null task_id - treating as READY`);
-        
-        // Use the same logic as READY state
-        get().batchUpdate({
-          updateSong: {
-            id: updatedSong.id,
-            updatedSong: updatedSong as Song
-          },
-          songIdsToRemoveFromRetrying: [updatedSong.id]
-        });
-        
-        // Force refresh the songs array to trigger UI updates
-        const readySongs = [...get().songs];
-        const readySongIndex = readySongs.findIndex(s => s.id === updatedSong.id);
-        
-        if (readySongIndex !== -1) {
-          readySongs[readySongIndex] = updatedSong as Song;
-          set({ songs: readySongs });
-        }
-        
-        return;
+    default: // Handles INITIAL or any unexpected state
+      console.log(`Song ${updatedSong.id} is in unhandled state '${songState}' or INITIAL. Updating store.`);
+      
+      // Check if it implicitly became READY (e.g., initial load with audio and no task_id)
+      if (SongStateService.isComplete(updatedSong as Song)) {
+         console.log(`--> Song ${updatedSong.id} determined to be COMPLETE in default handler. Treating as READY.`);
+         // Use batch update to clear states
+         get().batchUpdate({
+           taskIdsToRemoveFromProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined,
+           songIdsToRemoveFromRetrying: [updatedSong.id]
+         });
+         // IMMUTABLE UPDATE
+         set((state: SongState) => ({
+           songs: state.songs.map(song => 
+             song.id === updatedSong.id 
+               ? { ...(updatedSong as Song), _lastUpdated: Date.now() } 
+               : song 
+           )
+         }));
+         return;
       }
-      
-      // Update the song but clear all processing states to be safe
+
+      // Default update: ensure song is in the store, clear processing states just in case
       get().batchUpdate({
-        updateSong: {
-          id: updatedSong.id,
-          updatedSong: updatedSong as Song
-        },
         songIdsToRemoveFromRetrying: [updatedSong.id],
         taskIdsToRemoveFromProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined
       });
+
+      // IMMUTABLE UPDATE
+      set((state: SongState) => ({
+        songs: state.songs.map(song => 
+          song.id === updatedSong.id 
+            ? { ...(updatedSong as Song), _lastUpdated: Date.now() } 
+            : song 
+        )
+      }));
       return;
   }
 
-  // Update the song in the songs array using batch update
-  get().batchUpdate({
-    updateSong: {
-      id: updatedSong.id,
-      updatedSong: updatedSong as Song
-    }
-  });
+  // This final block should ideally not be reached if all cases return
+  console.warn(`Song ${updatedSong.id} update fell through the switch statement. State: ${songState}. Performing final immutable update.`);
+  set((state: SongState) => ({
+    songs: state.songs.map(song => 
+      song.id === updatedSong.id 
+        ? { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
+        : song 
+    )
+  }));
 }
 
 /**
  * Helper function to update song processing state
  */
 function updateSongProcessingState(
-  taskId: string | null,
+  taskId: string | null | undefined, // Allow undefined
   isProcessing: boolean,
   get: GetState
 ) {

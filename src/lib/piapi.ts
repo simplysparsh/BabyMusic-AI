@@ -92,28 +92,37 @@ export const createMusicGenerationTask = async ({
   const promptWithLyrics = generatedLyrics || '';
 
   // ##### Calls API to generate music #####
+  // Determine lyrics_type based on whether the song is instrumental
+  const lyricsType = isInstrumental ? 'instrumental' : 'user';
+
+  // Construct the input object based on the new API structure
+  const inputPayload: Record<string, any> = {
+    gpt_description_prompt: truncateToLimit(description, PIAPI_LIMITS.TAGS_MAX_LENGTH),
+    lyrics_type: lyricsType,
+    negative_tags: 'rock, metal, aggressive, harsh', // Keep existing negative tags
+    seed: -1, // Add seed parameter as per new API examples
+  };
+
+  // Add prompt only if it's not instrumental (lyrics_type: 'user')
+  if (!isInstrumental) {
+    inputPayload.prompt = truncateToLimit(promptWithLyrics, PIAPI_LIMITS.PROMPT_MAX_LENGTH);
+  }
+
   const requestBody = {
-    model: 'music-s',
-    task_type: 'generate_music_custom',
+    model: 'music-u', // Updated model
+    task_type: 'generate_music', // Updated task type
     config: {
       webhook_config: {
         endpoint: WEBHOOK_URL,
         secret: import.meta.env.VITE_WEBHOOK_SECRET,
-        secret_header: 'x-webhook-secret',
-        include_output: true,
+        // Removed secret_header and include_output
       },
     },
-    input: {
-      title: title,
-      prompt: truncateToLimit(promptWithLyrics, PIAPI_LIMITS.PROMPT_MAX_LENGTH),
-      tags: truncateToLimit(description, PIAPI_LIMITS.TAGS_MAX_LENGTH),
-      make_instrumental: isInstrumental || false,
-      negative_tags: 'rock, metal, aggressive, harsh',
-    },
+    input: inputPayload, // Use the structured input payload
   };
 
-  // Log the complete input being sent to PIAPI
-  console.log('================ PIAPI REQUEST ================');
+  // Log the complete input being sent to PIAPI (adjusted for new structure)
+  console.log('================ PIAPI REQUEST (music-u) ================');
   console.log('Song Type:', songType);
   console.log('Theme:', theme);
   console.log('Mood:', mood);
@@ -121,14 +130,17 @@ export const createMusicGenerationTask = async ({
   console.log('Voice:', voice);
   console.log('Gender:', gender);
   console.log('Is Instrumental:', isInstrumental);
-  console.log('Base Description:', baseDescription);
-  console.log('Title:', title);
-  console.log('Prompt (Lyrics):', promptWithLyrics.substring(0, 200) + (promptWithLyrics.length > 200 ? '...' : ''));
-  console.log('Tags:', requestBody.input.tags);
-  console.log('Make Instrumental:', requestBody.input.make_instrumental);
+  console.log('Base Description (gpt_description_prompt):', inputPayload.gpt_description_prompt);
+  console.log('Title (Generated locally, not sent):', title);
+  if (!isInstrumental) {
+    console.log('Prompt (Lyrics):', (inputPayload.prompt as string).substring(0, 200) + ((inputPayload.prompt as string).length > 200 ? '...' : ''));
+  }
+  console.log('Lyrics Type:', inputPayload.lyrics_type);
+  console.log('Negative Tags:', inputPayload.negative_tags);
+  console.log('Seed:', inputPayload.seed);
   console.log('Full Request Body:', JSON.stringify(requestBody, (key, value) => 
     key === 'secret' ? '***' : value, 2));
-  console.log('===============================================');
+  console.log('=========================================================');
 
   try {
     const response = await fetch(`${API_URL}/task`, {

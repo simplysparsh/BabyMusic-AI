@@ -101,6 +101,7 @@ export const createMusicGenerationTask = async ({
     lyrics_type: lyricsType,
     negative_tags: 'rock, metal, aggressive, harsh', // Keep existing negative tags
     seed: -1, // Add seed parameter as per new API examples
+    title: title // Add the generated title here
   };
 
   // Add prompt only if it's not instrumental (lyrics_type: 'user')
@@ -131,7 +132,7 @@ export const createMusicGenerationTask = async ({
   console.log('Gender:', gender);
   console.log('Is Instrumental:', isInstrumental);
   console.log('Base Description (gpt_description_prompt):', inputPayload.gpt_description_prompt);
-  console.log('Title (Generated locally, not sent):', title);
+  console.log('Title (Sent to API):', title);
   if (!isInstrumental) {
     console.log('Prompt (Lyrics):', (inputPayload.prompt as string).substring(0, 200) + ((inputPayload.prompt as string).length > 200 ? '...' : ''));
   }

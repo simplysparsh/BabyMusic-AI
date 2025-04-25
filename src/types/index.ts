@@ -56,8 +56,8 @@ export interface SongVariation {
   audio_url: string;
   title?: string;
   metadata?: {
-    tags?: string;
-    prompt?: string;
+    api_variation_id?: string;
+    duration?: number;
   };
   created_at: Date;
 }

@@ -393,13 +393,20 @@ class SongOutputProcessor {
 
           Logger.log(`[WEBHOOK] Inserting variation index ${i} into song_variations for main song ${song.id}`);
 
-          const variationData: SongVariationInsert = {
-            song_id: song.id,
+          // Define the structure for the metadata JSONB field
+          const variationMetadata = {
             api_variation_id: apiSong.id,
-            audio_url: apiSong.song_path,
-            title: apiSong.title,
-            image_path: apiSong.image_path,
             duration: apiSong.duration,
+            // Add other metadata fields from apiSong if needed in the future
+          };
+
+          // Prepare data for insertion into song_variations
+          // Note: Using Record<string, any> for flexibility with Supabase types
+          const variationData: Record<string, any> = {
+            song_id: song.id,
+            audio_url: apiSong.song_path,
+            title: apiSong.title, // Keep title as a direct column
+            metadata: variationMetadata // Store other details in the JSONB column
           };
 
           const { error: insertError } = await this.db.supabase

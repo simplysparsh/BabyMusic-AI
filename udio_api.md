@@ -108,6 +108,8 @@ Udio extend uses `udio32` by default. That means you can only extend 32 seconds 
 
 # Get Task
 
+> **Note:** This endpoint is for polling task status. BabyMusic AI currently relies exclusively on webhooks for task completion notifications and **does not use this `Get Task` endpoint.** The OpenAPI definition below is provided for general API reference only. Refer to the "Webhook Payload Example" section for the structure received upon task completion via webhook.
+
 > This endpoint from [PiAPI's Suno API](https://piapi.ai/suno-api) retrieves the output of a Song generation task.
 
 ## OpenAPI
@@ -234,7 +236,7 @@ paths:
                             description: >-
                               The time when the task started processing. the
                               time from created_at to time of started_at is time
-                              the job spent in the "staged“ stage and/or
+                              the job spent in the "staged" stage and/or
                               the"pending" stage if there were any.
                           ended_at:
                             type: string
@@ -490,7 +492,7 @@ components:
                   description: >-
                     The time when the task started processing. the time from
                     created_at to time of started_at is time the job spent in
-                    the "staged“ stage and/or the"pending" stage if there were
+                    the "staged" stage and/or the"pending" stage if there were
                     any.
                 ended_at:
                   type: string
@@ -635,6 +637,8 @@ music-u: $0.05 / generation
 #### Examples
 Check [here](/docs/music-api/music-task-examples) for different examples when using the Song API.
 ::::
+
+> **Note:** The immediate response to this POST request typically contains the `task_id`. The actual song data (audio URL, etc.) is delivered later via the configured webhook when the task status becomes `completed`. Refer to the "Webhook Payload Example" section for the structure received upon task completion.
 
 ## OpenAPI
 
@@ -813,6 +817,107 @@ servers:
 security: []
 
 ```
+
+# Webhook Payload Example (Completed Task)
+
+> When a `music-u` task completes successfully, the API sends a payload to the configured webhook endpoint. The following is an example of the `data` object within that payload:
+
+```json
+{
+  "task_id": "0153143f-8b80-4092-b01d-76829e1a16ed",
+  "model": "music-u",
+  "task_type": "generate_music",
+  "status": "completed",
+  "config": {
+    "service_mode": "",
+    "webhook_config": {
+      "endpoint": "REDACTED_ENDPOINT",
+      "secret": "REDACTED_SECRET"
+    }
+  },
+  "input": {
+    "gpt_description_prompt": "Playful melody for potty training In the song, use the voice: softFemale",
+    "lyrics_type": "user",
+    "negative_tags": "rock, metal, aggressive, harsh",
+    "prompt": "Aaryan, Aaryan, time to go!\nGotta listen to your body, let it show.\nWhen you feel the urge, don't delay,\nAaryan, it's time to make your way!\n\nTo the potty, Aaryan, that's the place,\nSit right down, with a smile on your face.\nRelax and let it all come out,\nAaryan, you've got this, no need to pout!\n\nWash your hands, Aaryan, nice and clean,\nSoap and water, the best routine.\nYou're a big boy now, we're so proud,\nAaryan, your success, shout it out loud!\n\nPotty training's fun, Aaryan, you'll see,\nIt's a skill that will set you free.\nCelebrate each time you take a seat,\nAaryan, you're the best, can't be beat!",
+    "seed": -1
+  },
+  "output": {
+    "generation_id": "1151374f-8a80-4ad6-b766-6828bb0f460b",
+    "songs": [
+      {
+        "id": "674541ff-aee4-49de-8d9f-73345ea8bc0b",
+        "title": "Aaryan's Big Adventure",
+        "image_path": "https://imagedelivery.net/C9yUr1FL21Q6JwfYYh2ozQ/7c49c1ba-8e70-476f-2693-e988e7a9ae00/public",
+        "lyrics": "Aaryan, Aaryan, time to go! Gotta listen to your body, let it show. When you feel the urge, don't delay, Aaryan, it's time to make your way!  To the potty, Aaryan, that's the place, Sit right down, with a smile on your face. Relax and let it all come out, Aaryan, you've got this, no need to pout!  Wash your hands, Aaryan, nice and clean, Soap and water, the best routine. You're a big boy now, we're so proud, Aaryan, your success, shout it out loud!  Potty training's fun, Aaryan, you'll see, It's a skill that will set you free. Celebrate each time you take a seat, Aaryan, you're the best, can't be beat!",
+        "prompt": "Playful melody for potty training In the song, use the voice: softFemale",
+        "song_path": "https://storage.googleapis.com/udio-artifacts-c33fe3ba-3ffe-471f-92c8-5dfef90b3ea3/samples/972772c8c9e6446f8ca169fbd440e98c/1/The%2520Untitled.mp3",
+        "duration": 131.114666666667,
+        "finished": true,
+        "tags": [
+          "female vocalist",
+          "pop",
+          "warm",
+          "melodic",
+          "mellow",
+          "playful",
+          "soft"
+        ],
+        "error_type": null,
+        "error_code": null,
+        "error_detail": null
+      },
+      {
+        "id": "b9bf0622-682d-4193-9547-7b0a2a71b3e8",
+        "title": "Time to Shine, Aaryan",
+        "image_path": "https://imagedelivery.net/C9yUr1FL21Q6JwfYYh2ozQ/8f79ac64-e803-4b6e-213d-c15ca434f200/public",
+        "lyrics": "Aaryan, Aaryan, time to go! Gotta listen to your body, let it show. When you feel the urge, don't delay, Aaryan, it's time to make your way!  To the potty, Aaryan, that's the place, Sit right down, with a smile on your face. Relax and let it all come out, Aaryan, you've got this, no need to pout!  Wash your hands, Aaryan, nice and clean, Soap and water, the best routine. You're a big boy now, we're so proud, Aaryan, your success, shout it out loud!  Potty training's fun, Aaryan, you'll see, It's a skill that will set you free. Celebrate each time you take a seat, Aaryan, you're the best, can't be beat!",
+        "prompt": "Playful melody for potty training In the song, use the voice: softFemale",
+        "song_path": "https://storage.googleapis.com/udio-artifacts-c33fe3ba-3ffe-471f-92c8-5dfef90b3ea3/samples/972772c8c9e6446f8ca169fbd440e98c/2/The%2520Untitled.mp3",
+        "duration": 131.114666666667,
+        "finished": true,
+        "tags": [
+          "female vocalist",
+          "pop",
+          "melodic",
+          "love",
+          "teen pop",
+          "uplifting",
+          "energetic",
+          "rhythmic"
+        ],
+        "error_type": null,
+        "error_code": null,
+        "error_detail": null
+      }
+    ]
+  },
+  "meta": {
+    "created_at": "2025-04-25T17:07:45.765122491Z",
+    "started_at": "2025-04-25T17:07:46.618823883Z",
+    "ended_at": "2025-04-25T17:10:29.2624881Z",
+    "usage": {
+      "type": "point",
+      "frozen": 500000,
+      "consume": 500000
+    },
+    "is_using_private_pool": false
+  },
+  "detail": null,
+  "logs": null,
+  "error": {
+    "code": 0,
+    "raw_message": "",
+    "message": "",
+    "detail": null
+  }
+}
+```
+
+> **Key fields for webhook processing:**
+> *   `status`: Will be `"completed"` (or similar success status like `"complete"`).
+> *   `output.songs`: An array containing the generated song(s)/variation(s). The webhook handler should primarily use `song_path` from the first object (`output.songs[0]`) for the main audio URL and process subsequent objects as variations.
+> *   `error`: Should indicate no error (e.g., `code: 0`).
 
 
 

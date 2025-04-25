@@ -354,50 +354,41 @@ class SongOutputProcessor {
       try {
         if (i === 0) {
           // --- Process the FIRST song: Update the main 'songs' table record ---
-          Logger.log(`[WEBHOOK] Updating main song record ${song.id} with details from song index 0`);
-
-          const updateData: Record<string, any> = {
-            audio_url: apiSong.song_path,
-            error: null, // Clear any previous error
-            retryable: false,
-            updated_at: new Date().toISOString(),
-          };
-
+          // --- IMPORTANT: Only finalize the song state if the task is actually complete ---
           if (isComplete) {
-            updateData.task_id = null; // Clear task ID only on completion
-            Logger.log(`[WEBHOOK] Marking main song ${song.id} as COMPLETED`);
+            Logger.log(`[WEBHOOK] Updating main song record ${song.id} as COMPLETED`);
+            const updateData: Record<string, any> = {
+              audio_url: apiSong.song_path,
+              error: null, // Clear any previous error
+              retryable: false,
+              updated_at: new Date().toISOString(),
+              task_id: null // Clear task ID only on completion
+            };
+            
+            const { error: updateError } = await this.db.supabase
+              .from('songs')
+              .update(updateData)
+              .eq('id', song.id);
+
+            if (updateError) {
+              Logger.error(`[WEBHOOK] Failed to update main song ${song.id} as completed:`, updateError);
+              processingError = updateError;
+            } else {
+              Logger.log(`[WEBHOOK] Successfully updated main song ${song.id} as completed`);
+            }
           } else {
-             // Check if we need to set a temporary URL (only if no URL exists yet)
-             const currentSongState = await this.db.getSongCurrentState(song.id);
-             if (!currentSongState?.audio_url) {
-                Logger.log(`[WEBHOOK] Setting initial temporary URL for main song ${song.id}`);
-             } else {
-                Logger.log(`[WEBHOOK] Main song ${song.id} already has URL, skipping temporary update.`);
-                // Skip update if temporary URL already exists to avoid overwriting
-                continue;
-             }
-          }
-
-
-          const { error: updateError } = await this.db.supabase
-            .from('songs')
-            .update(updateData)
-            .eq('id', song.id);
-
-          if (updateError) {
-            Logger.error(`[WEBHOOK] Failed to update main song ${song.id} for index 0:`, updateError);
-            processingError = updateError; // Store error to potentially return later
-            // Decide if we should stop processing further variations on error
-            // For now, let's continue to try and save other variations
-          } else {
-            Logger.log(`[WEBHOOK] Successfully updated main song ${song.id} for index 0`);
+            // --- Task is NOT complete, DO NOT update with final audio URL or clear task ID ---
+            Logger.log(`[WEBHOOK] Skipping final update for main song ${song.id} because task status is '${status}'. Waiting for 'completed'.`);
+            // REMOVED logic that previously set a temporary URL here.
+            // We only want to set the URL and clear task_id when the task is definitively complete.
           }
 
         } else {
           // --- Process SUBSEQUENT songs (index > 0): Insert into 'song_variations' table ---
+          // --- Only save variations when the task is fully complete ---
           if (!isComplete) {
              Logger.log(`[WEBHOOK] Skipping variation index ${i} for song ${song.id} because task status is not complete.`);
-             continue; // Only save variations when the task is fully complete
+             continue;
           }
 
           Logger.log(`[WEBHOOK] Inserting variation index ${i} into song_variations for main song ${song.id}`);

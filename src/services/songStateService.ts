@@ -7,8 +7,7 @@ export enum SongState {
   GENERATING = 'generating',
   READY = 'ready',
   FAILED = 'failed',
-  INITIAL = 'initial',
-  PARTIALLY_READY = 'partially_ready'
+  INITIAL = 'initial'
 }
 
 /**
@@ -35,30 +34,28 @@ export class SongStateService {
       });
     }
     
-    // Song has error - it's in a failed state
+    // 1. Check for failure first
     if (song.error || song.retryable) return SongState.FAILED;
-    
-    // Song has audio_url and task_id - it's partially ready (audio available but still finalizing)
-    if (song.audio_url && song.task_id) {
-      if (shouldLog) console.log(`[STATE DECISION] Song ${song.id} is PARTIALLY_READY`);
-      return SongState.PARTIALLY_READY;
-    }
-    
-    // Song has audio_url but no task_id - it's fully ready
-    if (song.audio_url) {
-      if (shouldLog) console.log(`[STATE DECISION] Song ${song.id} is READY`);
-      return SongState.READY;
-    }
-    
-    // Song has task_id but no audio_url - it's still generating
-    if (song.task_id) {
-      if (shouldLog) console.log(`[STATE DECISION] Song ${song.id} is GENERATING`);
-      return SongState.GENERATING;
-    }
-    
-    // Default state for a new song
+
+    // 2. Check if it's fully ready/complete
+    if (this.isComplete(song)) return SongState.READY;
+
+    // 3. Check if it's currently generating (has task_id but isn't complete or failed)
+    if (song.task_id) return SongState.GENERATING;
+
+    // 4. If none of the above, it's likely in an initial pre-generation state
     if (shouldLog) console.log(`[STATE DECISION] Song ${song.id} is INITIAL`);
     return SongState.INITIAL;
+  }
+
+  /**
+   * Determines if a song has successfully completed generation.
+   * This is the definitive check for a finished, playable song.
+   */
+  static isComplete(song: Song | undefined): boolean {
+    if (!song) return false;
+    // Complete means no task_id, an audio_url, and no error.
+    return !song.task_id && !!song.audio_url && !song.error;
   }
 
   /**
@@ -109,22 +106,6 @@ export class SongStateService {
     return song.song_type === 'preset' && !!song.preset_type;
   }
 
-
-  /**
-   * Determines if a song is partially ready (has audio but still generating)
-   */
-  static isPartiallyReady(song: Song | undefined): boolean {
-    return this.getSongState(song) === SongState.PARTIALLY_READY;
-  }
-  
-  /**
-   * Determines if a song can be played (either fully or partially ready)
-   */
-  static isPlayable(song: Song | undefined): boolean {
-    const state = this.getSongState(song);
-    return state === SongState.READY || state === SongState.PARTIALLY_READY;
-  }
-
   /**
    * Gets the most appropriate song for a preset type from a collection of songs
    */
@@ -167,15 +148,29 @@ export class SongStateService {
     song: Song | undefined, 
     isGenerating: boolean
   ): string {
-    if (!song) {
-      return isGenerating ? 'Generating...' : 'Generate';
+    const state = this.getSongState(song);
+    
+    switch (state) {
+      case SongState.GENERATING:
+        return 'Generating...';
+      case SongState.FAILED:
+        return 'Retry';
+      case SongState.READY:
+        return 'Play';
+      case SongState.INITIAL:
+      default:
+        // If called externally with isGenerating=true, respect that
+        return isGenerating ? 'Generating...' : 'Generate';
     }
-    
-    if (isGenerating) return 'Generating...';
-    
-    if (song.error) return 'Retry';
-    if (song.audio_url) return 'Play';
-    
-    return 'Generate';
+  }
+
+  /**
+   * Determines if a song can be played.
+   * With the non-streaming API, this is equivalent to checking if it's complete.
+   */
+  static isPlayable(song: Song | undefined): boolean {
+    // TODO: If streaming is added later (e.g., with a streaming_url field),
+    // update this to: return this.isComplete(song) || !!song.streaming_url;
+    return this.isComplete(song);
   }
 }

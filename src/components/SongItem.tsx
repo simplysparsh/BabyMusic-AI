@@ -97,7 +97,7 @@ export default function SongItem({
             className={`transition-all duration-300 group flex items-center justify-center
                      ${isPlaying && currentSong === audioUrl 
                         ? 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-lg rounded-full p-2.5' 
-                        : 'text-white/60 hover:text-primary disabled:opacity-50 p-2.5'}`}
+                        : 'text-white/60 hover:text-primary disabled:opacity-50 p-2.5 disabled:cursor-not-allowed'}`}
           >
             {isPlaying && currentSong === audioUrl ? (
               <Pause className="w-5 h-5" />
@@ -108,14 +108,14 @@ export default function SongItem({
           <button
             disabled={!isPlayable}
             onClick={() => isPlayable && audioUrl && onDownloadClick(audioUrl, song.name)}
-            className="text-white/60 hover:text-accent disabled:opacity-50
+            className="text-white/60 hover:text-accent disabled:opacity-50 disabled:cursor-not-allowed
                      transition-all duration-300 group"
           >
             <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
           </button>
           <button
             disabled={!isPlayable}
-            className="text-white/60 hover:text-secondary disabled:opacity-50
+            className="text-white/60 hover:text-secondary disabled:opacity-50 disabled:cursor-not-allowed
                      transition-all duration-300 group"
           >
             <Share2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -127,43 +127,47 @@ export default function SongItem({
       {expandedVariations && hasVariations && song.variations && (
         <div className="mt-6 space-y-3 pl-6 border-l-2 border-primary/20">
           {song.variations.map((variation, index) => (
-            <div
-              key={variation.id}
-              className="flex items-center justify-between py-3 px-4 bg-white/[0.05]
-                       rounded-xl backdrop-blur-sm group/variation hover:bg-white/[0.08]
-                       transition-all duration-300"
-            >
-              <span className="text-white/80">
-                Variation {index + 1}
-              </span>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => variation.audio_url && onPlayClick(variation.audio_url, song.id)}
-                  className={`transition-all duration-300 flex items-center justify-center
-                           ${isPlaying && currentSong === variation.audio_url 
-                              ? 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-sm rounded-full p-1.5' 
-                              : 'text-white/60 hover:text-primary p-1.5'}`}
+            <div key={variation.id}>
+              {/* Only render variation if it has an audio_url - defensive check */}
+              {variation.audio_url && (
+                <div
+                  className="flex items-center justify-between py-3 px-4 bg-white/[0.05]
+                           rounded-xl backdrop-blur-sm group/variation hover:bg-white/[0.08]
+                           transition-all duration-300"
                 >
-                  {isPlaying && currentSong === variation.audio_url ? (
-                    <Pause className="w-4 h-4" />
-                  ) : (
-                    <Play className="w-4 h-4 group-hover/variation:scale-110 transition-transform" />
-                  )}
-                </button>
-                <button 
-                  onClick={() => variation.audio_url && onDownloadClick(variation.audio_url, `${song.name} - Variation ${index + 1}`)}
-                  className="text-white/60 hover:text-accent transition-all duration-300"
-                >
-                  <Download className="w-4 h-4 group-hover/variation:scale-110 transition-transform" />
-                </button>
-              </div>
+                  <span className="text-white/80">
+                    Variation {index + 1}
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => variation.audio_url && onPlayClick(variation.audio_url, song.id)}
+                      className={`transition-all duration-300 flex items-center justify-center
+                                ${isPlaying && currentSong === variation.audio_url 
+                                  ? 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-sm rounded-full p-1.5' 
+                                  : 'text-white/60 hover:text-primary p-1.5'}`}
+                    >
+                      {isPlaying && currentSong === variation.audio_url ? (
+                        <Pause className="w-4 h-4" />
+                      ) : (
+                        <Play className="w-4 h-4 group-hover/variation:scale-110 transition-transform" />
+                      )}
+                    </button>
+                    <button 
+                      onClick={() => variation.audio_url && onDownloadClick(variation.audio_url, `${song.name} - Variation ${index + 1}`)}
+                      className="text-white/60 hover:text-accent transition-all duration-300"
+                    >
+                      <Download className="w-4 h-4 group-hover/variation:scale-110 transition-transform" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
 
       {/* Generation progress */}
-      {!isPlayable && (
+      {(isGenerating || hasFailed) && (
         <div className="mt-2">
           <div className="h-1 bg-primary/20 rounded-full overflow-hidden">
             <div className={`h-full bg-primary animate-pulse ${

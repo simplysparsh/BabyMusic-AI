@@ -28,7 +28,6 @@ export default function SongItem({
   const isGenerating = SongStateService.isGenerating(song);
   const hasFailed = SongStateService.hasFailed(song);
   const hasVariations = SongStateService.hasVariations(song);
-  const isReady = SongStateService.isReady(song);
   const canRetry = SongStateService.canRetry(song);
   const isPlayable = SongStateService.isPlayable(song);
 

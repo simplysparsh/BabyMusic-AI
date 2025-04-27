@@ -11,6 +11,7 @@ interface PresetCardProps {
   iconComponent: ComponentType<React.SVGProps<SVGSVGElement>>;
   songs: Song[];
   isPlaying: boolean;
+  currentPlayingUrl: string | null;
   onPlayClick: (audioUrl: string, type: PresetType) => void;
   onGenerateClick: (type: PresetType) => void;
   onVariationChange: (e: MouseEvent<HTMLDivElement>, type: PresetType, direction: 'next' | 'prev') => void;
@@ -24,6 +25,7 @@ export default function PresetSongCard({
   iconComponent: Icon,
   songs,
   isPlaying,
+  currentPlayingUrl,
   onPlayClick,
   onGenerateClick,
   onVariationChange,
@@ -57,11 +59,6 @@ export default function PresetSongCard({
     [songState]
   );
   
-  const isPartiallyReady = useMemo(() => 
-    songState === SongState.PARTIALLY_READY,
-    [songState]
-  );
-  
   const hasVariations = useMemo(() => 
     SongStateService.hasVariations(currentSong),
     [currentSong]
@@ -72,6 +69,9 @@ export default function PresetSongCard({
     [currentSong]
   );
   
+  // Calculate total versions including the main song
+  const totalVersions = useMemo(() => 1 + variationCount, [variationCount]);
+  
   const canRetry = useMemo(() => 
     SongStateService.canRetry(currentSong),
     [currentSong]
@@ -79,7 +79,7 @@ export default function PresetSongCard({
   
   // Use direct state checks instead of the isGenerating prop
   const isGeneratingOrPartiallyReady = useMemo(() => 
-    songState === SongState.GENERATING || songState === SongState.PARTIALLY_READY,
+    songState === SongState.GENERATING,
     [songState]
   );
   
@@ -93,6 +93,17 @@ export default function PresetSongCard({
     currentSong ? currentSong.audio_url : undefined,
     [currentSong]
   );
+  
+  // Get the audio URL of the currently selected version (main or variation)
+  const urlOfCurrentVersion = useMemo(() => {
+    if (!currentSong) return undefined;
+    if (currentVariationIndex === 0) {
+      return currentSong.audio_url;
+    } else if (currentSong.variations && currentSong.variations[currentVariationIndex - 1]) {
+      return currentSong.variations[currentVariationIndex - 1].audio_url;
+    }
+    return undefined;
+  }, [currentSong, currentVariationIndex]);
   
   // Debugging for song state changes
   useEffect(() => {
@@ -112,18 +123,7 @@ export default function PresetSongCard({
     
     console.log(`[UI UPDATE] PresetSongCard ${type}: Song state changed to ${songState} at ${timestamp} [${sequenceId}]`);
     
-    // For debugging transitions from generating to partially ready
-    if (songState === SongState.PARTIALLY_READY) {
-      console.log(`[PARTIAL READY] PresetSongCard ${type}: Song is now PARTIALLY_READY:`, {
-        songId: currentSong?.id,
-        hasAudio: currentSong?.audio_url ? true : false,
-        hasTaskId: currentSong?.task_id ? true : false,
-        timestamp,
-        sequenceId
-      });
-    }
-    
-    // For debugging transitions from partially ready to ready
+    // For debugging transitions to ready
     if (songState === SongState.READY) {
       console.log(`[READY] PresetSongCard ${type}: Song is now READY:`, {
         songId: currentSong?.id,
@@ -160,17 +160,15 @@ export default function PresetSongCard({
     console.log(`Card click for ${type} preset:`, {
       songState,
       isReady,
-      isPartiallyReady,
-      audioUrl: audioUrl || 'none',
+      selectedVersionUrl: urlOfCurrentVersion || 'none',
       songId: currentSong?.id || 'none'
     });
     
     switch (songState) {
       case SongState.READY:
-      case SongState.PARTIALLY_READY:
-        // Play the song if it's ready or partially ready and has an audio URL
-        if (audioUrl) {
-          onPlayClick(audioUrl, type);
+        // Play the currently selected version if it's ready and has a URL
+        if (urlOfCurrentVersion) {
+          onPlayClick(urlOfCurrentVersion, type);
         }
         break;
         
@@ -186,7 +184,7 @@ export default function PresetSongCard({
         onGenerateClick(type);
         break;
     }
-  }, [songState, audioUrl, type, onPlayClick, onGenerateClick, canRetry, isReady, isPartiallyReady, currentSong?.id, currentSong?.audio_url]);
+  }, [songState, urlOfCurrentVersion, type, onPlayClick, onGenerateClick, canRetry, isReady, currentSong?.id, currentSong?.audio_url]);
 
   // Get color scheme based on preset type
   const getColorScheme = () => {
@@ -230,6 +228,9 @@ export default function PresetSongCard({
 
   // Render the status indicator based on song state
   const renderStatusIndicator = () => {
+    // Determine if the *currently selected* version is the one playing
+    const isThisVersionPlaying = isPlaying && currentPlayingUrl === urlOfCurrentVersion;
+
     if (songState === SongState.GENERATING) {
       return (
         <span className="inline-flex items-center text-xs bg-primary/20 text-white
@@ -241,24 +242,6 @@ export default function PresetSongCard({
             compact={true}
             className="!m-0 !p-0"
           />
-        </span>
-      );
-    }
-    
-    if (songState === SongState.PARTIALLY_READY) {
-      // Subtle indicator for partially ready songs - softer green with small dot
-      return (
-        <span className="inline-flex items-center text-xs bg-gradient-to-br from-black/80 to-black/90 text-green-400
-                       px-3 py-1.5 rounded-full ml-2 border border-green-500/30
-                       shadow-lg z-10 whitespace-nowrap">
-          {isPlaying ? (
-            <Pause className="w-3 h-3 mr-1" />
-          ) : (
-            <Play className="w-3 h-3 mr-1" />
-          )}
-          {isPlaying ? "Pause" : "Play"}
-          <span className="w-1.5 h-1.5 bg-green-400/70 rounded-full ml-1.5 animate-pulse" 
-                title="Song is still being improved, but you can play it now"></span>
         </span>
       );
     }
@@ -279,12 +262,12 @@ export default function PresetSongCard({
         <span className="inline-flex items-center text-xs bg-gradient-to-br from-black/80 to-black/90 text-green-400
                        px-3 py-1.5 rounded-full ml-2 border border-green-500/30
                        shadow-lg z-10 whitespace-nowrap">
-          {isPlaying ? (
+          {isThisVersionPlaying ? (
             <Pause className="w-3 h-3 mr-1" />
           ) : (
             <Play className="w-3 h-3 mr-1" />
           )}
-          {isPlaying ? "Pause" : statusLabel}
+          {isThisVersionPlaying ? "Pause" : statusLabel}
         </span>
       );
     }
@@ -343,32 +326,33 @@ export default function PresetSongCard({
             <span className="text-primary animate-pulse inline-block">
               Creating your special song...
             </span>
-          ) : songState === SongState.PARTIALLY_READY ? (
-            <span className="text-green-400">
-              Song's ready to play—just finalizing it now...
-            </span>
           ) : description}
         </p>
         {hasVariations && songState !== SongState.GENERATING && currentSong && (
           <div className="flex items-center gap-1 mt-3 text-white/60">
+            {/* Previous button - Disable if only 1 version */}
             <div
               role="button"
-              tabIndex={0}
-              onClick={(e: MouseEvent<HTMLDivElement>) => onVariationChange(e, type, 'prev')}
-              onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => e.key === 'Enter' && onVariationChange(e as unknown as MouseEvent<HTMLDivElement>, type, 'prev')}
-              className="p-1 rounded-full hover:bg-white/10 transition-colors"
+              tabIndex={totalVersions > 1 ? 0 : -1}
+              aria-disabled={totalVersions <= 1}
+              onClick={(e: MouseEvent<HTMLDivElement>) => totalVersions > 1 && onVariationChange(e, type, 'prev')}
+              onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => totalVersions > 1 && e.key === 'Enter' && onVariationChange(e as unknown as MouseEvent<HTMLDivElement>, type, 'prev')}
+              className={`p-1 rounded-full transition-colors ${totalVersions > 1 ? 'hover:bg-white/10' : 'opacity-50 cursor-default'}`}
             >
               <ChevronLeft className="w-3 h-3" />
             </div>
+            {/* Counter uses totalVersions */}
             <span className="text-xs">
-              {currentVariationIndex + 1}/{variationCount}
+              {currentVariationIndex + 1}/{totalVersions} 
             </span>
+            {/* Next button - Disable if only 1 version */}
             <div
               role="button"
-              tabIndex={0}
-              onClick={(e: MouseEvent<HTMLDivElement>) => onVariationChange(e, type, 'next')}
-              onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => e.key === 'Enter' && onVariationChange(e as unknown as MouseEvent<HTMLDivElement>, type, 'next')}
-              className="p-1 rounded-full hover:bg-white/10 transition-colors"
+              tabIndex={totalVersions > 1 ? 0 : -1}
+              aria-disabled={totalVersions <= 1}
+              onClick={(e: MouseEvent<HTMLDivElement>) => totalVersions > 1 && onVariationChange(e, type, 'next')}
+              onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => totalVersions > 1 && e.key === 'Enter' && onVariationChange(e as unknown as MouseEvent<HTMLDivElement>, type, 'next')}
+              className={`p-1 rounded-full transition-colors ${totalVersions > 1 ? 'hover:bg-white/10' : 'opacity-50 cursor-default'}`}
             >
               <ChevronRight className="w-3 h-3" />
             </div>

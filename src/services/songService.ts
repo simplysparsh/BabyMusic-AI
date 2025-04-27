@@ -11,8 +11,11 @@ import type {
   Tempo,
   VoiceType,
   AgeGroup,
-  SongVariation
+  SongVariation,
+  UserProfile,
+  MusicGenerationParams
 } from '../types';
+import type { SongPayload, VariationPayload } from '../store/song/types';
 
 // Define a type to bridge database schema columns and Song interface
 type DatabaseSong = {
@@ -55,7 +58,7 @@ type DatabaseSongVariation = {
  * @param dbSong The database song record
  * @returns A song that matches the Song interface
  */
-export function mapDatabaseSongToSong(dbSong: DatabaseSong): Song {
+export function mapDatabaseSongToSong(dbSong: any): Song {
   // Convert database variations to SongVariation format if present
   const variations: SongVariation[] | undefined = dbSong.variations?.map(v => ({
     id: v.id,
@@ -77,11 +80,23 @@ export function mapDatabaseSongToSong(dbSong: DatabaseSong): Song {
     createdAt: new Date(dbSong.created_at),
     userId: dbSong.user_id,
     retryable: dbSong.retryable,
-    variations,
+    variations: variations ? (variations as any[]) : [],
     error: dbSong.error || undefined,
     task_id: dbSong.task_id || undefined,
     song_type: dbSong.song_type,
     preset_type: dbSong.preset_type || undefined
+  };
+}
+
+// Add the new mapping function for variations
+export function mapDatabaseVariationToVariation(dbVariation: any): SongVariation {
+  return {
+    id: dbVariation.id,
+    songId: dbVariation.song_id,
+    audio_url: dbVariation.audio_url,
+    title: dbVariation.title,
+    metadata: dbVariation.metadata as any, // Cast metadata
+    created_at: new Date(dbVariation.created_at), // Use created_at (snake_case)
   };
 }
 

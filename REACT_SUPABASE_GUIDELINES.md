@@ -154,22 +154,21 @@ await supabase.from('songs').update({
 Create explicit handlers for difficult transitions:
 
 ```typescript
-// Handle GENERATING → PARTIALLY_READY transition
-function handlePartialReadyTransition(song) {
-  // Create a new object reference to ensure React detects the change
-  return {
-    ...song,
-    _lastUpdated: new Date().toISOString(),
-    _stateTransition: 'GENERATING_TO_PARTIALLY_READY'
-  };
-}
-
-// Handle PARTIALLY_READY → READY transition
+// Handle GENERATING → READY transition
 function handleReadyTransition(song) {
   return {
     ...song,
     _lastUpdated: new Date().toISOString(),
-    _stateTransition: 'PARTIALLY_READY_TO_READY'
+    _stateTransition: 'GENERATING_TO_READY'
+  };
+}
+
+// Handle FAILED transition
+function handleFailedTransition(song) {
+  return {
+    ...song,
+    _lastUpdated: new Date().toISOString(),
+    _stateTransition: 'GENERATING_TO_FAILED'
   };
 }
 ```
@@ -202,4 +201,43 @@ console.log(`Song state transition: ${previousState} → ${newState}`, {
 });
 ```
 
-Following these patterns ensures React will reliably detect changes from Supabase, maintaining consistent UI state transitions across your application. 
+Following these patterns ensures React will reliably detect changes from Supabase, maintaining consistent UI state transitions across your application.
+
+### Song Subscription Handlers (`src/store/song/handlers/songSubscriptionHandlers.ts`)
+
+Handle state transitions reliably:
+
+```typescript
+// Inside handleSongUpdate
+
+// ... determine old and new states ...
+
+// Handle state transitions based on `SongStateService`
+if (transitionToReady) {
+  // Update song state
+  batchUpdate(...);
+}
+
+// Handle FAILED transition
+if (transitionToFailed) {
+  batchUpdate(...);
+}
+
+// Handle GENERATING state updates (e.g., task ID change)
+if (stillGenerating) {
+  batchUpdate(...);
+}
+```
+
+Example transitions:
+
+```typescript
+// Example transition: Song starts generating
+_stateTransition: 'INITIAL_TO_GENERATING'
+
+// Example transition: Webhook completes, song is ready
+_stateTransition: 'GENERATING_TO_READY'
+
+// Example transition: Generation fails
+_stateTransition: 'GENERATING_TO_FAILED'
+``` 

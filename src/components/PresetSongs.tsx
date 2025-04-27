@@ -68,7 +68,6 @@ const PresetSongs: FC = () => {
         {PRESETS.map(({ type, icon, title, description }) => {
           // Find the song for this preset type
           const song = songs.find(s => s.preset_type === type);
-          const audioUrl = song?.audio_url;
           
           return (
             <PresetSongCard
@@ -78,7 +77,8 @@ const PresetSongs: FC = () => {
               description={description}
               iconComponent={icon}
               songs={songs}
-              isPlaying={isPlaying && currentPlayingUrl === audioUrl}
+              isPlaying={isPlaying}
+              currentPlayingUrl={currentPlayingUrl}
               onPlayClick={(url) => handlePlay(url)}
               onGenerateClick={handlePresetClick}
               onVariationChange={handleVariationChange}

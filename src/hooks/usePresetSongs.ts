@@ -54,7 +54,7 @@ export default function usePresetSongs() {
 
     const currentSong = SongStateService.getSongForPresetType(songs, type);
     const songState = currentSong ? SongStateService.getSongState(currentSong) : SongState.INITIAL;
-    const isGenerating = songState === SongState.GENERATING || songState === SongState.PARTIALLY_READY;
+    const isGenerating = songState === SongState.GENERATING;
     const hasFailed = songState === SongState.FAILED;
     
     // If the song is already generating, do nothing
@@ -101,31 +101,45 @@ export default function usePresetSongs() {
   ) => {
     e.stopPropagation(); // Prevent card click
     
-    // Get the current song for this preset type
     const song = SongStateService.getSongForPresetType(songs, type);
-    
-    // Get variation count directly
-    const variationCount = song ? SongStateService.getVariationCount(song) : 0;
-    
-    if (!variationCount || variationCount <= 1 || !song?.variations) return;
-    
-    // Get current index for this type
+    if (!song) return; // No song found for this type
+
+    // Calculate total number of playable versions (main song + variations)
+    const variationCount = SongStateService.getVariationCount(song);
+    const totalVersions = 1 + variationCount;
+
+    // Don't allow changing if there's only the main song
+    if (totalVersions <= 1) return;
+
+    // Get current index (0 represents the main song)
     const currentIndex = variationIndices[type] || 0;
     
-    // Calculate new index
+    // Calculate new index (0 to totalVersions - 1)
     const newIndex = direction === 'next'
-      ? (currentIndex + 1) % variationCount
-      : (currentIndex - 1 + variationCount) % variationCount;
+      ? (currentIndex + 1) % totalVersions
+      : (currentIndex - 1 + totalVersions) % totalVersions;
     
-    // Update variation index
+    // Update variation index state
     setVariationIndices(prev => ({
       ...prev,
       [type]: newIndex
     }));
     
-    // Play the audio if available
-    if (song.variations[newIndex]?.audio_url) {
-      playAudio(song.variations[newIndex].audio_url);
+    // Determine the URL to play based on the new index
+    let urlToPlay: string | undefined;
+    if (newIndex === 0) {
+      // Index 0 is the main song
+      urlToPlay = song.audio_url;
+    } else if (song.variations && song.variations[newIndex - 1]) {
+      // Indices 1+ correspond to variations array (index - 1)
+      urlToPlay = song.variations[newIndex - 1].audio_url;
+    }
+
+    // Play the audio if a valid URL was found
+    if (urlToPlay) {
+      playAudio(urlToPlay);
+    } else {
+      console.warn(`No audio URL found for ${type} at index ${newIndex}`);
     }
   }, [songs, playAudio, variationIndices]);
 

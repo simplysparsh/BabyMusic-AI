@@ -328,8 +328,8 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       }
       
       const songsToReset = songs.filter(song => 
-        // Only reset songs that are in GENERATING or PARTIALLY_READY state
-        SongStateService.isGenerating(song) || SongStateService.isPartiallyReady(song)
+        // Only reset songs that are in GENERATING state
+        SongStateService.isGenerating(song)
       );
       
       if (songsToReset.length === 0) {

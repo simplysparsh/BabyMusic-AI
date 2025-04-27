@@ -197,9 +197,6 @@ export async function handleSongUpdate(
       updateSongProcessingState(updatedSong.task_id, false, get);
       return; // Exit after handling READY state
 
-    // NOTE: There is no explicit PARTIALLY_READY state in SongStateEnum.
-    // This condition (has audio, has task_id) is now handled within GENERATING.
-      
     case SongStateEnum.FAILED:
       // Song generation failed (has error or retryable flag)
       console.log(`Song ${updatedSong.id} state is FAILED. Error: ${updatedSong.error}`);

@@ -88,11 +88,7 @@ export default function PresetSongCard({
     [currentSong, isGeneratingOrPartiallyReady]
   );
   
-  // Get the audio URL
-  const audioUrl = useMemo(() => 
-    currentSong ? currentSong.audio_url : undefined,
-    [currentSong]
-  );
+  // Removed unused variable
   
   // Get the audio URL of the currently selected version (main or variation)
   const urlOfCurrentVersion = useMemo(() => {

@@ -6,15 +6,14 @@ Baby Music AI includes a collection of utility scripts for development, testing,
 
 ### API Testing
 
-- **test-webhook.ts**: Tests the PIAPI.ai webhook integration by simulating webhook callbacks.
-  ```bash
-  npm run test:webhook
-  ```
+- **test-webhook.ts**: Simulates webhook calls to test the webhook function locally.
 
-- **test-suno-api.ts**: Tests the integration with the Suno API (PIAPI.ai) for music generation.
-  ```bash
-  npm run test:suno
-  ```
+**Usage**:
+
+```bash
+# Test webhook locally
+npm run test:webhook
+```
 
 ## Maintenance/DB Management Scripts
 

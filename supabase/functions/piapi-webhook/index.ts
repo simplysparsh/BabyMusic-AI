@@ -476,9 +476,6 @@ class ErrorProcessor {
     if (errorMsg.includes("doesn't have enough credits")) {
       errorMsg = 'Service temporarily unavailable. Please try again.';
       retryable = true;
-    } else if (errorMsg.includes('suno api status: 429')) {
-      errorMsg = 'Too many requests. Please wait a moment and try again.';
-      retryable = true;
     }
 
     Logger.log('Task failed:', {

@@ -13,8 +13,7 @@
     "preview": "vite preview",
     "supabase": "supabase",
     "deploy:function": "supabase functions deploy piapi-webhook --project-ref ustflrmqamppbghixjyl",
-    "test:webhook": "tsx scripts/test-webhook.ts",
-    "test:suno": "tsx scripts/test-suno-api.ts"
+    "test:webhook": "tsx scripts/test-webhook.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",

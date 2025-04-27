@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, Download, Share2, ChevronDown, RefreshCw } from 'lucide-react';
+import { Play, Pause, ChevronDown, RefreshCw, Music } from 'lucide-react';
 import { SongStateService } from '../services/songStateService';
 import type { Song } from '../types';
 import { useSongStore } from '../store/songStore';
@@ -12,7 +12,6 @@ interface SongItemProps {
   currentSong: string | null;
   isPlaying: boolean;
   onPlayClick: (audioUrl: string, songId: string) => void;
-  onDownloadClick: (audioUrl: string, title: string) => void;
 }
 
 export default function SongItem({
@@ -20,7 +19,6 @@ export default function SongItem({
   currentSong,
   isPlaying,
   onPlayClick,
-  onDownloadClick
 }: SongItemProps) {
   const [expandedVariations, setExpandedVariations] = useState(false);
   const { retryingSongs, setRetrying } = useSongStore();
@@ -69,140 +67,116 @@ export default function SongItem({
   };
 
   return (
-    <div className="card p-6 group hover:bg-white/[0.09] transition-all duration-500 mb-4
-                   bg-black/40 backdrop-blur-sm border border-white/10 hover:border-white/20">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-white font-medium text-lg mb-1">{song.name}</h3>
-          <p className="text-sm text-white/60">
-            {`${song.mood || ''} ${song.theme ? `• ${song.theme}` : ''}`}
-          </p>
-        </div>
-        <div className="flex items-center space-x-3">
-          {hasVariations && (
-            <button
-              onClick={toggleExpand}
-              className="text-white/60 hover:text-primary transition-all duration-300"
-            >
-              <ChevronDown
-                className={`w-5 h-5 transform transition-transform ${
-                  expandedVariations ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
-          )}
-          <button
-            onClick={() => isPlayable && audioUrl && onPlayClick(audioUrl, song.id)}
-            disabled={!isPlayable}
-            className={`transition-all duration-300 group flex items-center justify-center
-                     ${isPlaying && currentSong === audioUrl 
-                        ? 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-lg rounded-full p-2.5' 
-                        : 'text-white/60 hover:text-primary disabled:opacity-50 p-2.5 disabled:cursor-not-allowed'}`}
-          >
-            {isPlaying && currentSong === audioUrl ? (
-              <Pause className="w-5 h-5" />
-            ) : (
-              <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            )}
-          </button>
-          <button
-            disabled={!isPlayable}
-            onClick={() => isPlayable && audioUrl && onDownloadClick(audioUrl, song.name)}
-            className="text-white/60 hover:text-accent disabled:opacity-50 disabled:cursor-not-allowed
-                     transition-all duration-300 group"
-          >
-            <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          </button>
-          <button
-            disabled={!isPlayable}
-            className="text-white/60 hover:text-secondary disabled:opacity-50 disabled:cursor-not-allowed
-                     transition-all duration-300 group"
-          >
-            <Share2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          </button>
-        </div>
+    <div className="card group mb-4 flex items-center gap-4 sm:gap-6 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent p-4 shadow-lg transition-all duration-300 hover:border-white/20 hover:bg-white/[0.07]">
+      <div className="hidden sm:flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 shadow-inner">
+        <Music className="h-8 w-8 text-primary/80" />
       </div>
-      
-      {/* Variations section */}
-      {expandedVariations && hasVariations && song.variations && (
-        <div className="mt-6 space-y-3 pl-6 border-l-2 border-primary/20">
-          {song.variations.map((variation, index) => (
-            <div key={variation.id}>
-              {/* Only render variation if it has an audio_url - defensive check */}
-              {variation.audio_url && (
-                <div
-                  className="flex items-center justify-between py-3 px-4 bg-white/[0.05]
-                           rounded-xl backdrop-blur-sm group/variation hover:bg-white/[0.08]
-                           transition-all duration-300"
-                >
-                  <span className="text-white/80">
-                    Variation {index + 1}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => variation.audio_url && onPlayClick(variation.audio_url, song.id)}
-                      className={`transition-all duration-300 flex items-center justify-center
-                                ${isPlaying && currentSong === variation.audio_url 
-                                  ? 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-sm rounded-full p-1.5' 
-                                  : 'text-white/60 hover:text-primary p-1.5'}`}
-                    >
-                      {isPlaying && currentSong === variation.audio_url ? (
-                        <Pause className="w-4 h-4" />
-                      ) : (
-                        <Play className="w-4 h-4 group-hover/variation:scale-110 transition-transform" />
-                      )}
-                    </button>
-                    <button 
-                      onClick={() => variation.audio_url && onDownloadClick(variation.audio_url, `${song.name} - Variation ${index + 1}`)}
-                      className="text-white/60 hover:text-accent transition-all duration-300"
-                    >
-                      <Download className="w-4 h-4 group-hover/variation:scale-110 transition-transform" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
 
-      {/* Generation progress */}
-      {(isGenerating || hasFailed) && (
-        <div className="mt-2">
-          <div className="h-1 bg-primary/20 rounded-full overflow-hidden">
-            <div className={`h-full bg-primary animate-pulse ${
-              hasFailed ? 'bg-red-400 !animate-none' : ''
-            }`}></div>
+      <div className="flex-grow overflow-hidden">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-grow overflow-hidden">
+            <h3 className="truncate text-base font-medium text-white sm:text-lg">
+              {song.name}
+            </h3>
+            <p className="truncate text-xs text-white/60 sm:text-sm">
+              {`${song.mood || ''} ${song.theme ? `• ${song.theme}` : ''}`}
+            </p>
           </div>
-          <div className="flex items-center justify-between mt-1">
-            {isGenerating ? (
-              <SongGenerationTimer 
-                isGenerating={isGenerating} 
-                showProgress={false}
-                className="w-full"
-              />
-            ) : (
-              <p className={`text-xs text-white/60 ${hasFailed ? '!text-red-400' : ''}`}>
-                {isReady ? 'Ready to play' : (song.error || 'Processing...')}
-              </p>
-            )}
-            {canRetry && (
+          
+          <div className="flex flex-shrink-0 items-center space-x-2">
+            {hasVariations && (
               <button
-                onClick={handleRetry}
-                disabled={isRetrying}
-                className={`text-xs flex items-center ${
-                  song.error && song.error.includes('timed out') 
-                    ? 'text-white bg-primary hover:bg-primary/80' 
-                    : 'text-white bg-primary/20 hover:bg-primary/30'
-                } px-2 py-1 rounded transition-all ${isRetrying ? 'opacity-50' : ''}`}
+                onClick={toggleExpand}
+                className="text-white/60 transition-all duration-300 hover:text-primary"
+                aria-label="Toggle variations"
               >
-                <RefreshCw className={`w-3 h-3 mr-1 ${isRetrying ? 'animate-spin' : ''}`} />
-                {isRetrying ? 'Retrying...' : 'Retry'}
+                <ChevronDown
+                  className={`h-5 w-5 transform transition-transform ${
+                    expandedVariations ? 'rotate-180' : ''
+                  }`}
+                />
               </button>
             )}
+            <button
+              onClick={() => isPlayable && audioUrl && onPlayClick(audioUrl, song.id)}
+              disabled={!isPlayable}
+              aria-label={isPlaying && currentSong === audioUrl ? "Pause" : "Play"}
+              className={`transition-all duration-300 group flex items-center justify-center p-2.5 rounded-full 
+                       ${isPlaying && currentSong === audioUrl 
+                          ? 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-lg' 
+                          : 'text-white/70 hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed bg-white/10 hover:bg-white/20'}`}
+            >
+              {isPlaying && currentSong === audioUrl ? (
+                <Pause className="w-5 h-5" />
+              ) : (
+                <Play className="w-5 h-5 transition-transform group-hover:scale-110" />
+              )}
+            </button>
           </div>
         </div>
-      )}
+
+        {expandedVariations && hasVariations && song.variations && (
+          <div className="mt-4 space-y-2 border-l-2 border-primary/20 pl-4 sm:pl-6">
+            {song.variations.map((variation, index) => (
+              <div key={variation.id}>
+                {variation.audio_url && (
+                  <div className="group/variation flex items-center justify-between rounded-lg bg-white/[0.05] px-3 py-2 transition-all duration-300 hover:bg-white/[0.08]">
+                    <span className="text-sm text-white/80">
+                      Variation {index + 1}
+                    </span>
+                    <div className="flex items-center space-x-1.5">
+                      <button
+                        onClick={() => variation.audio_url && onPlayClick(variation.audio_url, song.id)}
+                        aria-label={isPlaying && currentSong === variation.audio_url ? "Pause variation" : "Play variation"}
+                        className={`transition-all duration-300 flex items-center justify-center rounded-full p-1.5 
+                                  ${isPlaying && currentSong === variation.audio_url 
+                                    ? 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-sm' 
+                                    : 'text-white/60 hover:text-primary bg-white/10 hover:bg-white/20'}`}
+                      >
+                        {isPlaying && currentSong === variation.audio_url ? (
+                          <Pause className="w-4 h-4" />
+                        ) : (
+                          <Play className="w-4 h-4 transition-transform group-hover/variation:scale-110" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {(isGenerating || hasFailed) && (
+          <div className="mt-3">
+            <div className="h-1 overflow-hidden rounded-full bg-primary/20">
+              <div className={`h-full bg-primary ${hasFailed ? 'bg-red-400' : 'animate-pulse'}`}></div>
+            </div>
+            <div className="mt-1 flex items-center justify-between">
+              <p className={`text-xs ${hasFailed ? 'text-red-400' : 'text-white/60'}`}>
+                {isGenerating ? (
+                  <SongGenerationTimer 
+                    isGenerating={isGenerating} 
+                    showProgress={false}
+                    className="w-full"
+                  />
+                ) : (song.error || 'Processing...')}
+              </p>
+              {canRetry && (
+                <button
+                  onClick={handleRetry}
+                  disabled={isRetrying}
+                  className={`text-xs flex items-center px-2 py-1 rounded transition-all ${isRetrying ? 'opacity-50' : ''}
+                           ${song.error && song.error.includes('timed out') ? 'text-white bg-primary hover:bg-primary/80' : 'text-white bg-primary/20 hover:bg-primary/30'}`}
+                >
+                  <RefreshCw className={`w-3 h-3 mr-1 ${isRetrying ? 'animate-spin' : ''}`} />
+                  {isRetrying ? 'Retrying...' : 'Retry'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

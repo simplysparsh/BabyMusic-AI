@@ -13,23 +13,6 @@ export default function SongList() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const handleDownload = async (audioUrl: string, title: string) => {
-    try {
-      const response = await fetch(audioUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${title}.mp3`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('Failed to download audio:', error);
-    }
-  };
-
   useEffect(() => {
     if (user) {
       console.log('Loading songs for user:', user.id);
@@ -154,9 +137,8 @@ export default function SongList() {
             key={song.id}
             song={song}
             currentSong={currentUrl}
-            isPlaying={isPlaying && currentUrl === song.audio_url}
+            isPlaying={isPlaying}
             onPlayClick={handlePlay}
-            onDownloadClick={handleDownload}
           />
         ))}
       </div>

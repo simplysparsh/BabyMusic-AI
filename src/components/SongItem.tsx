@@ -153,7 +153,7 @@ export default function SongItem({
               <div className={`h-full bg-primary ${hasFailed ? 'bg-red-400' : 'animate-pulse'}`}></div>
             </div>
             <div className="mt-1 flex items-center justify-between">
-              <p className={`text-xs ${hasFailed ? 'text-red-400' : 'text-white/60'}`}>
+              <div className={`text-xs ${hasFailed ? 'text-red-400' : 'text-white/60'}`}>
                 {isGenerating ? (
                   <SongGenerationTimer 
                     isGenerating={isGenerating} 
@@ -161,7 +161,7 @@ export default function SongItem({
                     className="w-full"
                   />
                 ) : (song.error || 'Processing...')}
-              </p>
+              </div>
               {canRetry && (
                 <button
                   onClick={handleRetry}

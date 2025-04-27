@@ -29,13 +29,32 @@ export default function MusicGenerator() {
   const { createSong, songs } = useSongStore();
   const { user } = useAuthStore();
   
-  // Check if any songs are currently generating
-  const isGenerating = songs.some(song => 
-    song.task_id && (!song.audio_url || song.audio_url === null)
-  );
-  
-  // Use the centralized timer hook
-  const { timeLeft, totalTime, formattedTime, progress } = useSongGenerationTimer(isGenerating);
+  // Identify if a non-preset song is currently generating
+  const getGeneratingNonPresetSong = () => {
+    return songs.find(song => 
+      song.task_id && 
+      !song.audio_url && 
+      song.song_type && 
+      song.song_type !== 'preset'
+    );
+  };
+
+  const generatingNonPresetSong = getGeneratingNonPresetSong();
+  const isNonPresetGenerating = !!generatingNonPresetSong;
+
+  // Determine if the create button should be disabled
+  const isCreateButtonDisabled = () => {
+    // Always allow generating presets
+    if (songType === 'preset') {
+      return false; 
+    }
+    // Disable if trying to generate a non-preset and one is already running
+    const isTryingToGenerateNonPreset = songType === 'theme' || songType === 'theme-with-input' || songType === 'from-scratch';
+    return isTryingToGenerateNonPreset && isNonPresetGenerating;
+  };
+
+  // Use the centralized timer hook, only activating it when a non-preset song is generating
+  const { timeLeft, totalTime, formattedTime, progress } = useSongGenerationTimer(isNonPresetGenerating);
 
   // Reset states when changing tabs
   useEffect(() => {
@@ -227,13 +246,13 @@ export default function MusicGenerator() {
         <div className="flex justify-center pt-4">
           <button
             onClick={handleGenerate}
-            disabled={isGenerating}
+            disabled={isCreateButtonDisabled()}
             className="flex items-center space-x-3 min-h-[48px] bg-gradient-to-r from-primary to-secondary
                      text-black font-medium px-8 py-4 rounded-xl hover:opacity-90 transition-all duration-300
                      disabled:opacity-50 shadow-lg shadow-primary/25 group"
           >
             <Wand2 className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
-            <span>{isGenerating ? 'Generating...' : 'Create Music'}</span>
+            <span>{isNonPresetGenerating ? 'Generating...' : 'Create Music'}</span>
           </button>
         </div>
         
@@ -241,7 +260,8 @@ export default function MusicGenerator() {
           <p className="text-red-400 text-sm text-center mt-4 fade-in">{error}</p>
         )}
 
-        {isGenerating && (
+        {/* Only show progress for non-preset songs */}
+        {isNonPresetGenerating && (
           <GenerationProgress
             timeLeft={timeLeft}
             totalTime={totalTime}

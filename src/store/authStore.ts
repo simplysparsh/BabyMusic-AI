@@ -15,6 +15,7 @@ interface AuthState {
   profile: UserProfile | null;
   initialized: boolean;
   isLoading: boolean;
+  showPostSignupOnboarding: boolean;
   
   // Add loadProfile to the interface
   loadProfile: () => Promise<void>;
@@ -32,6 +33,7 @@ interface AuthState {
   signUp: (email: string, password: string, babyName: string, gender: string) => Promise<void>;
   signOut: () => Promise<void>;
   loadUser: () => Promise<void | (() => void)>; // Fix return type to match implementation
+  hidePostSignupOnboarding: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -39,6 +41,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   profile: null,
   initialized: false,
   isLoading: false,
+  showPostSignupOnboarding: false,
   loadProfile: async () => {
     const user = get().user;
     if (!user) return;
@@ -110,6 +113,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         };
       
         set({ profile: userProfile });
+        
+        // Check if profile is incomplete for onboarding
+        if (!userProfile.birthMonth || !userProfile.birthYear) {
+          console.log('Profile incomplete, setting showPostSignupOnboarding flag.');
+          set({ showPostSignupOnboarding: true });
+        } else {
+          // Ensure flag is false if profile is complete
+          set({ showPostSignupOnboarding: false });
+        }
+        
         return;
       } else {
         throw new Error('No profile data received');
@@ -314,7 +327,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ 
         user: null, 
         profile: null,
-        initialized: true
+        initialized: true,
+        showPostSignupOnboarding: false
       });
   
       // Clear other stores
@@ -330,7 +344,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ 
         user: null, 
         profile: null,
-        initialized: true
+        initialized: true,
+        showPostSignupOnboarding: false
       });
       throw error;
     }
@@ -394,8 +409,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ 
         user: null, 
         profile: null,
-        initialized: true
+        initialized: true,
+        showPostSignupOnboarding: false
       });
     }
+  },
+  hidePostSignupOnboarding: () => {
+    set({ showPostSignupOnboarding: false });
   }
 }));

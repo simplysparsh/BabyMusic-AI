@@ -5,9 +5,10 @@ import Methodology from './pages/Methodology';
 import { useEffect, useState, Suspense } from 'react';
 import { useAuthStore } from './store/authStore'; 
 import { useSongStore } from './store/songStore';
+import OnboardingModal from './components/auth/OnboardingModal';
 
 function App() {
-  const { user, initialized } = useAuthStore();
+  const { user, initialized, profile, showPostSignupOnboarding, hidePostSignupOnboarding } = useAuthStore();
   const { loadSongs, setupSubscription, songs } = useSongStore();
   const [path, setPath] = useState(window.location.pathname);
 
@@ -56,6 +57,15 @@ function App() {
           user ? <Dashboard /> : <Landing />
         )}
       </Suspense>
+      
+      <OnboardingModal 
+        isOpen={showPostSignupOnboarding}
+        userProfile={profile}
+        onComplete={() => {
+          console.log('Onboarding complete callback in App.tsx');
+          hidePostSignupOnboarding();
+        }}
+      />
     </div>
   );
 }

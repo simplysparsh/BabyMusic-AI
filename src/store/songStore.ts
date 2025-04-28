@@ -11,6 +11,26 @@ import type { SongState, BatchUpdate } from './song/types';
 import { createSongActions } from './song/actions';
 import { createSongSubscriptions } from './song/subscriptions';
 
+// Define the return type of createSongSubscriptions explicitly if needed
+// interface SongSubscriptionActions {
+//   setupSubscription: (userId: string) => (() => void) | undefined;
+// }
+
+// Combine actions and subscriptions into a single type for the store state
+// It's important that SongState in types.ts includes the setupSubscription signature correctly.
+// Assuming SongState in types.ts looks like this:
+/*
+export interface SongState {
+  // ... other state ...
+  // Actions
+  loadSongs: () => Promise<void>;
+  // ... other actions ...
+  // Subscriptions - Updated signature
+  setupSubscription: (userId: string) => (() => void) | undefined; 
+}
+*/
+
+// Ensure the create<SongState> uses the combined state including the updated setupSubscription signature
 export const useSongStore = create<SongState>((set, get) => {
   const actions = createSongActions(set, get);
   const subscriptions = createSongSubscriptions(set, get);
@@ -114,6 +134,7 @@ export const useSongStore = create<SongState>((set, get) => {
     ...actions,
 
     // Subscriptions
+    // The type checker should ensure this matches the signature in SongState
     setupSubscription: subscriptions.setupSubscription
   };
 });

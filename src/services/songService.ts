@@ -12,10 +12,7 @@ import type {
   VoiceType,
   AgeGroup,
   SongVariation,
-  UserProfile,
-  MusicGenerationParams
 } from '../types';
-import type { SongPayload, VariationPayload } from '../store/song/types';
 
 // Define a type to bridge database schema columns and Song interface
 type DatabaseSong = {
@@ -538,47 +535,79 @@ export class SongService {
     };
   }
 
-  static async regeneratePresetSongs(userId: string, babyName: string, isSilent: boolean = false) {
-    if (!isSilent) {
-      console.log('Starting preset song regeneration:', { userId, babyName });
-    }
+  static async regeneratePresetSongs(userId: string, babyName: string, gender: string, isSignUp: boolean = false) {
+    const logPrefix = isSignUp ? 'Sign-up' : 'Profile update';
+    console.log(`${logPrefix}: Starting preset song regeneration:`, { userId, babyName, gender });
 
+    let regenerationSuccessful = false;
     try {
       // Delete existing preset songs first
+      console.log(`${logPrefix}: Deleting existing preset songs for user ${userId}...`);
       const deleteResult = await withRetry(() => 
         supabase
           .from('songs')
           .delete()
           .eq('user_id', userId)
-          .or('name.ilike.%playtime%,name.ilike.%mealtime%,name.ilike.%bedtime%,name.ilike.%potty%')
+          .or('name.ilike.%playtime%,name.ilike.%mealtime%,name.ilike.%bedtime%,name.ilike.%potty%') // Consider making this more robust, maybe using preset_type?
       );
 
-      if (deleteResult.error) throw deleteResult.error;
+      if (deleteResult.error) {
+        console.error(`${logPrefix}: Error deleting existing preset songs:`, deleteResult.error);
+        throw deleteResult.error; // Propagate error to be caught below
+      }
+      console.log(`${logPrefix}: Existing preset songs deleted successfully.`);
 
       // Create new preset songs in parallel
+      console.log(`${logPrefix}: Creating new preset songs...`);
       const presetPromises = Object.entries(PRESET_CONFIGS).map(([type, config]) => 
         this.createSong({
           userId,
           name: config.title(babyName),
-          babyName,
+          babyName, // Pass babyName here
           songParams: {
             mood: config.mood,
             songType: 'preset',
             preset_type: type as PresetType
+            // Gender will be fetched within startSongGeneration from profile
           }
         })
       );
 
-      await Promise.all(presetPromises);
+      // Wait for all song creation promises to settle
+      const results = await Promise.allSettled(presetPromises);
       
-      if (!isSilent) {
-        console.log('Preset song regeneration completed successfully');
+      // Check if any promise failed
+      const failedGenerations = results.filter(r => r.status === 'rejected');
+      if (failedGenerations.length > 0) {
+        console.error(`${logPrefix}: Some preset song generations failed:`, failedGenerations);
+        // Decide if this constitutes a full failure or partial success.
+        // For now, we'll consider it a failure for setting the flag.
+        throw new Error(`Failed to generate ${failedGenerations.length} preset songs.`);
+      } else {
+          regenerationSuccessful = true;
+          console.log(`${logPrefix}: All preset songs created/initiated successfully.`);
       }
+      
     } catch (error) {
-      if (!isSilent) {
-        console.error('Failed to regenerate preset songs:', error);
+      console.error(`${logPrefix}: Failed to regenerate preset songs:`, error);
+      // Don't re-throw; the goal is to finish the signup/update if possible,
+      // but log the error and ensure the flag isn't set incorrectly.
+    } finally {
+      // Update the profile flag only if regeneration was fully successful
+      if (regenerationSuccessful) {
+        console.log(`${logPrefix}: Updating profile to set preset_songs_generated = true for user ${userId}...`);
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ preset_songs_generated: true })
+          .eq('id', userId);
+          
+        if (updateError) {
+          console.error(`${logPrefix}: Failed to update preset_songs_generated flag for user ${userId}:`, updateError);
+          // Log this error, but don't block the overall process completion
+        } else {
+           console.log(`${logPrefix}: Profile flag updated successfully.`);
+        }
       }
-      // Don't throw - let the error be handled by the UI layer if needed
     }
   }
 

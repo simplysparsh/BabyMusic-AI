@@ -29,7 +29,7 @@ interface AuthState {
   }) => Promise<UserProfile>; // Change return type to match implementation
   
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, babyName: string) => Promise<void>;
+  signUp: (email: string, password: string, babyName: string, gender: string) => Promise<void>;
   signOut: () => Promise<void>;
   loadUser: () => Promise<void | (() => void)>; // Fix return type to match implementation
 }
@@ -170,12 +170,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Update profile state immediately
       set({ profile: updatedProfile });
 
-      // Start preset song regeneration in the background
-      SongService.regeneratePresetSongs(user.id, trimmedNewName)
-        .catch(error => {
-          console.error('Background preset song regeneration failed:', error);
-          // Don't surface this error to the user since profile update succeeded
-        });
+      // Determine the gender to use for regeneration
+      const genderForRegen = gender || updatedProfile.gender;
+
+      // Regenerate preset songs only if the baby name changed and we have a gender
+      if (trimmedNewName !== currentProfile?.babyName && genderForRegen) {
+        console.log('Baby name changed, triggering preset song regeneration...');
+        SongService.regeneratePresetSongs(user.id, trimmedNewName, genderForRegen)
+          .catch(error => {
+            console.error('Background preset song regeneration failed:', error);
+            // Don't surface this error to the user since profile update succeeded
+          });
+      } else if (trimmedNewName !== currentProfile?.babyName && !genderForRegen) {
+          console.warn('Baby name changed, but skipping preset song regeneration because gender is missing.');
+      }
 
       return updatedProfile;
     } catch (error) {
@@ -211,10 +219,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } finally {
     }
   },
-  signUp: async (email: string, password: string, babyName: string) => {
+  signUp: async (email: string, password: string, babyName: string, gender: string) => {
     set({ initialized: false });
     
-    if (!email.trim() || !password.trim() || !babyName.trim()) {
+    if (!email.trim() || !password.trim() || !babyName.trim() || !gender) {
       throw new Error('All fields are required');
     }
 
@@ -227,98 +235,70 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('Authentication service configuration error. Please try again later.');
       }
       
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
-        password,
-        options: {
-          data: {
-            babyName: babyName.trim(),
-            preferredLanguage: DEFAULT_LANGUAGE
-          }
-        }
+        password
       });
 
-      if (error) {
-        console.error('Supabase signup error:', error);
-        
-        // Handle specific error types
-        if (error.message.includes('Database error saving new user')) {
-          console.log('Attempting to check if user already exists...');
-          
-          // Try to sign in with the provided credentials to check if user exists
-          try {
-            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-              email: email.trim().toLowerCase(),
-              password
-            });
-            
-            if (!signInError && signInData.user) {
-              console.log('User already exists, signing in instead');
-              set({ user: signInData.user });
-              await get().loadProfile();
-              set({ initialized: true });
-              return;
-            } else {
-              console.log('User does not exist, this is a different database error');
-              throw new Error('Unable to create account due to a database error. Please try again later.');
-            }
-          } catch (signInErr) {
-            console.error('Error checking if user exists:', signInErr);
-            throw new Error('Unable to create account. The email might already be in use or there was a database error.');
-          }
-        }
-        
-        throw error;
+      if (signUpError) {
+        console.error('Supabase signup error:', signUpError);
+        throw signUpError;
       }
       
       if (!data.user) {
         console.error('No user returned after sign up');
-        throw new Error('No user returned after sign up');
+        throw new Error('Authentication failed: No user data received after sign up.');
       }
       
-      console.log('User created successfully, setting up profile...');
+      console.log('Auth user created successfully, creating profile...');
       
-      // Set user state immediately
-      set({ user: data.user });
+      const user = data.user;
+      set({ user });
 
       const trimmedBabyName = babyName.trim();
-      const userId = data.user.id;
-      
-      // Create or update profile in a single transaction
+      const userId = user.id;
+      const userEmail = user.email!;
+
       try {
-        // Create or update the profile
-        const { error: upsertError } = await supabase
+        const { error: insertError } = await supabase
           .from('profiles')
-          .upsert([{ 
+          .insert([{ 
             id: userId,
             baby_name: trimmedBabyName,
-            email: email.trim().toLowerCase(),
-            created_at: new Date().toISOString(),
-            preset_songs_generated: true,
+            email: userEmail,
+            gender: gender,
             preferred_language: DEFAULT_LANGUAGE,
-            gender: undefined // Set default gender to undefined, user will provide during onboarding
+            created_at: new Date().toISOString()
           }]);
           
-        if (upsertError) {
-          console.error('Error creating/updating profile:', upsertError);
+        if (insertError) {
+          console.error('Error creating profile entry:', insertError);
+          throw new Error('Failed to create user profile after authentication.');
         }
+
+        console.log('Profile created successfully for user:', userId);
+
       } catch (profileError) {
-        console.error('Error in profile creation:', profileError);
+        console.error('Exception during profile creation:', profileError);
+        throw profileError;
       }
 
-      // Generate preset songs in the background (don't await)
-      SongService.regeneratePresetSongs(userId, trimmedBabyName, true)
+      SongService.regeneratePresetSongs(userId, trimmedBabyName, gender, true)
+        .then(() => {
+            console.log(`Preset song regeneration initiated for user ${userId}`);
+        })
         .catch((error) => {
-          console.error('Error generating preset songs:', error);
+          console.error(`Error initiating preset song regeneration for user ${userId}:`, error);
         });
 
-      // Immediately load the profile to ensure it's in the state
       await get().loadProfile();
 
       set({ initialized: true });
+
     } catch (error) {
-      set({ initialized: true });
-      throw error;
+      set({ user: null, initialized: true }); 
+      console.error("Signup failed:", error);
+      throw error; 
     }
   },
   signOut: async () => {

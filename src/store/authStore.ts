@@ -78,7 +78,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           last_generation_date,
           baby_name,
           preferred_language,
-          created_at
+          created_at,
+          gender
         `)
         .eq('id', user.id)
         .single();
@@ -104,7 +105,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           dailyGenerations: profile.daily_generations,
           lastGenerationDate: profile.last_generation_date,
           babyName: profile.baby_name,
-          preferredLanguage: profile.preferred_language || DEFAULT_LANGUAGE
+          preferredLanguage: profile.preferred_language || DEFAULT_LANGUAGE,
+          gender: profile.gender
         };
       
         set({ profile: userProfile });

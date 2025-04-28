@@ -10,7 +10,7 @@ export function useRealtime() {
     let unsubscribe: (() => void) | undefined;
 
     if (user?.id) {
-      unsubscribe = setupSubscription();
+      unsubscribe = setupSubscription(user.id);
     }
 
     return () => {

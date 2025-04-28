@@ -1,8 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { X } from 'lucide-react';
-import OnboardingModal from './OnboardingModal';
-import type { BabyProfile } from '../../types';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -16,9 +14,10 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
   const [babyName, setBabyName] = useState('');
   const [babyNameError, setBabyNameError] = useState('');
   const [password, setPassword] = useState('');
+  const [gender, setGender] = useState('');
+  const [genderError, setGenderError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [step, setStep] = useState<'credentials' | 'babyNameFirst' | 'babyName'>(
     isSignIn ? 'credentials' : 'babyNameFirst'
   );
@@ -33,7 +32,8 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
       setBabyName('');
       setError('');
       setBabyNameError('');
-      setShowOnboarding(false);
+      setGender('');
+      setGenderError('');
     }
   }, [isOpen, defaultMode]);
 
@@ -78,9 +78,16 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
       }
     } else {
       setBabyNameError('');
+      setGenderError('');
       
       const trimmedBabyName = babyName.trim();
       const trimmedEmail = email.trim();
+      
+      if (!gender) {
+        setGenderError('Please select your baby\'s gender');
+        setIsLoading(false);
+        return;
+      }
       
       if (!trimmedEmail) {
         setError('Please enter your email');
@@ -95,10 +102,10 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
       }
       
       try {
-        console.log('Starting signup process...');
-        await signUp(trimmedEmail, password, trimmedBabyName);
-        console.log('Signup successful, showing onboarding modal...');
-        setShowOnboarding(true);
+        console.log('Starting signup process with gender:', gender);
+        await signUp(trimmedEmail, password, trimmedBabyName, gender);
+        console.log('Signup successful, closing modal...');
+        onClose();
       } catch (err) {
         console.error('Signup error:', err);
         const message = err instanceof Error ? err.message : 'An error occurred';
@@ -113,12 +120,6 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
     }
   };
 
-  const handleOnboardingComplete = (_babyProfile: BabyProfile) => {
-    console.log('Onboarding complete, closing modals...');
-    setShowOnboarding(false);
-    onClose();
-  };
-
   const handleBack = () => {
     if (step === 'credentials' && !isSignIn) {
       setStep('babyNameFirst');
@@ -127,17 +128,6 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
     }
     setError('');
   };
-
-  if (showOnboarding) {
-    console.log('Rendering OnboardingModal with babyName:', babyName.trim());
-    return (
-      <OnboardingModal
-        isOpen={true}
-        onComplete={handleOnboardingComplete}
-        initialBabyName={babyName.trim()}
-      />
-    );
-  }
 
   const renderStep = () => {
     switch (step) {
@@ -222,6 +212,35 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                 autoComplete={isSignIn ? "current-password" : "new-password"}
               />
             </div>
+
+            {!isSignIn && (
+              <div>
+                <label className="block text-sm font-medium text-white/90 mb-2">
+                  Baby's Gender
+                  <span className="text-primary ml-1">*</span>
+                </label>
+                <select
+                  value={gender}
+                  onChange={(e) => {
+                    setGender(e.target.value);
+                    setGenderError('');
+                  }}
+                  className={`input w-full bg-white/[0.07] focus:bg-white/[0.09] transition-colors ${genderError ? 'border-red-400 focus:border-red-400' : ''}`}
+                  required
+                >
+                  <option value="">Select gender</option>
+                  <option value="boy">Boy</option>
+                  <option value="girl">Girl</option>
+                  <option value="other">Other</option>
+                </select>
+                {genderError && (
+                  <p className="text-red-400 text-sm mt-2 flex items-center gap-2">
+                    <span className="w-1 h-1 bg-red-400 rounded-full"></span>
+                    {genderError}
+                  </p>
+                )}
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">

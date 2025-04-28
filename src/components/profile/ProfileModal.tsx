@@ -2,6 +2,8 @@ import { FormEvent, useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useErrorStore } from '../../store/errorStore';
+import { Language, DEFAULT_LANGUAGE } from '../../types';
+import { CURRENT_YEAR, CURRENT_MONTH, AGE_OPTIONS } from './utils/dateUtils';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -11,15 +13,29 @@ interface ProfileModalProps {
 export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { profile, updateProfile } = useAuthStore();
   const { error: globalError, clearError } = useErrorStore();
-  const [formState, setFormState] = useState({ babyName: '', gender: '' });
-  const [error, setError] = useState<{ global?: string; babyName?: string; gender?: string }>({});
+  const [formState, setFormState] = useState({
+    babyName: '',
+    gender: '',
+    birthMonth: CURRENT_MONTH,
+    birthYear: CURRENT_YEAR,
+    preferredLanguage: DEFAULT_LANGUAGE,
+  });
+  const [error, setError] = useState<{
+    global?: string;
+    babyName?: string;
+    gender?: string;
+    birthDate?: string;
+  }>({});
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     if (isOpen && profile) {
       setFormState({ 
         babyName: profile.babyName ?? '',
-        gender: profile.gender ?? '' 
+        gender: profile.gender ?? '',
+        birthMonth: profile.birthMonth || CURRENT_MONTH,
+        birthYear: profile.birthYear || CURRENT_YEAR,
+        preferredLanguage: profile.preferredLanguage || DEFAULT_LANGUAGE,
       });
       setError({});
       setShowSuccess(false);
@@ -43,7 +59,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError({});
-    clearError(); // Clear any global errors
+    clearError();
 
     const trimmedName = formState.babyName.trim();
     if (!trimmedName) {
@@ -56,14 +72,22 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       return;
     }
     
+    const selectedDate = new Date(formState.birthYear, formState.birthMonth - 1);
+    if (selectedDate > new Date()) {
+      setError({ birthDate: "Birth date cannot be in the future" });
+      return;
+    }
+    
     try {
       await updateProfile({ 
         babyName: trimmedName,
-        gender: formState.gender
+        gender: formState.gender,
+        birthMonth: formState.birthMonth,
+        birthYear: formState.birthYear,
+        preferredLanguage: formState.preferredLanguage,
       });
       setShowSuccess(true);
     } catch (error) {
-      // Only show profile-specific errors
       const errorMessage = error instanceof Error ? error.message : "Failed to update profile";
       if (!errorMessage.includes('preset') && !errorMessage.includes('songs')) {
         setError({ global: errorMessage });
@@ -131,6 +155,56 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               <option value="other">Other</option>
             </select>
             {error.gender && <p className="text-red-400 text-sm mt-1">{error.gender}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white/90 mb-2">
+              Baby's Birth Date
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <select
+                  value={formState.birthMonth}
+                  onChange={(e) => setFormState((prev) => ({ ...prev, birthMonth: parseInt(e.target.value) }))}
+                  className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${error.birthDate ? 'border-red-400' : ''}`}
+                  required
+                >
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      {new Date(2000, i).toLocaleString('default', { month: 'long' })}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <select
+                  value={formState.birthYear}
+                  onChange={(e) => setFormState((prev) => ({ ...prev, birthYear: parseInt(e.target.value) }))}
+                  className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${error.birthDate ? 'border-red-400' : ''}`}
+                  required
+                >
+                  {AGE_OPTIONS.map(({ value, label }) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {error.birthDate && <p className="text-red-400 text-sm mt-1">{error.birthDate}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white/90 mb-2">
+              Preferred Language
+            </label>
+            <select
+              value={formState.preferredLanguage}
+              onChange={(e) => setFormState((prev) => ({ ...prev, preferredLanguage: e.target.value as Language }))}
+              className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors`}
+              required
+            >
+              <option value="en">English</option>
+              <option value="es">Spanish</option>
+            </select>
           </div>
 
           {(error.global || globalError) && (

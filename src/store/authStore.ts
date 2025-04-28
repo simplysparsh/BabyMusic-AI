@@ -187,7 +187,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   signIn: async (email: string, password: string) => {
-    set({ initialized: false });
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -207,9 +206,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       // Load the profile
       await get().loadProfile(); 
-      set({ initialized: true });
     } finally {
-      set({ initialized: true });
     }
   },
   signUp: async (email: string, password: string, babyName: string) => {
@@ -339,11 +336,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
   
       // Clear other stores
-      useSongStore.getState().setState(_state => ({
+      useSongStore.setState({
         songs: [],
-        presetSongTypes: new Set(),
-        processingTaskIds: new Set()
-      }));
+        processingTaskIds: new Set<string>()     
+      }, true);
   
       useErrorStore.getState().clearError();
   

@@ -54,22 +54,29 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
 
   const handleCredentialsSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
     if (isSignIn) {
-      setError('');
       try {
         await signIn(email, password);
         onClose();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'An error occurred';
-        if (message.includes('Invalid login credentials')) {
-          setError('Invalid email or password. Please try again.');
+      } catch (err: unknown) {
+        if (err && typeof err === 'object' && 'message' in err) {
+          const message = (err as { message: string }).message;
+          if (message.includes('Invalid login credentials')) {
+            setError('No account found with this email/password. Please check your credentials or sign up.');
+          } else {
+            setError(message || 'An unknown sign-in error occurred.');
+          }
         } else {
-          setError(message);
+          setError('An unexpected error occurred during sign in.');
         }
+        console.error("Sign-in error:", err);
+      } finally {
+        setIsLoading(false);
       }
     } else {
-      setError('');
-      setIsLoading(true);
       setBabyNameError('');
       
       const trimmedBabyName = babyName.trim();
@@ -196,6 +203,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                 className="input w-full bg-white/[0.07] focus:bg-white/[0.09] transition-colors"
                 required
                 placeholder="Enter your email"
+                autoComplete={isSignIn ? "email" : "username"}
               />
             </div>
             
@@ -211,6 +219,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                 className="input w-full bg-white/[0.07] focus:bg-white/[0.09] transition-colors"
                 required
                 placeholder={isSignIn ? "Enter your password" : "Create a password"}
+                autoComplete={isSignIn ? "current-password" : "new-password"}
               />
             </div>
 

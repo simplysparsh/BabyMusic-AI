@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Baby, Music2, Brain, ArrowRight, Calendar } from 'lucide-react';
+import { Baby, ArrowRight, Calendar } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
-import type { AgeGroup, BabyProfile } from '../../types';
+import type { AgeGroup, BabyProfile, Language } from '../../types';
+import { DEFAULT_LANGUAGE } from '../../types';
 
 interface OnboardingModalProps {
   isOpen: boolean;
-  onComplete: (babyProfile: BabyProfile) => void;
-  initialBabyName: string;
+  onComplete: (updates: Partial<BabyProfile>) => void;
+  userProfile: BabyProfile | null;
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -31,58 +32,35 @@ const getAgeGroup = (month: number, year: number): AgeGroup => {
   return '13-24';
 };
 
-export default function OnboardingModal({ isOpen, onComplete, initialBabyName }: OnboardingModalProps) {
-  const [step, setStep] = useState(1);
+export default function OnboardingModal({ isOpen, onComplete, userProfile }: OnboardingModalProps) {
   const [isUpdating, setIsUpdating] = useState(false);
-  const [babyName, setBabyName] = useState(initialBabyName);
-  const [birthMonth, setBirthMonth] = useState<number>(CURRENT_MONTH);
-  const [birthYear, setBirthYear] = useState<number>(CURRENT_YEAR);
-  const [ageGroup, setAgeGroup] = useState<AgeGroup>('0-6');
-  const [gender, setGender] = useState<string>('');
+  const [birthMonth, setBirthMonth] = useState<number>(userProfile?.birthMonth || CURRENT_MONTH);
+  const [birthYear, setBirthYear] = useState<number>(userProfile?.birthYear || CURRENT_YEAR);
+  const [preferredLanguage, setPreferredLanguage] = useState<Language>(userProfile?.preferredLanguage || DEFAULT_LANGUAGE);
   const [error, setError] = useState<string | null>(null);
   const [birthDateError, setBirthDateError] = useState<string | null>(null);
   const { updateProfile } = useAuthStore();
 
   useEffect(() => {
-    if (isOpen) {
-      console.log('OnboardingModal opened with initialBabyName:', initialBabyName);
-      setStep(1);
-      setIsUpdating(false);
-      setBabyName(initialBabyName);
-      setGender('');
+    if (isOpen && userProfile) {
+      console.log('OnboardingModal opened for user profile:', userProfile);
+      setBirthMonth(userProfile.birthMonth || CURRENT_MONTH);
+      setBirthYear(userProfile.birthYear || CURRENT_YEAR);
+      setPreferredLanguage(userProfile.preferredLanguage || DEFAULT_LANGUAGE);
       setError(null);
+      setBirthDateError(null);
+      setIsUpdating(false);
+    } else if (isOpen) {
+      setBirthMonth(CURRENT_MONTH);
+      setBirthYear(CURRENT_YEAR);
+      setPreferredLanguage(DEFAULT_LANGUAGE);
+      setError(null);
+      setBirthDateError(null);
+      setIsUpdating(false);
     }
-  }, [isOpen, initialBabyName]);
+  }, [isOpen, userProfile]);
 
-  useEffect(() => {
-    setAgeGroup(getAgeGroup(birthMonth, birthYear));
-  }, [birthMonth, birthYear]);
-
-  if (!isOpen) return null;
-
-  const handleNext = () => {
-    // Reset errors
-    setError(null);
-    setBirthDateError(null);
-    
-    // Validate birth date (UI only)
-    const currentDate = new Date();
-    const selectedDate = new Date(birthYear, birthMonth - 1);
-    
-    if (selectedDate > currentDate) {
-      setBirthDateError("Birth date cannot be in the future");
-      return;
-    }
-    
-    // Validate gender
-    if (!gender) {
-      setError("Please select your baby's gender");
-      return;
-    }
-    
-    console.log('Moving to step 2 with gender:', gender);
-    setStep(2);
-  };
+  if (!isOpen || !userProfile) return null;
 
   const handleComplete = async () => {
     // Reset errors
@@ -98,44 +76,36 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
       return;
     }
     
-    // Validate gender
-    if (!gender) {
-      setError("Please select your baby's gender");
-      return;
-    }
-    
     try {
+      // Calculate final age group just before updating
+      const finalAgeGroup = getAgeGroup(birthMonth, birthYear); 
       console.log('Completing onboarding with data:', {
-        babyName,
         birthMonth,
         birthYear,
-        ageGroup: getAgeGroup(birthMonth, birthYear),
-        gender
+        ageGroup: finalAgeGroup, // Log the calculated age group
+        preferredLanguage,
       });
       setIsUpdating(true);
       
-      // Update profile with birth data
-      const updatedProfile = await updateProfile({
-        babyName,
+      await updateProfile({
+        babyName: userProfile.babyName!, 
         birthMonth,
         birthYear,
-        ageGroup: getAgeGroup(birthMonth, birthYear),
-        gender
+        ageGroup: finalAgeGroup, // Pass calculated age group
+        preferredLanguage,
       });
       
-      console.log('Profile updated successfully:', updatedProfile);
+      console.log('Profile updated successfully via onboarding');
       
-      // Call onComplete with profile data
       onComplete({
-        babyName,
         birthMonth,
         birthYear,
-        ageGroup: getAgeGroup(birthMonth, birthYear),
-        gender
+        ageGroup: finalAgeGroup, // Pass calculated age group in callback
+        preferredLanguage,
       });
     } catch (error) {
-      console.error('Failed to update profile:', error);
-      setError('Failed to update profile. Please try again.');
+      console.error('Failed to update profile during onboarding:', error);
+      setError('Failed to save information. Please try again.');
     } finally {
       setIsUpdating(false);
     }
@@ -144,7 +114,6 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-lg z-50 flex items-center justify-center p-4">
       <div className="card w-full max-w-lg relative border-white/[0.05] fade-in overflow-hidden">
-        {/* Add loading state for profile update */}
         {isUpdating && (
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
@@ -152,40 +121,39 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
         )}
         
         <div className="relative p-8">
-          {step === 1 ? (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                  <Baby className="w-6 h-6 text-primary" />
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                <Baby className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Tell Us More</h2>
+                <p className="text-white/60">Help us personalize the experience for {userProfile.babyName || 'your baby'}</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white/90 mb-2">
+                When was {userProfile.babyName || 'your baby'} born?
+                <span className="text-primary ml-1" title="Required">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <select
+                    value={birthMonth}
+                    onChange={(e) => setBirthMonth(parseInt(e.target.value))}
+                    className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${birthDateError ? 'border-red-400' : ''}`}
+                    required
+                  >
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        {new Date(2000, i).toLocaleString('default', { month: 'long' })}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Welcome!</h2>
-                  <p className="text-white/60">Let's personalize the experience</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-white/90 mb-2">
-                  When was {babyName} born?
-                  <span className="text-primary ml-1" title="Required">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <select
-                      value={birthMonth}
-                      onChange={(e) => setBirthMonth(parseInt(e.target.value))}
-                      className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${birthDateError ? 'border-red-400' : ''}`}
-                      required
-                    >
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <option key={i + 1} value={i + 1}>
-                          {new Date(2000, i).toLocaleString('default', { month: 'long' })}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <div className="relative">
+                  <div className="relative">
                     <select
                       value={birthYear}
                       onChange={(e) => setBirthYear(parseInt(e.target.value))}
@@ -196,91 +164,51 @@ export default function OnboardingModal({ isOpen, onComplete, initialBabyName }:
                         <option key={value} value={value}>{label}</option>
                       ))}
                     </select>
-                    </div>
                   </div>
                 </div>
-                <p className="text-xs text-white/40 mt-2 flex items-center gap-2">
-                  <Calendar className="w-3 h-3" />
-                  We use age to customize songs for your child's developmental stage
-                </p>
-                {birthDateError && <p className="text-red-400 text-sm mt-1">{birthDateError}</p>}
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-white/90 mb-2">
-                  What is {babyName}'s gender?
-                  <span className="text-primary ml-1" title="Required">*</span>
-                </label>
-                <select
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                  className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${error ? 'border-red-400' : ''}`}
-                  required
-                >
-                  <option value="">Select gender</option>
-                  <option value="boy">Boy</option>
-                  <option value="girl">Girl</option>
-                  <option value="other">Other</option>
-                </select>
-                <p className="text-xs text-white/40 mt-2 flex items-center gap-2">
-                  <Baby className="w-3 h-3" />
-                  We use this to personalize songs with gender-appropriate lyrics
-                </p>
-                {error && <p className="text-red-400 text-sm mt-1">{error}</p>}
-              </div>
-
-              <button
-                onClick={handleNext}
-                className="w-full bg-gradient-to-r from-primary to-secondary text-black font-medium
-                         py-3 rounded-xl hover:opacity-90 transition-all duration-300
-                         shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40
-                         hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
-              >
-                Continue
-                <ArrowRight className="w-5 h-5" />
-              </button>
+              <p className="text-xs text-white/40 mt-2 flex items-center gap-2">
+                <Calendar className="w-3 h-3" />
+                We use age to customize songs for developmental stage.
+              </p>
+              {birthDateError && <p className="text-red-400 text-sm mt-1">{birthDateError}</p>}
             </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center">
-                  <Brain className="w-6 h-6 text-secondary" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Creating Your Songs</h2>
-                  <p className="text-white/60">Customized for {babyName}'s development</p>
-                </div>
-              </div>
 
-              <div className="space-y-4">
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <div className="flex items-center gap-3">
-                    <Music2 className="w-5 h-5 text-primary" />
-                    <div className="flex-1">
-                      <p className="text-sm text-white/80">Your account is ready!</p>
-                      <p className="text-sm text-white/60 mt-1">Explore preset songs in your dashboard.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="text-sm text-white/80 leading-relaxed">
-                  We've prepared special songs tailored to {babyName}'s age group ({ageGroup}).
-                  These melodies are scientifically designed to support cognitive development and emotional well-being.
-                </p>
-              </div>
-
-              <button
-                onClick={handleComplete}
-                className="w-full bg-gradient-to-r from-primary to-secondary text-black font-medium
-                         py-3 rounded-xl hover:opacity-90 transition-all duration-300
-                         shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40
-                         hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+            <div>
+              <label className="block text-sm font-medium text-white/90 mb-2">
+                Preferred Language for Songs
+              </label>
+              <select
+                value={preferredLanguage}
+                onChange={(e) => setPreferredLanguage(e.target.value as Language)}
+                className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors`}
               >
-                Continue to Dashboard
-                <ArrowRight className="w-5 h-5" />
-              </button>
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+              </select>
+              <p className="text-xs text-white/40 mt-2 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                </svg>
+                Lyrics will be generated in this language.
+              </p>
             </div>
-          )}
+
+            {error && <p className="text-red-400 text-sm mt-1">{error}</p>}
+
+            <button
+              onClick={handleComplete}
+              disabled={isUpdating}
+              className="w-full bg-gradient-to-r from-primary to-secondary text-black font-medium
+                       py-3 rounded-xl hover:opacity-90 transition-all duration-300
+                       shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40
+                       hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isUpdating ? 'Saving...' : 'Save & Continue'}
+              {!isUpdating && <ArrowRight className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
       </div>
     </div>

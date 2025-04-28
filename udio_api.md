@@ -148,8 +148,8 @@ Based on extensive testing, here are the character limits for various fields whe
 
 ### Field Limits Summary
 
-| Field | Character Limit | Status |
-|-------|-----------------|--------|
+| API Field Name | Character Limit | Status |
+|----------------|-----------------|--------|
 | `prompt` (lyrics) | 1000 characters | ✅ Confirmed |
 | `negative_tags` | 100 characters | ✅ Confirmed |
 | `gpt_description_prompt` | No limit up to 10,000 chars | ✅ Tested |
@@ -162,24 +162,25 @@ Based on extensive testing, here are the character limits for various fields whe
 - **Behavior**: 
   - 1000 characters: Accepted
   - 1001 characters: Error - "lyrics cannot exceed 1000 characters, got 1001"
-- **Implementation**: The System prompt in Claude API instructs 1000 character limit, and code truncates to 1000 characters
+- **Implementation**: The System prompt in Claude API instructs 1000 character limit, and code truncates to 1000 characters via `PIAPI_LIMITS.PROMPT_MAX_LENGTH`
 
 #### `negative_tags`
 - **Limit**: Exactly 100 characters
 - **Behavior**: 
   - 100 characters: Accepted
   - 101 characters: Error - "negative tags cannot exceed 100 characters, got 101"
-- **Implementation**: Truncated to 100 characters in code
+- **Implementation**: Truncated to 100 characters in code via `PIAPI_LIMITS.NEGATIVE_TAGS_MAX_LENGTH`
 
 #### `gpt_description_prompt`
 - **No enforced limit** detected up to 10,000 characters
 - Successfully tested with: 100, 200, 250, 300, 500, 1000, 1500, 2000, 3000, 5000, 8000, 10000 characters
-- **Implementation**: Code allows large descriptions (up to 10,000 chars)
+- **Implementation**: Code allows large descriptions (up to 10,000 chars) via `PIAPI_LIMITS.DESCRIPTION_MAX_LENGTH`
 
 #### `title`
 - **No clear limit** detected up to at least 300 characters
 - Successfully tested with: 50, 100, 200, 300 characters
 - Inconclusive tests at larger sizes due to concurrent task limitations
+- **Implementation**: No explicit limit enforced in code
 
 ## Notes
 

@@ -7,7 +7,7 @@ const API_KEY = import.meta.env.VITE_PIAPI_KEY;
 
 const PIAPI_LIMITS = {
   PROMPT_MAX_LENGTH: 1000,
-  TAGS_MAX_LENGTH: 10000,
+  DESCRIPTION_MAX_LENGTH: 10000,
   NEGATIVE_TAGS_MAX_LENGTH: 100,
 };
 
@@ -98,7 +98,7 @@ export const createMusicGenerationTask = async ({
 
   // Construct the input object based on the new API structure
   const inputPayload: Record<string, any> = {
-    gpt_description_prompt: truncateToLimit(description, PIAPI_LIMITS.TAGS_MAX_LENGTH),
+    gpt_description_prompt: truncateToLimit(description, PIAPI_LIMITS.DESCRIPTION_MAX_LENGTH),
     lyrics_type: lyricsType,
     negative_tags: truncateToLimit('rock, metal, aggressive, harsh', PIAPI_LIMITS.NEGATIVE_TAGS_MAX_LENGTH),
     seed: -1, // Add seed parameter as per new API examples

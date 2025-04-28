@@ -167,7 +167,6 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   value={formState.birthMonth}
                   onChange={(e) => setFormState((prev) => ({ ...prev, birthMonth: parseInt(e.target.value) }))}
                   className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${error.birthDate ? 'border-red-400' : ''}`}
-                  required
                 >
                   {Array.from({ length: 12 }, (_, i) => (
                     <option key={i + 1} value={i + 1}>
@@ -181,7 +180,6 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   value={formState.birthYear}
                   onChange={(e) => setFormState((prev) => ({ ...prev, birthYear: parseInt(e.target.value) }))}
                   className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${error.birthDate ? 'border-red-400' : ''}`}
-                  required
                 >
                   {AGE_OPTIONS.map(({ value, label }) => (
                     <option key={value} value={value}>{label}</option>
@@ -200,7 +198,6 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               value={formState.preferredLanguage}
               onChange={(e) => setFormState((prev) => ({ ...prev, preferredLanguage: e.target.value as Language }))}
               className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors`}
-              required
             >
               <option value="en">English</option>
               <option value="es">Spanish</option>

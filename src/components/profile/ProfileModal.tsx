@@ -198,9 +198,9 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               value={formState.preferredLanguage}
               onChange={(e) => setFormState((prev) => ({ ...prev, preferredLanguage: e.target.value as Language }))}
               className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors`}
+              disabled={true}
             >
               <option value="en">English</option>
-              <option value="es">Spanish</option>
             </select>
           </div>
 

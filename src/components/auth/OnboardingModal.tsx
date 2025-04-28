@@ -182,9 +182,9 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
                 value={preferredLanguage}
                 onChange={(e) => setPreferredLanguage(e.target.value as Language)}
                 className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors`}
+                disabled={true}
               >
                 <option value="en">English</option>
-                <option value="es">Spanish</option>
               </select>
               <p className="text-xs text-white/40 mt-2 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

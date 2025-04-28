@@ -1,10 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { supabase } from './supabase';
 
 interface ValidatedResponse {
   text: string;
   quality: {
     length: number;
-    hasName: boolean
+    hasName: boolean;
+    wasTruncated: boolean;
   };
 }
 
@@ -39,14 +41,43 @@ export class ClaudeAPI {
     
     // Check if response contains the babyName directly
     const hasName = babyName ? cleanedText.includes(babyName) : true;
+    
+    // Check if we need to truncate the lyrics
+    const wasTruncated = cleanedText.length > 1000;
+    
+    // If lyrics were truncated, log this as an error
+    if (wasTruncated) {
+      console.warn(`Lyrics exceeded 1000 character limit (${cleanedText.length} chars) and were truncated`);
+      this.logLyricsTruncation(cleanedText.length, babyName);
+    }
 
     return {
-      text: cleanedText.length > 3000 ? cleanedText.slice(0, 3000) : cleanedText,
+      text: wasTruncated ? cleanedText.slice(0, 1000) : cleanedText,
       quality: {
         length: cleanedText.length,
-        hasName
+        hasName,
+        wasTruncated
       }
     };
+  }
+
+  /**
+   * Log when lyrics need to be truncated due to exceeding the 1000 character limit
+   */
+  private static async logLyricsTruncation(originalLength: number, babyName?: string): Promise<void> {
+    try {
+      await supabase.from('lyric_generation_errors').insert([
+        {
+          error_message: `Lyrics exceeded 1000 character limit (${originalLength} chars) and were truncated`,
+          error_type: 'lyrics_truncation',
+          original_length: originalLength,
+          baby_name: babyName || 'unknown',
+          // Adding any other relevant fields your error table has
+        }
+      ]);
+    } catch (error) {
+      console.error('Failed to log lyrics truncation:', error);
+    }
   }
 
   static async makeRequest(userPrompt: string, systemPrompt?: string, babyName?: string): Promise<ValidatedResponse> {

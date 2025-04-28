@@ -142,6 +142,45 @@ This document outlines the integration between Baby Music AI and the Udio music 
 -   Webhook handler includes robust error checking and validation.
 -   Failed song generations update the song record with an error message and `retryable` flag.
 
+## PIAPI Field Character Limits
+
+Based on extensive testing, here are the character limits for various fields when sending requests to the PIAPI music generation service:
+
+### Field Limits Summary
+
+| Field | Character Limit | Status |
+|-------|-----------------|--------|
+| `prompt` (lyrics) | 1000 characters | ✅ Confirmed |
+| `negative_tags` | 100 characters | ✅ Confirmed |
+| `gpt_description_prompt` | No limit up to 10,000 chars | ✅ Tested |
+| `title` | No clear limit (at least 300 chars) | ✅ Tested |
+
+### Details of Testing
+
+#### `prompt` (lyrics)
+- **Limit**: Exactly 1000 characters
+- **Behavior**: 
+  - 1000 characters: Accepted
+  - 1001 characters: Error - "lyrics cannot exceed 1000 characters, got 1001"
+- **Implementation**: The System prompt in Claude API instructs 1000 character limit, and code truncates to 1000 characters
+
+#### `negative_tags`
+- **Limit**: Exactly 100 characters
+- **Behavior**: 
+  - 100 characters: Accepted
+  - 101 characters: Error - "negative tags cannot exceed 100 characters, got 101"
+- **Implementation**: Truncated to 100 characters in code
+
+#### `gpt_description_prompt`
+- **No enforced limit** detected up to 10,000 characters
+- Successfully tested with: 100, 200, 250, 300, 500, 1000, 1500, 2000, 3000, 5000, 8000, 10000 characters
+- **Implementation**: Code allows large descriptions (up to 10,000 chars)
+
+#### `title`
+- **No clear limit** detected up to at least 300 characters
+- Successfully tested with: 50, 100, 200, 300 characters
+- Inconclusive tests at larger sizes due to concurrent task limitations
+
 ## Notes
 
 -   The `song_type` field in the `songs` table helps differentiate between preset songs, theme-based songs, and fully custom songs.

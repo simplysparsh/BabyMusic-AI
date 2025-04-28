@@ -6,8 +6,9 @@ const API_URL = 'https://api.piapi.ai/api/v1';
 const API_KEY = import.meta.env.VITE_PIAPI_KEY;
 
 const PIAPI_LIMITS = {
-  PROMPT_MAX_LENGTH: 3000,
-  TAGS_MAX_LENGTH: 200,
+  PROMPT_MAX_LENGTH: 1000,
+  TAGS_MAX_LENGTH: 10000,
+  NEGATIVE_TAGS_MAX_LENGTH: 100,
 };
 
 // Edge Function URL with anon key for authentication
@@ -99,7 +100,7 @@ export const createMusicGenerationTask = async ({
   const inputPayload: Record<string, any> = {
     gpt_description_prompt: truncateToLimit(description, PIAPI_LIMITS.TAGS_MAX_LENGTH),
     lyrics_type: lyricsType,
-    negative_tags: 'rock, metal, aggressive, harsh', // Keep existing negative tags
+    negative_tags: truncateToLimit('rock, metal, aggressive, harsh', PIAPI_LIMITS.NEGATIVE_TAGS_MAX_LENGTH),
     seed: -1, // Add seed parameter as per new API examples
     title: title // Add the generated title here
   };

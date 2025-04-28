@@ -13,7 +13,7 @@ const SYSTEM_PROMPT = `You are a professional children's songwriter specializing
 age-appropriate lyrics. Your task is to create lyrics based on the following requirements:
 
 1. Name: ALWAYS use the child's name exactly as provided
-2. Length: Maximum 2900 characters
+2. Length: Maximum 1000 characters
 3. Language: Simple, child-friendly words
 4. Tone: Positive and uplifting
 5. Theme: Follow provided mood/theme
@@ -179,6 +179,12 @@ export class LyricGenerationService {
             name,
             length: lyrics.quality.length
           });
+        }
+
+        // Log if lyrics were truncated
+        if (lyrics.quality.wasTruncated) {
+          console.warn(`Lyrics exceeded 1000 character limit (${lyrics.quality.length} chars) and were truncated to 1000 chars`);
+          // We're already logging this in claude.ts, so we don't need to log it again here
         }
 
         return lyrics.text;

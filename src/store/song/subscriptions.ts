@@ -8,7 +8,6 @@
 //   - src/store/song/handlers/variationSubscriptionHandlers.ts (variation handlers)
 
 import { supabase } from '../../lib/supabase';
-import { useAuthStore } from '../authStore';
 import type { SongState, SongPayload, VariationPayload } from './types';
 import { handleSongUpdate } from './handlers/songSubscriptionHandlers';
 import { handleVariationInsert } from './handlers/variationSubscriptionHandlers';
@@ -21,10 +20,17 @@ type GetState = () => SongState;
 type RealtimePayload<T extends object> = RealtimePostgresChangesPayload<T>;
 
 export const createSongSubscriptions = (set: SetState, get: GetState) => {
-  const setupSubscription = () => {
-    const user = useAuthStore.getState().user;
-    if (!user) return;
-    supabase.getChannels().forEach(channel => channel.unsubscribe());
+  const setupSubscription = (userId: string) => {
+    if (!userId) {
+      console.error('setupSubscription called without userId');
+      return;
+    }
+    
+    console.log(`Setting up subscriptions for user: ${userId}`);
+    supabase.getChannels().forEach(channel => {
+      console.log(`Unsubscribing from existing channel: ${channel.topic}`);
+      channel.unsubscribe();
+    });
     
     // Subscribe to both songs and variations changes
     const songsSubscription = supabase
@@ -35,7 +41,7 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
           event: '*',
           schema: 'public',
           table: 'songs',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
           // Use type assertion to ensure TypeScript knows the structure
@@ -92,6 +98,7 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
 
     // Clean up subscription when user changes
     return () => {
+      console.log(`Cleaning up subscriptions for user: ${userId}`);
       songsSubscription.unsubscribe();
       variationsSubscription.unsubscribe();
     };

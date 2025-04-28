@@ -33,7 +33,7 @@ function App() {
   useEffect(() => {
     if (user) {
       if (typeof setupSubscription === 'function') {
-        const unsubscribe = setupSubscription();
+        const unsubscribe = setupSubscription(user.id);
         loadSongs().catch(error => {
           console.error('Failed to load songs:', error);
         });

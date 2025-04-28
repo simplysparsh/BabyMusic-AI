@@ -80,7 +80,7 @@ export interface SongState {
   loadSongs: () => Promise<void>;
   createSong: (params: CreateSongParams) => Promise<Song>;
   deleteAllSongs: () => Promise<void>;
-  setupSubscription: () => (() => void) | undefined;
+  setupSubscription: (userId: string) => (() => void) | undefined;
   resetGeneratingState: () => Promise<void>;
 }
 

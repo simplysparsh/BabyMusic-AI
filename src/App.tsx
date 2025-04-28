@@ -9,7 +9,8 @@ import OnboardingModal from './components/auth/OnboardingModal';
 
 function App() {
   const { user, initialized, profile, showPostSignupOnboarding, hidePostSignupOnboarding } = useAuthStore();
-  const { loadSongs, setupSubscription, songs } = useSongStore();
+  const loadSongs = useSongStore(state => state.loadSongs);
+  const setupSubscription = useSongStore(state => state.setupSubscription);
   const [path, setPath] = useState(window.location.pathname);
 
   // Handle client-side navigation
@@ -31,10 +32,15 @@ function App() {
   // Set up song subscription and load songs when user is authenticated
   useEffect(() => {
     if (user) {
-      setupSubscription();
-      loadSongs().catch(error => {
-        console.error('Failed to load songs:', error);
-      });
+      if (typeof setupSubscription === 'function') {
+        const unsubscribe = setupSubscription();
+        loadSongs().catch(error => {
+          console.error('Failed to load songs:', error);
+        });
+        return unsubscribe;
+      } else {
+        console.error('setupSubscription is not a function in songStore state!', setupSubscription);
+      }
     }
   }, [user, setupSubscription, loadSongs]);
 

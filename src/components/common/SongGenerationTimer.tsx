@@ -7,6 +7,7 @@ interface SongGenerationTimerProps {
   className?: string;
   compact?: boolean;
   onTimeout?: () => void;
+  songId?: string;
 }
 
 /**
@@ -18,9 +19,10 @@ export default function SongGenerationTimer({
   showProgress = true,
   className = '',
   compact = false,
-  onTimeout
+  onTimeout,
+  songId
 }: SongGenerationTimerProps) {
-  const { timeLeft, formattedTime, progress, totalTime: _totalTime } = useSongGenerationTimer(isGenerating);
+  const { timeLeft, formattedTime, progress, totalTime: _totalTime } = useSongGenerationTimer(isGenerating, songId);
   
   // Call onTimeout when timer reaches 0
   if (timeLeft === 0 && onTimeout) {

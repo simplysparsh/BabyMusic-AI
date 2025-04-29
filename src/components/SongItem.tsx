@@ -167,6 +167,7 @@ export default function SongItem({
                       isGenerating={isGenerating} 
                       compact={true}
                       className="inline-flex items-center"
+                      songId={song.id}
                     />
                   )
                 ) : (song.error || 'Processing...')}

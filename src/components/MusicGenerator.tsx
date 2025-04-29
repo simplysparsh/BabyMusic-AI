@@ -54,7 +54,10 @@ export default function MusicGenerator() {
   };
 
   // Use the centralized timer hook, only activating it when a non-preset song is generating
-  const { timeLeft, totalTime, formattedTime, progress } = useSongGenerationTimer(isNonPresetGenerating);
+  const { timeLeft, totalTime, formattedTime, progress } = useSongGenerationTimer(
+    isNonPresetGenerating,
+    generatingNonPresetSong?.id
+  );
 
   // Reset states when changing tabs
   useEffect(() => {

@@ -237,6 +237,7 @@ export default function PresetSongCard({
             showProgress={false}
             compact={true}
             className="!m-0 !p-0"
+            songId={currentSong?.id}
           />
         </span>
       );

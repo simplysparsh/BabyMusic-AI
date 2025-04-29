@@ -301,7 +301,7 @@ export default function PresetSongCard({
       className={`relative overflow-hidden rounded-2xl p-5 sm:p-7 text-left min-h-[100px] cursor-pointer
                  aria-disabled:cursor-not-allowed
                  transition-all duration-500 group flex items-start gap-4 backdrop-blur-sm bg-black/60
-                 bg-gradient-to-br active:scale-[0.98] touch-manipulation
+                 bg-gradient-to-br active:scale-95 touch-manipulation
                  ${colors.gradientFrom} ${colors.gradientTo}`}
     >
       <div className={`w-14 h-14 rounded-xl ${colors.bgColor}/10 flex items-center justify-center

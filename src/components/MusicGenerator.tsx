@@ -249,7 +249,7 @@ export default function MusicGenerator() {
             disabled={isCreateButtonDisabled()}
             className="flex items-center space-x-3 min-h-[48px] bg-gradient-to-r from-primary to-secondary
                      text-black font-medium px-8 py-4 rounded-xl hover:opacity-90 transition-all duration-300
-                     disabled:opacity-50 shadow-lg shadow-primary/25 group"
+                     disabled:opacity-50 shadow-lg shadow-primary/25 group active:scale-95 active:shadow-md"
           >
             <Wand2 className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
             <span>{isNonPresetGenerating ? 'Generating...' : 'Create Music'}</span>

@@ -186,35 +186,36 @@ export default function SongList() {
          )}
       </div>
 
-      {/* Conditional Rendering based on song presence */}
-      {!hasAnySongs && !isLoading && initialLoadComplete ? (
-         renderInitialEmptyState()
-       ) : !hasSongsForCurrentTab && !isLoading && initialLoadComplete ? (
-         renderEmptyTabState()
+      {/* Conditional Rendering based on song presence - Updated Logic */}
+      {!isLoading && !hasAnySongs ? ( // If not loading and no songs at all, show initial empty state
+        renderInitialEmptyState()
+      ) : !isLoading && !hasSongsForCurrentTab ? ( // If not loading and no songs for current tab, show tab empty state
+        renderEmptyTabState()
        ) : (
-         <>
-           {allFilteredSongsHaveErrors && (
-             <div className="mb-6 p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-              <p className="text-yellow-300 text-sm">
-                All songs in this tab encountered generation issues. This could be due to high server load or temporary service disruptions. 
-                Please try retrying your songs or creating new ones.
-              </p>
-             </div>
-           )}
-      
-           <div className="space-y-4">
-             {filteredSongs.map(song => (
-               <SongItem
-                 key={song.id}
-                 song={song}
-                 currentSong={currentUrl}
-                 isPlaying={isPlaying}
-                 onPlayClick={handlePlay}
-               />
-             ))}
-           </div>
-         </>
-       )}
+        // Otherwise (implicitly means !isLoading and hasSongsForCurrentTab), show the list
+          <>
+            {allFilteredSongsHaveErrors && (
+              <div className="mb-6 p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+               <p className="text-yellow-300 text-sm">
+                 All songs in this tab encountered generation issues. This could be due to high server load or temporary service disruptions. 
+                 Please try retrying your songs or creating new ones.
+               </p>
+              </div>
+            )}
+       
+            <div className="space-y-4">
+              {filteredSongs.map(song => (
+                <SongItem
+                  key={song.id}
+                  song={song}
+                  currentSong={currentUrl}
+                  isPlaying={isPlaying}
+                  onPlayClick={handlePlay}
+                />
+              ))}
+            </div>
+          </>
+        )}
     </div>
   );
 }

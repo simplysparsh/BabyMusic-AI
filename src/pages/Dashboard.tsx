@@ -8,7 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import MiniStreak from '../components/dashboard/MiniStreak';
 import DetailedStreak from '../components/dashboard/DetailedStreak';
 import { useStreakStore } from '../store/streakStore';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { StreakService } from '../services/streakService';
 import { useSongStore } from '../store/songStore';
 
@@ -18,9 +18,11 @@ export default function Dashboard() {
   const { streakData, isLoading: isStreakLoading, setStreakData, setLoading: setStreakLoading } = useStreakStore();
   const { songs } = useSongStore();
   const hasSongs = songs.length > 0;
+  const wasHidden = useRef(false);
   
   useRealtime();
 
+  // Initial streak data load
   useEffect(() => {
     const loadStreak = async () => {
       if (user && initialized) {
@@ -32,6 +34,33 @@ export default function Dashboard() {
     };
     loadStreak();
   }, [user, initialized, setStreakData, setStreakLoading]);
+
+  // Handle visibility changes (tab switching)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      // If the page becomes visible and was previously hidden
+      if (!document.hidden && wasHidden.current && user?.id) {
+        wasHidden.current = false;
+        
+        // Only fetch new data if we don't already have streak data
+        // or to refresh after a longer period (could add timestamp check)
+        if (!streakData || isStreakLoading) {
+          setStreakLoading(true);
+          const data = await StreakService.fetchStreakData(user.id);
+          setStreakData(data);
+          setStreakLoading(false);
+        }
+      } else if (document.hidden) {
+        wasHidden.current = true;
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, streakData, isStreakLoading, setStreakData, setStreakLoading]);
 
   const dailyGoal = 3;
   const songsToday = 2;

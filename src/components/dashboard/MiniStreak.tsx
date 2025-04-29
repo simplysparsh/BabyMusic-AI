@@ -1,4 +1,5 @@
 import { Flame } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 interface MiniStreakProps {
   streakDays: number;
@@ -6,6 +7,21 @@ interface MiniStreakProps {
 }
 
 export default function MiniStreak({ streakDays, isLoading }: MiniStreakProps) {
+  // Keep track of the last valid streak value to prevent flickering
+  const lastValidStreakRef = useRef<number | null>(null);
+  
+  // Update the ref when we have a valid streak value
+  useEffect(() => {
+    if (!isLoading && streakDays !== undefined) {
+      lastValidStreakRef.current = streakDays;
+    }
+  }, [streakDays, isLoading]);
+  
+  // Show last valid streak or the current streak, only show '--' on initial load
+  const displayStreak = isLoading && lastValidStreakRef.current !== null
+    ? lastValidStreakRef.current
+    : isLoading ? '--' : streakDays;
+
   return (
     <div className="w-full bg-white/[0.03] backdrop-blur-sm border-t border-b border-white/5 py-2">
       <div className="max-w-md mx-auto flex items-center justify-center gap-3">
@@ -14,7 +30,7 @@ export default function MiniStreak({ streakDays, isLoading }: MiniStreakProps) {
           <div className="relative">
             <span className="text-xl font-bold bg-gradient-to-r from-[#F59E0B] to-[#EC4899] 
                           bg-clip-text text-transparent">
-              {isLoading ? '--' : streakDays}
+              {displayStreak}
             </span>
             <span className="ml-1.5 text-white/80">day streak</span>
           </div>

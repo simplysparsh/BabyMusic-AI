@@ -1,4 +1,5 @@
 import { Flame, Star, Music2, Sparkles, Heart, Zap } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 interface DetailedStreakProps {
   streakDays: number;
@@ -8,6 +9,21 @@ interface DetailedStreakProps {
 }
 
 export default function DetailedStreak({ streakDays, isLoading, dailyGoal, songsToday }: DetailedStreakProps) {
+  // Keep track of the last valid streak value to prevent flickering
+  const lastValidStreakRef = useRef<number | null>(null);
+  
+  // Update the ref when we have a valid streak value
+  useEffect(() => {
+    if (!isLoading && streakDays !== undefined) {
+      lastValidStreakRef.current = streakDays;
+    }
+  }, [streakDays, isLoading]);
+  
+  // Show last valid streak or the current streak, only show '--' on initial load
+  const displayStreak = isLoading && lastValidStreakRef.current !== null
+    ? lastValidStreakRef.current
+    : isLoading ? '--' : streakDays;
+    
   return (
     <div className="relative overflow-hidden group rounded-3xl bg-gradient-to-br from-[#34D399] via-[#F59E0B] to-[#EC4899]
                    p-[2px] hover:p-[3px] transition-all duration-300">
@@ -34,7 +50,7 @@ export default function DetailedStreak({ streakDays, isLoading, dailyGoal, songs
                   </div>
                   <div>
                     <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                      {isLoading ? '--' : streakDays} Day Streak
+                      {displayStreak} Day Streak
                       {!isLoading && <Sparkles className="w-5 h-5 text-[#F59E0B] animate-sparkle" />}
                     </h3>
                     <p className="text-white/60 text-sm">Play songs daily to keep your streak</p>

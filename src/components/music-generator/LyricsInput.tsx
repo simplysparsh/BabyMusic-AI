@@ -68,8 +68,7 @@ export default function LyricsInput({ value, onChange, isFromScratch = false, on
 ${isFromScratch ?
 `• Create a song about exploring colors and shapes in nature
 • Make a melody about a magical garden adventure
-• Tell a story about making new friends at the park
-• Include themes of curiosity and discovery` :
+• Tell a story about making new friends at the park` :
 `• Include favorite animals or activities
 • Add specific places or objects
 • Mention special family moments

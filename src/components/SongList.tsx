@@ -146,22 +146,22 @@ export default function SongList() {
       {/* Content Area */}
       {!hasSongsForCurrentTab ? (
         // Empty State - Single consistent design for any empty situation
-        <div className="text-center py-20 space-y-8">
+        <div className="text-center py-12 space-y-6">
           {isDeleting ? (
             <p className="text-white/60 text-lg animate-pulse">
               Deleting all songs...
             </p>
           ) : (
-            <div className="max-w-xl mx-auto">
-              <div className="w-28 h-28 mx-auto bg-[#3e3a48] rounded-full flex items-center justify-center mb-8">
-                <Music2 className="w-16 h-16 text-pink-300" />
+            <div className="max-w-lg mx-auto">
+              <div className="w-20 h-20 mx-auto bg-[#3e3a48] rounded-full flex items-center justify-center mb-5">
+                <Music2 className="w-10 h-10 text-pink-300" />
               </div>
-              <div className="space-y-4">
-                <h3 className="text-4xl font-semibold text-white">
+              <div className="space-y-3">
+                <h3 className="text-2xl font-semibold text-white">
                   Create Your First Melody
                 </h3>
-                <p className="text-white/70 text-xl max-w-lg mx-auto leading-relaxed">
-                  Choose a mood and instrument above to generate a unique song for your little one.
+                <p className="text-white/70 text-base max-w-md mx-auto leading-relaxed">
+                  Create a themed song or customize your own melody with the perfect mood, tempo, and voice for your little one.
                 </p>
               </div>
             </div>

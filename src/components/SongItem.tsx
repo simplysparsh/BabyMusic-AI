@@ -157,8 +157,8 @@ export default function SongItem({
                 {isGenerating ? (
                   <SongGenerationTimer 
                     isGenerating={isGenerating} 
-                    showProgress={false}
-                    className="w-full"
+                    compact={true}
+                    className="inline-flex items-center"
                   />
                 ) : (song.error || 'Processing...')}
               </div>

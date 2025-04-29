@@ -5,13 +5,17 @@ import { useSongStore } from '../store/songStore';
 import { useAuthStore } from '../store/authStore';
 import { useAudioStore } from '../store/audioStore';
 import SongItem from './SongItem';
+import { Song } from '../types'; // Import Song type
+
+type TabType = 'custom' | 'preset'; // Define tab types
 
 export default function SongList() {
-  const { songs, loadSongs, isLoading, isDeleting, deleteAllSongs, processingTaskIds } = useSongStore();
+  const { songs, loadSongs, isLoading, isDeleting, deleteAllSongs } = useSongStore(); // Removed processingTaskIds as it wasn't used
   const { user } = useAuthStore();
   const { isPlaying, currentUrl, playAudio } = useAudioStore();
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('custom'); // Add state for active tab
 
   useEffect(() => {
     if (user) {
@@ -34,7 +38,18 @@ export default function SongList() {
   const handlePlay = (audioUrl: string, _songId: string) => {
     playAudio(audioUrl);
   };
-  
+
+  // Filter songs based on active tab
+  const filteredSongs = songs.filter(song => {
+    if (activeTab === 'custom') {
+      // Custom songs are those not explicitly marked as 'preset'
+      return song.song_type !== 'preset';
+    } else {
+      // Preset songs are those explicitly marked as 'preset'
+      return song.song_type === 'preset';
+    }
+  });
+
   // Only show loading state on initial load, not when refreshing
   if (isLoading && !initialLoadComplete) {
     return (
@@ -44,9 +59,31 @@ export default function SongList() {
     );
   }
 
-  if (songs.length === 0) {
-    return (
-      <div className="text-center py-16 space-y-6">
+  // Determine if there are any songs at all (before filtering)
+  const hasAnySongs = songs.length > 0;
+  // Determine if there are songs for the current tab
+  const hasSongsForCurrentTab = filteredSongs.length > 0;
+
+  // Empty state specifically for when *all* songs are loaded but the current tab is empty
+  const renderEmptyTabState = () => (
+    <div className="text-center py-16 space-y-4">
+      <div className="w-20 h-20 mx-auto bg-white/5 rounded-full flex items-center justify-center mb-4">
+        <Music2 className="w-10 h-10 text-white/30" />
+      </div>
+      <h3 className="text-xl font-semibold text-white">
+        No {activeTab === 'custom' ? 'custom' : 'preset'} songs yet
+      </h3>
+      <p className="text-white/60 max-w-sm mx-auto">
+        {activeTab === 'custom' 
+          ? 'Songs you create yourself will appear here.' 
+          : 'Preset songs generated from the section above will appear here.'}
+      </p>
+    </div>
+  );
+
+  // Empty state for when there are *no songs at all* yet
+  const renderInitialEmptyState = () => (
+     <div className="text-center py-16 space-y-6">
         {isDeleting ? (
           <p className="text-white/60 text-lg animate-pulse">
             Deleting all songs...
@@ -59,59 +96,81 @@ export default function SongList() {
           </div>
           <div>
             <h3 className="text-2xl font-semibold text-white mb-2">
-              Create Your First Melody
+              Your Melodies Appear Here
             </h3>
             <p className="text-white/60 text-lg max-w-md mx-auto leading-relaxed">
-              Choose a mood and instrument above to generate a unique song for your little one.
+              Create custom songs or generate presets, and they'll show up in the list below.
             </p>
           </div>
         </div>
         )}
       </div>
-    );
-  }
-
-  // Filter out preset songs using proper checks - use SongStateService
-  const regularSongs = songs.filter(song => 
-    song.song_type !== 'preset' || !song.preset_type
   );
-
-  // Check if all songs have errors
-  const allSongsHaveErrors = regularSongs.length > 0 && regularSongs.every(song => !!song.error);
+  
+  // Check if all *filtered* songs have errors
+  const allFilteredSongsHaveErrors = hasSongsForCurrentTab && filteredSongs.every(song => !!song.error);
 
   return (
-    <div>
-      <div className="flex justify-end mb-6">
-        {songs.length > 0 && (
-          <div className="relative">
+    <div className="w-full p-4 sm:p-6 card">
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-2 border-b border-white/10 mb-6">
+        <button
+          onClick={() => setActiveTab('custom')}
+          className={`px-6 py-3 rounded-t-lg text-sm font-medium transition-all duration-300 relative
+                   ${activeTab === 'custom' 
+                     ? 'text-white bg-white/10' 
+                     : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+        >
+          Custom
+          {activeTab === 'custom' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary"></div>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('preset')}
+          className={`px-6 py-3 rounded-t-lg text-sm font-medium transition-all duration-300 relative
+                   ${activeTab === 'preset' 
+                     ? 'text-white bg-white/10' 
+                     : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+        >
+          Preset
+          {activeTab === 'preset' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary"></div>
+          )}
+        </button>
+         {/* Spacer to push Delete button to the right */}
+         <div className="flex-grow"></div>
+         {/* Delete All Button - Show only if there are *any* songs */}
+         {hasAnySongs && (
+           <div className="relative py-2"> {/* Adjusted padding to align better with tabs */}
             {!showDeleteConfirm ? (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10
                          text-red-400 hover:bg-red-500/20 transition-all duration-300
-                         font-medium"
+                         text-sm font-medium" // Made text slightly smaller
                 disabled={isDeleting}
               >
                 <Trash2 className="w-4 h-4" />
                 <span>Delete All</span>
               </button>
             ) : (
-              <div className="flex items-center gap-3 card p-4 border-red-500/20 bg-black/50">
-                <span className="text-white/80">Are you sure?</span>
+              <div className="flex items-center gap-3 card p-3 border-red-500/20 bg-black/50 shadow-lg"> {/* Reduced padding */}
+                <span className="text-white/80 text-sm">Are you sure?</span> {/* Made text smaller */}
                 <button
                   onClick={handleDeleteAll}
-                  className="px-4 py-2 rounded-lg bg-red-500 text-white font-medium
+                  className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-sm font-medium
                            hover:bg-red-600 transition-all duration-300 
-                           shadow-lg shadow-red-500/25"
+                           shadow-md shadow-red-500/25" // Adjusted padding and shadow
                   disabled={isDeleting}
                 >
-                  {isDeleting ? 'Deleting...' : 'Yes, delete all'}
+                  {isDeleting ? 'Deleting...' : 'Yes, delete'}
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-2 rounded-lg bg-white/10 text-white/80 font-medium
+                  className="px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-sm font-medium
                            hover:bg-white/20 transition-all duration-300
-                           border border-white/10"
+                           border border-white/10" // Adjusted padding
                   disabled={isDeleting}
                 >
                   Cancel
@@ -119,29 +178,38 @@ export default function SongList() {
               </div>
             )}
           </div>
-        )}
+         )}
       </div>
+
+      {/* Conditional Rendering based on song presence */}
+      {!hasAnySongs && !isLoading && initialLoadComplete ? (
+         renderInitialEmptyState()
+       ) : !hasSongsForCurrentTab && !isLoading && initialLoadComplete ? (
+         renderEmptyTabState()
+       ) : (
+         <>
+           {allFilteredSongsHaveErrors && (
+             <div className="mb-6 p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+              <p className="text-yellow-300 text-sm">
+                All songs in this tab encountered generation issues. This could be due to high server load or temporary service disruptions. 
+                Please try retrying your songs or creating new ones.
+              </p>
+             </div>
+           )}
       
-      {allSongsHaveErrors && (
-        <div className="mb-6 p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-          <p className="text-yellow-300 text-sm">
-            All your songs encountered generation issues. This could be due to high server load or temporary service disruptions. 
-            Please try retrying your songs or creating new ones.
-          </p>
-        </div>
-      )}
-      
-      <div className="space-y-4">
-        {songs.map(song => (
-          <SongItem
-            key={song.id}
-            song={song}
-            currentSong={currentUrl}
-            isPlaying={isPlaying}
-            onPlayClick={handlePlay}
-          />
-        ))}
-      </div>
+           <div className="space-y-4">
+             {filteredSongs.map(song => (
+               <SongItem
+                 key={song.id}
+                 song={song}
+                 currentSong={currentUrl}
+                 isPlaying={isPlaying}
+                 onPlayClick={handlePlay}
+               />
+             ))}
+           </div>
+         </>
+       )}
     </div>
   );
 }

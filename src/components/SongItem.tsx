@@ -66,9 +66,10 @@ export default function SongItem({
   };
 
   return (
-    <div className="card group mb-4 flex items-center gap-4 sm:gap-6 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent p-4 shadow-lg transition-all duration-300 hover:border-white/20 hover:bg-white/[0.07]">
-      <div className="hidden sm:flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 shadow-inner">
-        <Music className="h-8 w-8 text-primary/80" />
+    <div className="card group mb-4 flex items-center gap-4 rounded-2xl border border-white/10 bg-neutral-800 p-4 shadow-lg transition-all duration-300 hover:border-white/20">
+      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 shadow-inner 
+                    sm:h-16 sm:w-16">
+        <Music className="h-6 w-6 text-primary/80 sm:h-8 sm:w-8" />
       </div>
 
       <div className="flex-grow overflow-hidden">

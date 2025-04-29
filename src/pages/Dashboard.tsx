@@ -10,11 +10,15 @@ import DetailedStreak from '../components/dashboard/DetailedStreak';
 import { useStreakStore } from '../store/streakStore';
 import { useEffect } from 'react';
 import { StreakService } from '../services/streakService';
+import { useSongStore } from '../store/songStore';
 
 export default function Dashboard() {
   const error = useErrorStore(state => state.error);
   const { profile, user, initialized } = useAuthStore();
   const { streakData, isLoading: isStreakLoading, setStreakData, setLoading: setStreakLoading } = useStreakStore();
+  const { songs } = useSongStore();
+  const hasSongs = songs.length > 0;
+  
   useRealtime();
 
   useEffect(() => {
@@ -47,6 +51,7 @@ export default function Dashboard() {
           {error}
         </div>
       )}
+      
       <section className="pt-20 pb-16 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-background-dark via-background-dark to-black opacity-50"></div>
         
@@ -73,13 +78,15 @@ export default function Dashboard() {
         
         <div className="scroll-optimize">
           <div className="mt-16 max-w-2xl mx-auto relative z-10">
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-primary via-white to-secondary 
-                        bg-clip-text text-transparent mb-8 text-center">
-              Your Melodies
-              <span className="block text-base text-white/60 font-normal mt-2">
-                Your collection of personalized songs
-              </span>
-            </h2>
+            {hasSongs && (
+              <h2 className="text-4xl font-bold bg-gradient-to-r from-primary via-white to-secondary 
+                          bg-clip-text text-transparent mb-8 text-center">
+                Your Melodies
+                <span className="block text-base text-white/60 font-normal mt-2">
+                  Your collection of personalized songs
+                </span>
+              </h2>
+            )}
             <SongList />
           </div>
 

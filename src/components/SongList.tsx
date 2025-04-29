@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Trash2, Music2 } from 'lucide-react';
 import { useSongStore } from '../store/songStore';
 import { useAuthStore } from '../store/authStore';
@@ -50,65 +49,23 @@ export default function SongList() {
     }
   });
 
-  // Only show loading state on initial load, not when refreshing
-  if (isLoading && !initialLoadComplete) {
-    return (
-      <div className="flex justify-center items-center py-16">
-        <p className="text-white/60">Loading your songs...</p>
-      </div>
-    );
-  }
-
   // Determine if there are any songs at all (before filtering)
   const hasAnySongs = songs.length > 0;
   // Determine if there are songs for the current tab
   const hasSongsForCurrentTab = filteredSongs.length > 0;
-
-  // Empty state specifically for when *all* songs are loaded but the current tab is empty
-  const renderEmptyTabState = () => (
-    <div className="text-center py-16 space-y-4">
-      <div className="w-20 h-20 mx-auto bg-white/5 rounded-full flex items-center justify-center mb-4">
-        <Music2 className="w-10 h-10 text-white/30" />
-      </div>
-      <h3 className="text-xl font-semibold text-white">
-        No {activeTab === 'custom' ? 'custom' : 'preset'} songs yet
-      </h3>
-      <p className="text-white/60 max-w-sm mx-auto">
-        {activeTab === 'custom' 
-          ? 'Songs you create yourself will appear here.' 
-          : 'Preset songs generated from the section above will appear here.'}
-      </p>
-    </div>
-  );
-
-  // Empty state for when there are *no songs at all* yet
-  const renderInitialEmptyState = () => (
-     <div className="text-center py-16 space-y-6">
-        {isDeleting ? (
-          <p className="text-white/60 text-lg animate-pulse">
-            Deleting all songs...
-          </p>
-        ) : (
-        <div>
-          <div className="w-24 h-24 mx-auto bg-gradient-to-r from-primary/20 to-secondary/20 
-                        rounded-full flex items-center justify-center">
-            <Music2 className="w-12 h-12 text-primary animate-float" />
-          </div>
-          <div>
-            <h3 className="text-2xl font-semibold text-white mb-2">
-              Your Melodies Appear Here
-            </h3>
-            <p className="text-white/60 text-lg max-w-md mx-auto leading-relaxed">
-              Create custom songs or generate presets, and they'll show up in the list below.
-            </p>
-          </div>
-        </div>
-        )}
-      </div>
-  );
-  
   // Check if all *filtered* songs have errors
   const allFilteredSongsHaveErrors = hasSongsForCurrentTab && filteredSongs.every(song => !!song.error);
+
+  // Loading state
+  if (isLoading && !initialLoadComplete) {
+    return (
+      <div className="w-full p-4 sm:p-6 card">
+        <div className="flex justify-center items-center py-16">
+          <p className="text-white/60">Loading your songs...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full p-4 sm:p-6 card">
@@ -186,36 +143,55 @@ export default function SongList() {
          )}
       </div>
 
-      {/* Conditional Rendering based on song presence - Updated Logic */}
-      {!isLoading && !hasAnySongs ? ( // If not loading and no songs at all, show initial empty state
-        renderInitialEmptyState()
-      ) : !isLoading && !hasSongsForCurrentTab ? ( // If not loading and no songs for current tab, show tab empty state
-        renderEmptyTabState()
-       ) : (
-        // Otherwise (implicitly means !isLoading and hasSongsForCurrentTab), show the list
-          <>
-            {allFilteredSongsHaveErrors && (
-              <div className="mb-6 p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-               <p className="text-yellow-300 text-sm">
-                 All songs in this tab encountered generation issues. This could be due to high server load or temporary service disruptions. 
-                 Please try retrying your songs or creating new ones.
-               </p>
+      {/* Content Area */}
+      {!hasSongsForCurrentTab ? (
+        // Empty State - Single consistent design for any empty situation
+        <div className="text-center py-20 space-y-8">
+          {isDeleting ? (
+            <p className="text-white/60 text-lg animate-pulse">
+              Deleting all songs...
+            </p>
+          ) : (
+            <div className="max-w-xl mx-auto">
+              <div className="w-28 h-28 mx-auto bg-[#3e3a48] rounded-full flex items-center justify-center mb-8">
+                <Music2 className="w-16 h-16 text-pink-300" />
               </div>
-            )}
-       
-            <div className="space-y-4">
-              {filteredSongs.map(song => (
-                <SongItem
-                  key={song.id}
-                  song={song}
-                  currentSong={currentUrl}
-                  isPlaying={isPlaying}
-                  onPlayClick={handlePlay}
-                />
-              ))}
+              <div className="space-y-4">
+                <h3 className="text-4xl font-semibold text-white">
+                  Create Your First Melody
+                </h3>
+                <p className="text-white/70 text-xl max-w-lg mx-auto leading-relaxed">
+                  Choose a mood and instrument above to generate a unique song for your little one.
+                </p>
+              </div>
             </div>
-          </>
-        )}
+          )}
+        </div>
+      ) : (
+        // Song List
+        <>
+          {allFilteredSongsHaveErrors && (
+            <div className="mb-6 p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+              <p className="text-yellow-300 text-sm">
+                All songs in this tab encountered generation issues. This could be due to high server load or temporary service disruptions. 
+                Please try retrying your songs or creating new ones.
+              </p>
+            </div>
+          )}
+          
+          <div className="space-y-4">
+            {filteredSongs.map(song => (
+              <SongItem
+                key={song.id}
+                song={song}
+                currentSong={currentUrl}
+                isPlaying={isPlaying}
+                onPlayClick={handlePlay}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

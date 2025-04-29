@@ -61,12 +61,10 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex justify-center">
-            {import.meta.env.VITE_FEATURE_STREAK_ENABLED?.toLowerCase() === 'true' && (
-              <MiniStreak 
-                streakDays={streakData?.currentStreak ?? 0} 
-                isLoading={isStreakLoading || streakData === null}
-              />
-            )}
+            <MiniStreak 
+              streakDays={streakData?.currentStreak ?? 0} 
+              isLoading={isStreakLoading || streakData === null}
+            />
           </div>
         </div>
 

@@ -155,26 +155,31 @@ export default function SongList() {
                 <span>Delete All</span>
               </button>
             ) : (
-              <div className="flex items-center gap-3 card p-3 border-red-500/20 bg-black/50 shadow-lg"> {/* Reduced padding */}
-                <span className="text-white/80 text-sm">Are you sure?</span> {/* Made text smaller */}
-                <button
-                  onClick={handleDeleteAll}
-                  className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-sm font-medium
-                           hover:bg-red-600 transition-all duration-300 
-                           shadow-md shadow-red-500/25" // Adjusted padding and shadow
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? 'Deleting...' : 'Yes, delete'}
-                </button>
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="px-3 py-1.5 rounded-lg bg-white/10 text-white/80 text-sm font-medium
-                           hover:bg-white/20 transition-all duration-300
-                           border border-white/10" // Adjusted padding
-                  disabled={isDeleting}
-                >
-                  Cancel
-                </button>
+              // Confirmation Box: Adjusted flex, padding, gap, text size
+              <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 card p-2.5 border border-red-500/30 bg-black/60 shadow-xl">
+                <span className="text-white/90 text-xs sm:text-sm font-medium text-center sm:text-left mb-2 sm:mb-0">Permanently delete all songs?</span>
+                <div className="flex gap-2"> {/* Inner div for buttons */}
+                  <button
+                    onClick={handleDeleteAll}
+                    // Yes Button: Adjusted padding, text size
+                    className="px-2.5 py-1 rounded-md bg-red-600 text-white text-xs font-semibold
+                             hover:bg-red-700 transition-all duration-300 
+                             shadow-lg shadow-red-600/30"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? 'Deleting...' : 'Yes'}
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    // Cancel Button: Adjusted padding, text size
+                    className="px-2.5 py-1 rounded-md bg-white/10 text-white/80 text-xs font-medium
+                             hover:bg-white/20 transition-all duration-300
+                             border border-white/20"
+                    disabled={isDeleting}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
           </div>

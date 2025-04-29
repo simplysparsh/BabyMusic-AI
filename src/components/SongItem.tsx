@@ -30,6 +30,7 @@ export default function SongItem({
   const hasVariations = SongStateService.hasVariations(song);
   const canRetry = SongStateService.canRetry(song);
   const isPlayable = SongStateService.isPlayable(song);
+  const isPreset = SongStateService.isPresetSong(song);
 
   // Check if the song is currently being retried
   const isRetrying = retryingSongs.has(song.id);
@@ -150,16 +151,24 @@ export default function SongItem({
         {(isGenerating || hasFailed) && (
           <div className="mt-3">
             <div className="h-1 overflow-hidden rounded-full bg-primary/20">
-              <div className={`h-full bg-primary ${hasFailed ? 'bg-red-400' : 'animate-pulse'}`}></div>
+              <div className={`h-full bg-primary ${hasFailed ? 'bg-red-400' : 'animate-pulse'}`} 
+                  style={{ width: isPreset ? '100%' : undefined }}></div>
             </div>
             <div className="mt-1 flex items-center justify-between">
               <div className={`text-xs ${hasFailed ? 'text-red-400' : 'text-white/60'}`}>
                 {isGenerating ? (
-                  <SongGenerationTimer 
-                    isGenerating={isGenerating} 
-                    compact={true}
-                    className="inline-flex items-center"
-                  />
+                  isPreset ? (
+                    <span className="inline-flex items-center animate-pulse">
+                      <RefreshCw className="inline-block w-3 h-3 mr-1 animate-spin" />
+                      Creating your song...
+                    </span>
+                  ) : (
+                    <SongGenerationTimer 
+                      isGenerating={isGenerating} 
+                      compact={true}
+                      className="inline-flex items-center"
+                    />
+                  )
                 ) : (song.error || 'Processing...')}
               </div>
               {canRetry && (

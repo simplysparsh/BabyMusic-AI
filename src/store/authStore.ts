@@ -9,6 +9,7 @@ import { DEFAULT_LANGUAGE } from '../types';
 import type { UserProfile, Language, AgeGroup } from '../types';
 import type { PresetType as _PresetType } from '../types';
 import { PRESET_CONFIGS as _PRESET_CONFIGS } from '../data/lyrics';
+import { StreakService } from '../services/streakService';
 
 interface AuthState {
   user: User | null;
@@ -378,6 +379,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       if (user) {
         await get().loadProfile();
+        StreakService.updateStreak(user.id);
       }
       set({ initialized: true });
       
@@ -400,6 +402,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (newUser) {
           try {
             await get().loadProfile();
+            StreakService.updateStreak(newUser.id);
           } catch {
             // If profile load fails, sign out and reset state
             await supabase.auth.signOut();

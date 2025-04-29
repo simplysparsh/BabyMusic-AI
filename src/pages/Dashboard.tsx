@@ -7,13 +7,28 @@ import Footer from '../components/Footer';
 import { useAuthStore } from '../store/authStore';
 import MiniStreak from '../components/dashboard/MiniStreak';
 import DetailedStreak from '../components/dashboard/DetailedStreak';
+import { useStreakStore } from '../store/streakStore';
+import { useEffect } from 'react';
+import { StreakService } from '../services/streakService';
 
 export default function Dashboard() {
   const error = useErrorStore(state => state.error);
-  const { profile, initialized } = useAuthStore();
+  const { profile, user, initialized } = useAuthStore();
+  const { streakData, isLoading: isStreakLoading, setStreakData, setLoading: setStreakLoading } = useStreakStore();
   useRealtime();
 
-  const streakDays = 5;
+  useEffect(() => {
+    const loadStreak = async () => {
+      if (user && initialized) {
+        setStreakLoading(true);
+        const data = await StreakService.fetchStreakData(user.id);
+        setStreakData(data);
+        setStreakLoading(false);
+      }
+    };
+    loadStreak();
+  }, [user, initialized, setStreakData, setStreakLoading]);
+
   const dailyGoal = 3;
   const songsToday = 2;
 
@@ -47,7 +62,10 @@ export default function Dashboard() {
           </div>
           <div className="flex justify-center">
             {import.meta.env.VITE_FEATURE_STREAK_ENABLED?.toLowerCase() === 'true' && (
-              <MiniStreak streakDays={streakDays} />
+              <MiniStreak 
+                streakDays={streakData?.currentStreak ?? 0} 
+                isLoading={isStreakLoading || streakData === null}
+              />
             )}
           </div>
         </div>
@@ -74,7 +92,8 @@ export default function Dashboard() {
                 Your Progress
               </h2>
               <DetailedStreak
-                streakDays={streakDays}
+                streakDays={streakData?.currentStreak ?? 0} 
+                isLoading={isStreakLoading || streakData === null}
                 dailyGoal={dailyGoal}
                 songsToday={songsToday}
               />

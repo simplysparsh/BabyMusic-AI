@@ -1,13 +1,13 @@
-
 import { Flame, Star, Music2, Sparkles, Heart, Zap } from 'lucide-react';
 
 interface DetailedStreakProps {
   streakDays: number;
+  isLoading: boolean;
   dailyGoal: number;
   songsToday: number;
 }
 
-export default function DetailedStreak({ streakDays, dailyGoal, songsToday }: DetailedStreakProps) {
+export default function DetailedStreak({ streakDays, isLoading, dailyGoal, songsToday }: DetailedStreakProps) {
   return (
     <div className="relative overflow-hidden group rounded-3xl bg-gradient-to-br from-[#34D399] via-[#F59E0B] to-[#EC4899]
                    p-[2px] hover:p-[3px] transition-all duration-300">
@@ -34,8 +34,8 @@ export default function DetailedStreak({ streakDays, dailyGoal, songsToday }: De
                   </div>
                   <div>
                     <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                      {streakDays} Day Streak
-                      <Sparkles className="w-5 h-5 text-[#F59E0B] animate-sparkle" />
+                      {isLoading ? '--' : streakDays} Day Streak
+                      {!isLoading && <Sparkles className="w-5 h-5 text-[#F59E0B] animate-sparkle" />}
                     </h3>
                     <p className="text-white/60 text-sm">Play songs daily to keep your streak</p>
                   </div>

@@ -47,6 +47,17 @@ The `errorStore` manages the state related to application errors and error handl
 - `removeError(id)`: An action to remove an error from the store by its ID.
 - `clearErrors()`: An action to clear all errors from the store.
 
+### `streakStore`
+
+The `streakStore` manages the state related to the user's daily activity streak. It includes:
+
+- `streakData`: An object containing `currentStreak` (number) and `lastActiveDate` (string), or `null` if not loaded.
+- `isLoading`: A boolean indicating if streak data is currently being fetched.
+- `error`: Stores any error message related to fetching streak data.
+- `setStreakData(data)`: Action to update the streak data.
+- `setLoading(loading)`: Action to set the loading state.
+- `setError(error)`: Action to set an error message.
+
 ## Usage in Components
 
 Components can access the state and actions from the Zustand stores using the `useStore` hook provided by Zustand. For example, to access the `authStore` in a component:

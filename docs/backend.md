@@ -8,7 +8,7 @@ Supabase provides a PostgreSQL database for storing application data. The databa
 
 ### Core Tables
 
-- `profiles`: Stores user profile information, such as email, name, and authentication details.
+- `profiles`: Stores user profile information, such as email, name, and authentication details. It also includes `current_streak` (INTEGER) and `last_active_date` (DATE) for tracking daily activity.
 - `songs`: Stores information about generated songs, including the user ID, song name, audio URL, task ID, error (if any), and creation date.
 - `song_variations`: Stores variations of generated songs, linked to the main song via a foreign key. Contains audio URLs and metadata for each variation.
 
@@ -52,6 +52,12 @@ The main API endpoints include:
 - `/api/auth`: Handles user registration, login, and authentication-related tasks.
 
 The API endpoints are secured using JWT authentication, and the Edge Functions verify the JWT before processing the request.
+
+## Database Functions
+
+In addition to Edge Functions, the backend utilizes PL/pgSQL database functions for specific logic executed directly within the database:
+
+- `update_user_streak(user_id)`: Calculates and updates the user's daily streak and last active date in the `profiles` table. This function is called via RPC from the frontend application after a successful profile load.
 
 ## Webhooks
 

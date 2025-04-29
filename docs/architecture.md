@@ -66,6 +66,16 @@ The application implements a comprehensive authentication and onboarding process
    - Persistent sessions with refresh tokens
    - Profile loading on authentication
 
+## Streak Tracking
+
+The application implements a daily activity streak feature:
+
+- **Data Storage**: Streak data (`current_streak`, `last_active_date`) is stored in the `profiles` table in Supabase.
+- **Update Logic**: A PL/pgSQL database function (`update_user_streak`) handles the core logic for incrementing or resetting the streak based on the user's last active date. This function is triggered when the user's profile is loaded (effectively on app open).
+- **Frontend State**: A dedicated Zustand store (`streakStore`) manages the streak data on the frontend.
+- **Service Layer**: A `streakService` handles fetching streak data and triggering the update function.
+- **UI Components**: `MiniStreak` and `DetailedStreak` components display the streak information.
+
 ## API Integrations
 
 Baby Music AI integrates with the following external APIs:

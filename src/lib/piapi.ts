@@ -105,7 +105,7 @@ export const createMusicGenerationTask = async ({
     title: title // Add the generated title here
   };
 
-  // Add prompt only if it's not instrumental (lyrics_type: 'user')
+  // Only add lyrics as prompt for non-instrumental songs
   if (!isInstrumental) {
     inputPayload.prompt = truncateToLimit(promptWithLyrics, PIAPI_LIMITS.PROMPT_MAX_LENGTH);
   }

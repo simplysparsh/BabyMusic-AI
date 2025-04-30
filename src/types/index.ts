@@ -74,6 +74,8 @@ export interface UserProfile {
   birthYear?: number;
   ageGroup?: AgeGroup;
   gender?: string;
+  /** User's timezone in IANA format (e.g., America/Los_Angeles) */
+  timezone?: string;
 }
 
 // Define BabyProfile type that contains the baby-related subset of profile data

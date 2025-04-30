@@ -50,8 +50,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError || !session) {
+      console.error('Session error or no session during profile load, signing out.');
       await supabase.auth.signOut();
-      set({ user: null, profile: null });
+      set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false }); 
       return;
     }
 
@@ -61,87 +62,115 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     
     while (retryCount < MAX_RETRIES) {
       try {
-        // Add a small delay before retries (but not on first attempt)
         if (retryCount > 0) {
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retryCount));
         }
 
-        // Verify session is still valid before each attempt
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         if (!currentSession) {
-          throw new Error('Session expired during profile load');
-        }
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          email,
-          is_premium,
-          daily_generations,
-          last_generation_date,
-          baby_name,
-          preferred_language,
-          created_at,
-          gender,
-          birth_month,
-          birth_year,
-          age_group
-        `)
-        .eq('id', user.id)
-        .single();
-      
-      if (error) {
-        // If the profile doesn't exist, force logout
-        if (error.code === 'PGRST116' || error.message.includes('contains 0 rows')) {
+          console.error('Session expired during profile load retry loop, signing out.');
           await supabase.auth.signOut();
-          set({ 
-            user: null, 
-            profile: null
-          });
+          set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false });
           return;
         }
-        throw error;
-      }
 
-      if (profile) {
-        const userProfile: UserProfile = {
-          id: profile.id,
-          email: profile.email,
-          isPremium: profile.is_premium,
-          dailyGenerations: profile.daily_generations,
-          lastGenerationDate: profile.last_generation_date,
-          babyName: profile.baby_name,
-          preferredLanguage: profile.preferred_language || DEFAULT_LANGUAGE,
-          gender: profile.gender,
-          birthMonth: profile.birth_month,
-          birthYear: profile.birth_year,
-          ageGroup: profile.age_group
-        };
-      
-        set({ profile: userProfile });
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            email,
+            is_premium,
+            daily_generations,
+            last_generation_date,
+            baby_name,
+            preferred_language,
+            created_at,
+            gender,
+            birth_month,
+            birth_year,
+            age_group,
+            timezone
+          `)
+          .eq('id', user.id)
+          .single();
         
-        // Check if profile is incomplete for onboarding
-        if (!userProfile.birthMonth || !userProfile.birthYear) {
-          console.log('Profile incomplete, setting showPostSignupOnboarding flag.');
-          set({ showPostSignupOnboarding: true });
-        } else {
-          // Ensure flag is false if profile is complete
-          set({ showPostSignupOnboarding: false });
+        if (error) {
+          if (error.code === 'PGRST116' || error.message.includes('contains 0 rows')) {
+            console.error('Profile not found for user, signing out.');
+            await supabase.auth.signOut();
+            set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false });
+            return;
+          }
+          throw error;
         }
+
+        if (profileData) {
+          const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          
+          if (profileData.timezone !== userTimeZone) {
+             console.log(`Detected timezone change: DB='${profileData.timezone}', Local='${userTimeZone}'. Updating profile timezone.`);
+             try {
+                 const { data: updatedData, error: updateError } = await supabase
+                   .from('profiles')
+                   .update({ timezone: userTimeZone })
+                   .eq('id', user.id)
+                   .select('timezone')
+                   .single();
+
+                 if (updateError) {
+                   console.error('Failed to update timezone in DB:', updateError);
+                 } else if (updatedData && updatedData.timezone) { 
+                   console.log('Timezone updated successfully in DB.');
+                   profileData.timezone = updatedData.timezone;
+                 } else {
+                    console.warn('Timezone update call succeeded but did not return updated data. Using detected local timezone for session.');
+                    profileData.timezone = userTimeZone;
+                 }
+             } catch (tzUpdateErr) {
+                 console.error('Error during timezone update attempt:', tzUpdateErr);
+             }
+          }
+
+          const userProfile: UserProfile = {
+            id: profileData.id,
+            email: profileData.email,
+            isPremium: profileData.is_premium,
+            dailyGenerations: profileData.daily_generations,
+            lastGenerationDate: profileData.last_generation_date,
+            babyName: profileData.baby_name,
+            preferredLanguage: profileData.preferred_language || DEFAULT_LANGUAGE,
+            gender: profileData.gender,
+            birthMonth: profileData.birth_month,
+            birthYear: profileData.birth_year,
+            ageGroup: profileData.age_group,
+            timezone: profileData.timezone
+          };
         
-        return;
-      } else {
-        throw new Error('No profile data received');
-      }
+          set({ profile: userProfile });
+          
+          if (!userProfile.birthMonth || !userProfile.birthYear) {
+            console.log('Profile incomplete (missing birth month/year), setting showPostSignupOnboarding flag.');
+            set({ showPostSignupOnboarding: true });
+          } else {
+             if (get().showPostSignupOnboarding) {
+                console.log('Profile complete, ensuring showPostSignupOnboarding flag is false.');
+                set({ showPostSignupOnboarding: false });
+             }
+          }
+          
+          return;
+        } else {
+          throw new Error('No profile data received despite no error');
+        }
       } catch (err) {
         retryCount++;
+        console.error(`Error loading profile (attempt ${retryCount}/${MAX_RETRIES}):`, err);
 
         if (retryCount === MAX_RETRIES) {
-          set({ 
-            isLoading: false 
-          });
-          throw err;
+          console.error('Max retries reached for loading profile. Signing out.');
+          await supabase.auth.signOut();
+          set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false, isLoading: false }); 
+          return;
         }
       }
     }
@@ -174,7 +203,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('Baby name is required');
       }
 
-      // Ensure gender is explicitly passed
       const updatedProfile = await ProfileService.updateProfile({
         userId: user.id,
         babyName: trimmedNewName,
@@ -187,19 +215,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       console.log('Profile updated successfully:', updatedProfile);
 
-      // Update profile state immediately
       set({ profile: updatedProfile });
 
-      // Determine the gender to use for regeneration
       const genderForRegen = gender || updatedProfile.gender;
 
-      // Regenerate preset songs only if the baby name changed and we have a gender
       if (trimmedNewName !== currentProfile?.babyName && genderForRegen) {
         console.log('Baby name changed, triggering preset song regeneration...');
         SongService.regeneratePresetSongs(user.id, trimmedNewName, genderForRegen)
           .catch(error => {
             console.error('Background preset song regeneration failed:', error);
-            // Don't surface this error to the user since profile update succeeded
           });
       } else if (trimmedNewName !== currentProfile?.babyName && !genderForRegen) {
           console.warn('Baby name changed, but skipping preset song regeneration because gender is missing.');
@@ -208,7 +232,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return updatedProfile;
     } catch (error) {
       console.error('Profile update failed:', error);
-      // Revert local state on error
       if (currentProfile) {
         set({ profile: currentProfile });
       }
@@ -231,10 +254,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('No session returned after sign in');
       }
       
-      // Get the user data immediately after sign in
       set({ user: data.user });
       
-      // Load the profile
       await get().loadProfile(); 
     } finally {
     }
@@ -249,7 +270,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       console.log('Starting signup process...');
       
-      // Verify Supabase client is configured
       if (!supabase) {
         console.error('Supabase client not initialized');
         throw new Error('Authentication service configuration error. Please try again later.');
@@ -278,6 +298,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const trimmedBabyName = babyName.trim();
       const userId = user.id;
       const userEmail = user.email!;
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       try {
         const { error: insertError } = await supabase
@@ -288,7 +309,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             email: userEmail,
             gender: gender,
             preferred_language: DEFAULT_LANGUAGE,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            timezone: userTimeZone
           }]);
           
         if (insertError) {
@@ -330,7 +352,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw error;
       }
   
-      // Clear all state
       set({ 
         user: null, 
         profile: null,
@@ -338,7 +359,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         showPostSignupOnboarding: false
       });
   
-      // Clear other stores
       useSongStore.setState({
         songs: [],
         processingTaskIds: new Set<string>()     
@@ -347,7 +367,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       useErrorStore.getState().clearError();
   
     } catch (error) {
-      // Force clear state even if sign out fails
       set({ 
         user: null, 
         profile: null,
@@ -359,7 +378,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   loadUser: async () => {
     try {
-      // First try to get an existing session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       set({ initialized: false });
       
@@ -383,7 +401,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       set({ initialized: true });
       
-      // Set up auth state change listener
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         
         if (event === 'SIGNED_OUT') {
@@ -404,7 +421,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             await get().loadProfile();
             StreakService.updateStreak(newUser.id);
           } catch {
-            // If profile load fails, sign out and reset state
             await supabase.auth.signOut();
             set({ user: null, profile: null });
           }

@@ -10,6 +10,7 @@ interface ProfileUpdateParams {
   birthYear?: number;
   ageGroup?: AgeGroup;
   gender?: string;
+  timezone?: string;
 }
 
 export class ProfileService {
@@ -20,7 +21,8 @@ export class ProfileService {
     birthMonth,
     birthYear,
     ageGroup,
-    gender
+    gender,
+    timezone
   }: ProfileUpdateParams): Promise<UserProfile> {
     const trimmedBabyName = babyName.trim();
     
@@ -31,7 +33,8 @@ export class ProfileService {
       birthMonth,
       birthYear,
       ageGroup,
-      gender
+      gender,
+      timezone
     });
     
     // Basic validation
@@ -51,11 +54,25 @@ export class ProfileService {
           ...(birthMonth && { birth_month: birthMonth }),
           ...(birthYear && { birth_year: birthYear }),
           ...(ageGroup && { age_group: ageGroup }),
-          ...(gender !== undefined && { gender })
+          ...(gender !== undefined && { gender }),
+          ...(timezone && { timezone })
         }
       )
       .eq('id', userId)
-      .select('*')
+      .select(`
+        id,
+        email,
+        is_premium,
+        daily_generations,
+        last_generation_date,
+        baby_name,
+        preferred_language,
+        gender,
+        birth_month, 
+        birth_year, 
+        age_group,
+        timezone
+      `)
       .single();
 
     if (updateError) {
@@ -67,7 +84,7 @@ export class ProfileService {
     }
 
     // Return profile response immediately
-    const profileResponse = {
+    const profileResponse: UserProfile = {
       id: profile.id,
       email: profile.email,
       isPremium: profile.is_premium,
@@ -75,7 +92,11 @@ export class ProfileService {
       lastGenerationDate: profile.last_generation_date,
       babyName: profile.baby_name,
       preferredLanguage: profile.preferred_language || DEFAULT_LANGUAGE,
-      gender: profile.gender
+      gender: profile.gender,
+      birthMonth: profile.birth_month,
+      birthYear: profile.birth_year,
+      ageGroup: profile.age_group,
+      timezone: profile.timezone
     };
 
     return profileResponse;

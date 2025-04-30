@@ -111,8 +111,8 @@ export const createMusicGenerationTask = async ({
   }
 
   const requestBody = {
-    model: 'music-u', // Updated model
-    task_type: 'generate_music', // Updated task type
+    model: 'music-u',
+    task_type: 'generate_music',
     config: {
       webhook_config: {
         endpoint: WEBHOOK_URL,

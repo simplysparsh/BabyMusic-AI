@@ -20,7 +20,7 @@ export const PRESET_CONFIGS: Record<PresetType, PresetConfig> = {
       `${name}'s learning what fun is for!\n` +
       `Giggles, smiles, and lots of play,\n` +
       `Making memories every day!`,
-    description: 'Energetic melody for playtime activities'
+    description: 'An energetic, upbeat melody designed for baby playtime. Features a lively tempo (100–130 BPM), bouncy rhythms, and major key tonality. Percussive instruments like marimba, tambourine, and ukulele drive a sense of fun and physical exploration. Repetitive phrasing and bright tones invite movement, laughter, and social engagement.'
   },
   eating: {
     title: (name: string) => `${name}'s Mealtime Song`,
@@ -34,7 +34,7 @@ export const PRESET_CONFIGS: Record<PresetType, PresetConfig> = {
       `${name} will grow up big real soon!\n` +
       `Munching, crunching, what a treat,\n` +
       `Mealtime makes our day complete!`,
-    description: 'Encouraging melody for mealtime'
+    description: 'A cheerful, steady-tempo tune that creates a joyful yet calming atmosphere for mealtime. Mid-tempo rhythms (90–110 BPM) paired with acoustic guitar, soft percussion, and xylophone support focus without overstimulation. Melodies are singable and engaging, encouraging positive associations with food and routine.'
   },
   sleeping: {
     title: (name: string) => `${name}'s Bedtime Lullaby`,
@@ -48,7 +48,7 @@ export const PRESET_CONFIGS: Record<PresetType, PresetConfig> = {
       `Watching over you tonight.\n` +
       `Drift away to dreamland sweet,\n` +
       `Until morning we shall meet.`,
-    description: 'Soothing lullaby for bedtime'
+    description: 'A slow, soothing lullaby with gentle harmonies and soft textures to aid in winding down for sleep. Tempo ranges from 50–70 BPM, using instruments like harp, music box, ambient pads, and warm strings. The mood is tranquil, nurturing, and dreamy, evoking a secure and restful environment ideal for sleep onset and emotional comfort.'
   },
   pooping: {
     title: (name: string) => `${name}'s Flush Time Song`,
@@ -62,6 +62,6 @@ export const PRESET_CONFIGS: Record<PresetType, PresetConfig> = {
       `This is something to celebrate!\n` +
       `When you're done, we'll wash our hands,\n` +
       `You're the star of potty land!`,
-    description: 'Playful melody for potty training'
+    description: 'A playful, lighthearted melody crafted to make potty time feel fun and empowering. Set in a major key with a tempo around 80–100 BPM, it features whimsical instruments like ukulele, claps, and bongos. The tone is upbeat and confident, supporting routine-building through humor, encouragement, and positive reinforcement.'
   }
 };

@@ -9,7 +9,13 @@ import { Song } from '../types'; // Import Song type
 type TabType = 'custom' | 'preset'; // Define tab types
 
 export default function SongList() {
-  const { songs, loadSongs, isLoading, isDeleting, deleteAllSongs } = useSongStore(); // Removed processingTaskIds as it wasn't used
+  // Destructure using selectors
+  const songs = useSongStore(state => state.songs);
+  const loadSongs = useSongStore(state => state.loadSongs);
+  const isLoading = useSongStore(state => state.isLoading);
+  const isDeleting = useSongStore(state => state.isDeleting);
+  const deleteAllSongs = useSongStore(state => state.deleteAllSongs);
+  
   const { user } = useAuthStore();
   const { isPlaying, currentUrl, playAudio } = useAudioStore();
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
@@ -19,11 +25,17 @@ export default function SongList() {
   useEffect(() => {
     if (user) {
       console.log('Loading songs for user:', user.id);
-      loadSongs().then(() => {
-        setInitialLoadComplete(true);
-      });
+      // Ensure loadSongs is defined before calling
+      if (loadSongs) { 
+        loadSongs().then(() => {
+          setInitialLoadComplete(true);
+        });
+      } else {
+        // Add logging if function is missing (shouldn't happen now)
+        console.error('loadSongs function not available in songStore!');
+      }
     }
-  }, [loadSongs, user]);
+  }, [loadSongs, user]); // Correct dependency array
 
   const handleDeleteAll = async () => {
     try {

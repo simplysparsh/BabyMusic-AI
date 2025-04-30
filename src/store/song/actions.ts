@@ -30,6 +30,14 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       
       if (error) throw error;
 
+      // *** Add logging here ***
+      console.log('[DEBUG] Before cloning queuedTaskIds:', {
+        type: typeof get().queuedTaskIds,
+        value: get().queuedTaskIds,
+        isIterable: typeof get().queuedTaskIds?.[Symbol.iterator] === 'function'
+      });
+      // *** End logging ***
+      
       // Clear any processing task IDs that don't exist in the database
       const newProcessingTaskIds = new Set([...get().processingTaskIds]);
       const newQueuedTaskIds = new Set([...get().queuedTaskIds]);
@@ -65,6 +73,13 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         queuedTaskIds: newQueuedTaskIds
       });
     } catch (error) {
+      // Add specific logging if the error is the iterable issue
+      if (error instanceof TypeError && error.message.includes('is not iterable')) {
+        console.error('[DEBUG] Caught iterable error. Current queuedTaskIds:', {
+          type: typeof get().queuedTaskIds,
+          value: get().queuedTaskIds
+        });
+      }
       console.error('Error loading songs:', error);
       set({ error: 'Failed to load your songs.' });
     } finally {

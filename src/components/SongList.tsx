@@ -85,7 +85,7 @@ export default function SongList() {
       <div className="flex items-center gap-2 border-b border-white/10 mb-6">
         <button
           onClick={() => setActiveTab('custom')}
-          className={`px-6 py-3 rounded-t-lg text-sm font-medium transition-all duration-300 relative
+          className={`px-4 sm:px-6 py-3 rounded-t-lg text-sm font-medium transition-all duration-300 relative
                    ${activeTab === 'custom' 
                      ? 'text-white bg-white/10' 
                      : 'text-white/60 hover:text-white hover:bg-white/5'}`}
@@ -97,7 +97,7 @@ export default function SongList() {
         </button>
         <button
           onClick={() => setActiveTab('preset')}
-          className={`px-6 py-3 rounded-t-lg text-sm font-medium transition-all duration-300 relative
+          className={`px-4 sm:px-6 py-3 rounded-t-lg text-sm font-medium transition-all duration-300 relative
                    ${activeTab === 'preset' 
                      ? 'text-white bg-white/10' 
                      : 'text-white/60 hover:text-white hover:bg-white/5'}`}
@@ -115,7 +115,7 @@ export default function SongList() {
             {!showDeleteConfirm ? (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10
+                className="flex items-center whitespace-nowrap gap-1.5 px-3.5 py-2 rounded-xl bg-red-500/10
                          text-red-400 hover:bg-red-500/20 transition-all duration-300
                          text-sm font-medium" // Made text slightly smaller
                 disabled={isDeleting}

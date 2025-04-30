@@ -36,7 +36,7 @@ export default function SongGenerationTimer({
   // Compact mode just shows the time
   if (compact) {
     return (
-      <span className={`text-white/90 ${className}`}>
+      <span className={`text-white/90 text-xs ${className}`}>
         <Clock className="inline-block w-3 h-3 mr-1 text-primary/90 animate-pulse" />
         {formattedTime}
       </span>
@@ -46,16 +46,17 @@ export default function SongGenerationTimer({
   return (
     <div className={`space-y-3 fade-in ${className}`}>
       <div 
-        className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg
-                 shadow-sm border border-primary/20 animate-pulse"
+        className="flex flex-wrap items-center justify-center px-3 py-2 rounded-lg bg-black"
         style={{
-          background: 'linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.75))'
+          background: 'linear-gradient(to right, rgba(0,0,0,0.95), rgba(0,0,0,0.9))'
         }}
       >
-        <Clock className="inline-block w-3.5 h-3.5 text-primary/90 animate-pulse" />
-        <p className="text-white/90 text-xs">
-          <span className="text-white/90 bg-black/40 px-1.5 py-0.5 rounded text-xs">{formattedTime}</span> remaining
-        </p>
+        <div className="flex items-center gap-1.5">
+          <Clock className="inline-block w-3.5 h-3.5 text-primary/90 animate-pulse" />
+          <p className="text-white/90 text-xs">
+            {formattedTime} <span className="text-white/70">remaining</span>
+          </p>
+        </div>
       </div>
       
       {showProgress && (

@@ -85,7 +85,7 @@ export default function usePresetSongs() {
       mood: PRESET_CONFIGS[type].mood,
       songType: 'preset',
       preset_type: type,
-      lyrics: PRESET_CONFIGS[type].lyrics(profile.babyName),
+      lyrics: PRESET_CONFIGS[type].fallbackLyrics(profile.babyName),
       gender: profile.gender
     });
   }, [songs, createSong, playAudio, user, profile, songNames]);

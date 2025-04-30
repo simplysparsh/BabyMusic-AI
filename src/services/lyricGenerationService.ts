@@ -106,9 +106,9 @@ export class LyricGenerationService {
       if (songType === 'preset' && presetType && PRESET_CONFIGS[presetType]) {
         lyricsBasePrompt = `Create a ${PRESET_CONFIGS[presetType].description} for ${name}`;
       } else if (songType === 'theme' && theme && THEME_CONFIGS[theme]) {
-        lyricsBasePrompt = `${THEME_CONFIGS[theme].prompt} for ${name}`;
+        lyricsBasePrompt = `${THEME_CONFIGS[theme].generationGuideline} for ${name}`;
       } else if (songType === 'theme-with-input' && theme) {
-        lyricsBasePrompt = `${THEME_CONFIGS[theme].prompt} for ${name}`;
+        lyricsBasePrompt = `${THEME_CONFIGS[theme].generationGuideline} for ${name}`;
       } else if (songType === 'from-scratch') {
         if (!mood) {
           throw new Error('Mood is required for songs built from scratch');
@@ -260,7 +260,7 @@ export class LyricGenerationService {
       // For preset songs, use the preset config
       if (songType === 'preset' && presetType && PRESET_CONFIGS[presetType]) {
         console.log('Using preset fallback lyrics for:', presetType);
-        const lyrics = PRESET_CONFIGS[presetType].lyrics(name);
+        const lyrics = PRESET_CONFIGS[presetType].fallbackLyrics(name);
         return lyrics
           .replace(/\{pronoun\}/g, pronoun)
           .replace(/\{possessive\}/g, possessivePronoun);
@@ -269,7 +269,7 @@ export class LyricGenerationService {
       // For theme songs, use the theme config
       if ((songType === 'theme' || songType === 'theme-with-input') && theme && THEME_CONFIGS[theme]) {
         console.log('Using theme fallback lyrics for:', theme);
-        const lyrics = THEME_CONFIGS[theme].lyrics(name);
+        const lyrics = THEME_CONFIGS[theme].fallbackLyrics(name);
         return lyrics
           .replace(/\{pronoun\}/g, pronoun)
           .replace(/\{possessive\}/g, possessivePronoun);

@@ -1,14 +1,14 @@
 import type { ThemeType } from '../../types';
 
 interface ThemeConfig {
-  lyrics: (name: string) => string;
+  fallbackLyrics: (name: string) => string;
   description: string;
-  prompt: string;
+  generationGuideline: string;
 }
 
 export const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
   pitchDevelopment: {
-    lyrics: (name) =>
+    fallbackLyrics: (name) =>
       `Up and down goes ${name}'s voice,\n` +
       `Like a bird making musical choice.\n` +
       `High notes soar and low notes play,\n` +
@@ -18,10 +18,10 @@ export const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
       `Notes and scales, never fails,\n` +
       `Making music tell sweet tales!`,
     description: 'Melodic patterns for pitch recognition training',
-    prompt: 'Create a children\'s song focused on pitch recognition and vocal development'
+    generationGuideline: 'Create a children\'s song focused on pitch recognition and vocal development'
   },
   cognitiveSpeech: {
-    lyrics: (name) =>
+    fallbackLyrics: (name) =>
       `Listen close as ${name} speaks,\n` +
       `Words and sounds like mountain peaks.\n` +
       `Syllables dance, letters play,\n` +
@@ -31,10 +31,10 @@ export const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
       `Clear and bright, pure delight,\n` +
       `Learning language day and night!`,
     description: 'Clear rhythmic patterns for speech development',
-    prompt: 'Create a children\'s song that encourages speech development and cognitive learning'
+    generationGuideline: 'Create a children\'s song that encourages speech development and cognitive learning'
   },
   sleepRegulation: {
-    lyrics: (name) =>
+    fallbackLyrics: (name) =>
       `Hush now ${name}, drift and dream,\n` +
       `Float away on starlight's beam.\n` +
       `Gentle waves of sleepy sighs,\n` +
@@ -44,10 +44,10 @@ export const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
       `Close your eyes, paradise,\n` +
       `Sleep until the sun does rise.`,
     description: 'Gentle lullaby with soothing patterns',
-    prompt: 'Create a gentle lullaby to help with sleep regulation'
+    generationGuideline: 'Create a gentle lullaby to help with sleep regulation'
   },
   socialEngagement: {
-    lyrics: (name) =>
+    fallbackLyrics: (name) =>
       `Hello friends, ${name} is here,\n` +
       `Bringing smiles and lots of cheer!\n` +
       `Wave your hands and say hello,\n` +
@@ -57,10 +57,10 @@ export const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
       `Kind and true, me and you,\n` +
       `Building bonds both old and new!`,
     description: 'Interactive melody for social bonding',
-    prompt: 'Create a children\'s song that promotes social interaction and emotional development'
+    generationGuideline: 'Create a children\'s song that promotes social interaction and emotional development'
   },
   indianClassical: {
-    lyrics: (name) =>
+    fallbackLyrics: (name) =>
       `Om Shanti ${name}, peaceful and bright,\n` +
       `Like morning ragas at first light.\n` +
       `Gentle swaras guide the way,\n` +
@@ -70,10 +70,10 @@ export const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
       `Ancient wisdom, new and pure,\n` +
       `Making melodies to endure.`,
     description: 'Peaceful Indian classical melody with gentle ragas and traditional elements',
-    prompt: 'Create a children\'s song incorporating Indian classical music elements'
+    generationGuideline: 'Create a children\'s song incorporating Indian classical music elements'
   },
   westernClassical: {
-    lyrics: (name) =>
+    fallbackLyrics: (name) =>
       `${name} dances with Mozart's grace,\n` +
       `Classical beauty fills this place.\n` +
       `Gentle strings and flutes so sweet,\n` +
@@ -83,11 +83,11 @@ export const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
       `Pure and bright, day and night,\n` +
       `Classical dreams take their flight!`,
     description: 'Adapted classical melodies for babies',
-    prompt: 'Create a children\'s song incorporating Western classical music elements'
+    generationGuideline: 'Create a children\'s song incorporating Western classical music elements'
   }
 };
 
 // For backward compatibility
 export const THEME_LYRICS = Object.fromEntries(
-  Object.entries(THEME_CONFIGS).map(([key, config]) => [key, config.lyrics])
+  Object.entries(THEME_CONFIGS).map(([key, config]) => [key, config.fallbackLyrics])
 ) as Record<ThemeType, (name: string) => string>;

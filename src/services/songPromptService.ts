@@ -24,25 +24,6 @@ export class SongPromptService {
     return `Create a ${mood} children's song that is engaging and age-appropriate`;
   }
 
-  static getThemePrompt(theme: ThemeType): string {
-    switch (theme) {
-      case 'pitchDevelopment':
-        return 'Create a children\'s song focused on pitch recognition and vocal development';
-      case 'cognitiveSpeech':
-        return 'Create a children\'s song that encourages speech development and cognitive learning';
-      case 'sleepRegulation':
-        return 'Create a gentle lullaby to help with sleep regulation';
-      case 'socialEngagement':
-        return 'Create a children\'s song that promotes social interaction and emotional development';
-      case 'indianClassical':
-        return 'Create a children\'s song incorporating Indian classical music elements';
-      case 'westernClassical':
-        return 'Create a children\'s song incorporating Western classical music elements';
-      default:
-        return 'Create an engaging children\'s song';
-    }
-  }
-
   static generateTitle(params: {
     theme?: ThemeType;
     mood?: MusicMood;

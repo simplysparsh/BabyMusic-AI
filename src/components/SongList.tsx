@@ -124,30 +124,34 @@ export default function SongList() {
                 <span>Delete All</span>
               </button>
             ) : (
-              // Confirmation Box: Adjusted flex, padding, gap, text size
-              <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 card p-2.5 border border-red-500/30 bg-black/60 shadow-xl">
-                <span className="text-white/90 text-xs sm:text-sm font-medium text-center sm:text-left mb-2 sm:mb-0">Permanently delete all songs?</span>
-                <div className="flex gap-2"> {/* Inner div for buttons */}
-                  <button
-                    onClick={handleDeleteAll}
-                    // Yes Button: Adjusted padding, text size
-                    className="px-2.5 py-1 rounded-md bg-red-600 text-white text-xs font-semibold
-                             hover:bg-red-700 transition-all duration-300 
-                             shadow-lg shadow-red-600/30"
-                    disabled={isDeleting}
-                  >
-                    {isDeleting ? 'Deleting...' : 'Yes'}
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    // Cancel Button: Adjusted padding, text size
-                    className="px-2.5 py-1 rounded-md bg-white/10 text-white/80 text-xs font-medium
-                             hover:bg-white/20 transition-all duration-300
-                             border border-white/20"
-                    disabled={isDeleting}
-                  >
-                    Cancel
-                  </button>
+              // Confirmation Box: Updated for better mobile display
+              <div className="absolute right-0 top-full mt-2 z-50 max-w-xs w-64">
+                <div className="rounded-xl overflow-hidden bg-black/95 shadow-xl border border-red-500/30">
+                  <div className="p-4 text-center">
+                    <span className="text-white text-sm font-medium block">
+                      Permanently delete all songs?
+                    </span>
+                    
+                    <div className="flex gap-3 mt-4 justify-center">
+                      <button
+                        onClick={handleDeleteAll}
+                        className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium
+                                 hover:bg-red-700 transition-all duration-300 
+                                 shadow-md"
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? 'Deleting...' : 'Yes'}
+                      </button>
+                      <button
+                        onClick={() => setShowDeleteConfirm(false)}
+                        className="px-4 py-2 rounded-lg bg-gray-600/50 text-white text-sm font-medium
+                                 hover:bg-gray-600/70 transition-all duration-300"
+                        disabled={isDeleting}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

@@ -26,21 +26,22 @@ export default function GenerationProgress({
     : ((totalTime - timeLeft) / totalTime) * 100;
 
   return (
-    <div className="mt-6 space-y-4 fade-in">
+    <div className="mt-4 space-y-4 fade-in px-2">
       <div 
-        className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg
-                 shadow-sm border border-primary/20 animate-pulse"
+        className="flex flex-wrap items-center justify-center px-3 py-2 rounded-lg bg-black"
         style={{
-          background: 'linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.75))'
+          background: 'linear-gradient(to right, rgba(0,0,0,0.95), rgba(0,0,0,0.9))'
         }}
       >
-        <Clock className="inline-block w-4 h-4 text-primary/90 animate-pulse" />
-        <p className="text-white/90 text-sm flex items-center gap-2">
-          Creating your <span className="text-primary">masterpiece</span>... ✨ 
-          <span className="text-white/90 ml-1 bg-black/40 px-1.5 py-0.5 rounded text-xs">
-            {displayTime}
-          </span>
-        </p>
+        <div className="flex items-center gap-1.5">
+          <Clock className="inline-block w-3.5 h-3.5 text-primary/90 animate-pulse" />
+          <p className="text-white/90 text-xs sm:text-sm">
+            Creating your <span className="text-primary">masterpiece</span>... ✨
+          </p>
+        </div>
+        <div className="text-xs ml-1.5 bg-black/80 px-1.5 py-0.5 rounded text-white/90">
+          {displayTime}
+        </div>
       </div>
       
       <div className="w-full bg-black/40 rounded-full h-1.5 border border-white/5">

@@ -1,4 +1,3 @@
-
 import type { MusicMood, Tempo } from '../../types';
 
 const TEMPO_OPTIONS: { type: Tempo; label: string }[] = [
@@ -38,12 +37,34 @@ export default function CustomOptions({
             <button
               key={type}
               onClick={() => onTempoSelect(type)}
-              className={`flex-1 px-4 py-3 rounded-xl text-center transition-all duration-300
+              className={`flex-1 rounded-xl text-center py-3 px-4 transition-all duration-500 group relative overflow-hidden backdrop-blur-sm
                        ${tempo === type
-                         ? 'bg-gradient-to-r from-primary to-accent text-black'
-                         : 'bg-white/[0.07] text-white hover:bg-white/[0.1]'}`}
+                         ? 'bg-black/90 text-white shadow-md shadow-primary/10'
+                         : 'bg-black/80 text-white/90 hover:bg-black/70'}`}
+              style={{
+                background: tempo === type 
+                  ? 'linear-gradient(to bottom right, rgba(0,0,0,0.95), rgba(0,0,0,0.9))' 
+                  : 'linear-gradient(to bottom right, rgba(0,0,0,0.9), rgba(0,0,0,0.85))'
+              }}
             >
-              {label}
+              {/* Dynamic background gradients */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-transparent to-transparent opacity-50 
+                           group-hover:opacity-100 transition-opacity duration-500"></div>
+              
+              {/* Selected state overlay */}
+              <div className={`absolute inset-0 bg-gradient-to-br transition-opacity duration-500
+                            ${tempo === type 
+                              ? 'from-primary/40 via-secondary/30 to-transparent opacity-100'
+                              : 'opacity-0'}`} />
+              
+              {/* Text content */}
+              <div className="relative z-10 font-medium">{label}</div>
+              
+              {/* Decorative corner gradient */}
+              <div className="absolute bottom-0 right-0 w-16 h-16 
+                           bg-gradient-radial from-white/15 to-transparent 
+                           rounded-full -mr-6 -mb-6 
+                           group-hover:scale-150 transition-transform duration-700"></div>
             </button>
           ))}
         </div>
@@ -58,12 +79,34 @@ export default function CustomOptions({
             <button
               key={type}
               onClick={() => onMoodSelect(type)}
-              className={`px-4 py-3 rounded-xl text-center transition-all duration-300
+              className={`rounded-xl text-center py-3 px-4 transition-all duration-500 group relative overflow-hidden backdrop-blur-sm
                        ${mood === type
-                         ? 'bg-gradient-to-r from-secondary to-accent text-black'
-                         : 'bg-white/[0.07] text-white hover:bg-white/[0.1]'}`}
+                         ? 'bg-black/90 text-white shadow-md shadow-primary/10'
+                         : 'bg-black/80 text-white/90 hover:bg-black/70'}`}
+              style={{
+                background: mood === type 
+                  ? 'linear-gradient(to bottom right, rgba(0,0,0,0.95), rgba(0,0,0,0.9))' 
+                  : 'linear-gradient(to bottom right, rgba(0,0,0,0.9), rgba(0,0,0,0.85))'
+              }}
             >
-              {label}
+              {/* Dynamic background gradients */}
+              <div className="absolute inset-0 bg-gradient-to-br from-secondary/30 via-transparent to-transparent opacity-50 
+                           group-hover:opacity-100 transition-opacity duration-500"></div>
+              
+              {/* Selected state overlay */}
+              <div className={`absolute inset-0 bg-gradient-to-br transition-opacity duration-500
+                            ${mood === type 
+                              ? 'from-secondary/40 via-accent/30 to-transparent opacity-100'
+                              : 'opacity-0'}`} />
+              
+              {/* Text content */}
+              <div className="relative z-10 font-medium">{label}</div>
+              
+              {/* Decorative corner gradient */}
+              <div className="absolute bottom-0 right-0 w-16 h-16 
+                           bg-gradient-radial from-white/15 to-transparent 
+                           rounded-full -mr-6 -mb-6 
+                           group-hover:scale-150 transition-transform duration-700"></div>
             </button>
           ))}
         </div>

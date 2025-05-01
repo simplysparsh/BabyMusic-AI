@@ -543,12 +543,12 @@ export class SongService {
     try {
       // Delete existing preset songs first
       console.log(`${logPrefix}: Deleting existing preset songs for user ${userId}...`);
-      const deleteResult = await withRetry(() => 
+      const deleteResult = await withRetry(() =>
         supabase
           .from('songs')
           .delete()
           .eq('user_id', userId)
-          .or('name.ilike.%playtime%,name.ilike.%mealtime%,name.ilike.%bedtime%,name.ilike.%potty%') // Consider making this more robust, maybe using preset_type?
+          .not('preset_type', 'is', null) // Use preset_type to identify presets reliably
       );
 
       if (deleteResult.error) {

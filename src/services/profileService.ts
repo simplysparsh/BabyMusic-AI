@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { DEFAULT_LANGUAGE } from '../types';
 import type { Language, UserProfile, AgeGroup } from '../types';
+import { withRetry } from '../utils/dbUtils';
 
 interface ProfileUpdateParams {
   userId: string;
@@ -45,37 +46,47 @@ export class ProfileService {
     }
 
     // First update the profile in the database
-    const { data: profile, error: updateError } = await supabase
-      .from('profiles')
-      .update(
-        {
-          baby_name: trimmedBabyName,
-          ...(preferredLanguage && { preferred_language: preferredLanguage }),
-          ...(birthMonth && { birth_month: birthMonth }),
-          ...(birthYear && { birth_year: birthYear }),
-          ...(ageGroup && { age_group: ageGroup }),
-          ...(gender !== undefined && { gender }),
-          ...(timezone && { timezone })
-        }
-      )
-      .eq('id', userId)
-      .select(`
-        id,
-        email,
-        is_premium,
-        daily_generations,
-        last_generation_date,
-        baby_name,
-        preferred_language,
-        gender,
-        birth_month, 
-        birth_year, 
-        age_group,
-        timezone
-      `)
-      .single();
+    // --- Apply withRetry wrapper --- 
+    const result = await withRetry(() => 
+      supabase
+        .from('profiles')
+        .update(
+          {
+            baby_name: trimmedBabyName,
+            ...(preferredLanguage && { preferred_language: preferredLanguage }),
+            ...(birthMonth && { birth_month: birthMonth }),
+            ...(birthYear && { birth_year: birthYear }),
+            ...(ageGroup && { age_group: ageGroup }),
+            ...(gender !== undefined && { gender }),
+            ...(timezone && { timezone })
+          }
+        )
+        .eq('id', userId)
+        .select(`
+          id,
+          email,
+          is_premium,
+          daily_generations,
+          last_generation_date,
+          baby_name,
+          preferred_language,
+          gender,
+          birth_month, 
+          birth_year, 
+          age_group,
+          timezone
+        `)
+        .single()
+    );
+
+    // Extract data and error from the result
+    const profile = result.data;
+    const updateError = result.error;
+    // --- End of withRetry changes ---
 
     if (updateError) {
+      // Log the specific error before throwing
+      console.error('Error updating profile in database:', updateError);
       throw updateError;
     }
 

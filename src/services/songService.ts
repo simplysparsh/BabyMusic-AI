@@ -3,6 +3,7 @@ import { createMusicGenerationTask } from '../lib/piapi';
 import { PRESET_CONFIGS } from '../data/lyrics';
 import { getPresetType } from '../utils/presetUtils';
 import { DEFAULT_LANGUAGE } from '../types';
+import { withRetry } from '../utils/dbUtils';
 import type {
   Song,
   MusicMood,
@@ -755,60 +756,3 @@ export class SongService {
     }
   }
 }
-
-/**
- * Utility function for robust database operations with retry logic
- * @param operation The database operation to perform
- * @param maxRetries Maximum number of retry attempts (default: 3)
- * @param timeoutMs Timeout in milliseconds (default: 8000)
- * @returns The result of the operation
- */
-const withRetry = async <T>(operation: () => Promise<T> | T, maxRetries = 3, timeoutMs = 8000): Promise<T> => {
-  let lastError: any;
-  let retryCount = 0;
-  
-  while (retryCount <= maxRetries) {
-    try {
-      // Create a timeout promise
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`Operation timed out after ${timeoutMs}ms`));
-        }, timeoutMs);
-      });
-      
-      // Race between the operation and the timeout
-      const result = await Promise.race([
-        operation(),
-        timeoutPromise
-      ]);
-      
-      return result;
-    } catch (error: any) {
-      lastError = error;
-      
-      // If this is a timeout error, log and continue to retry
-      if (error.message && error.message.includes('timed out')) {
-        console.warn(`Operation timed out, retrying (attempt ${retryCount + 1}/${maxRetries})`);
-      }
-      // If this is a non-retriable error, throw immediately
-      else if (error?.code === 'PGRST116' || error?.code === '23505') {
-        console.error('Non-retriable database error:', error);
-        throw error;
-      }
-      
-      if (retryCount >= maxRetries) {
-        break;
-      }
-      
-      // Exponential backoff
-      const delay = 500 * Math.pow(2, retryCount);
-      console.warn(`Database operation failed, retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries}):`, error);
-      
-      await new Promise(resolve => setTimeout(resolve, delay));
-      retryCount++;
-    }
-  }
-  
-  console.error(`All ${maxRetries} retry attempts failed for database operation:`, lastError);
-  throw lastError;
-};

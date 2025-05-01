@@ -175,14 +175,26 @@ export async function handleSongUpdate(
         songIdsToRemoveFromRetrying: [updatedSong.id]
       });
       
-      // IMMUTABLE UPDATE: Update song in the store
-      set((state: SongState) => ({
-        songs: state.songs.map(song => 
-          song.id === updatedSong.id 
-            ? { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
-            : song 
-        )
-      }));
+      // IMMUTABLE UPDATE: Update or add song in the store
+      set((state: SongState) => {
+        const songIndex = state.songs.findIndex(s => s.id === updatedSong.id);
+        let newSongsArray;
+        if (songIndex !== -1) {
+          // Update existing song
+          newSongsArray = [
+            ...state.songs.slice(0, songIndex),
+            { ...(updatedSong as Song), _lastUpdated: Date.now() }, // Create new object
+            ...state.songs.slice(songIndex + 1)
+          ];
+        } else {
+          // Add new song if it wasn't found
+          newSongsArray = [
+            ...state.songs, 
+            { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
+          ];
+        }
+        return { songs: newSongsArray };
+      });
       
       // Log the complete updated song state for debugging
       console.log(`Updated song state in store to READY:`, {
@@ -212,14 +224,26 @@ export async function handleSongUpdate(
         taskIdsToRemoveFromProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined // Clear processing
       });
       
-      // IMMUTABLE UPDATE: Update song in the store
-      set((state: SongState) => ({
-        songs: state.songs.map(song => 
-          song.id === updatedSong.id 
-            ? { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
-            : song 
-        )
-      }));
+      // IMMUTABLE UPDATE: Update or add song in the store
+      set((state: SongState) => {
+        const songIndex = state.songs.findIndex(s => s.id === updatedSong.id);
+        let newSongsArray;
+        if (songIndex !== -1) {
+          // Update existing song
+          newSongsArray = [
+            ...state.songs.slice(0, songIndex),
+            { ...(updatedSong as Song), _lastUpdated: Date.now() }, // Create new object
+            ...state.songs.slice(songIndex + 1)
+          ];
+        } else {
+          // Add new song if it wasn't found
+          newSongsArray = [
+            ...state.songs, 
+            { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
+          ];
+        }
+        return { songs: newSongsArray };
+      });
       
       console.log(`Updated song state in store to FAILED:`, {
         id: updatedSong.id,
@@ -242,14 +266,26 @@ export async function handleSongUpdate(
         // This is the "partially ready" scenario: has audio but still processing
         console.log(`[TRANSITION DETECTED] Song ${updatedSong.id} has audio but still has task_id (partially ready): ${updatedSong.audio_url}`);
         
-        // IMMUTABLE UPDATE: Update song in the store
-        set((state: SongState) => ({
-          songs: state.songs.map(song => 
-            song.id === updatedSong.id
-              ? { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
-              : song
-          )
-        }));
+        // IMMUTABLE UPDATE: Update or add song in the store
+        set((state: SongState) => {
+          const songIndex = state.songs.findIndex(s => s.id === updatedSong.id);
+          let newSongsArray;
+          if (songIndex !== -1) {
+            // Update existing song
+            newSongsArray = [
+              ...state.songs.slice(0, songIndex),
+              { ...(updatedSong as Song), _lastUpdated: Date.now() }, // Create new object
+              ...state.songs.slice(songIndex + 1)
+            ];
+          } else {
+            // Add new song if it wasn't found
+            newSongsArray = [
+              ...state.songs, 
+              { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
+            ];
+          }
+          return { songs: newSongsArray };
+        });
 
         // Verify the update was applied
         setTimeout(() => {
@@ -280,14 +316,26 @@ export async function handleSongUpdate(
          taskIdsToAddToProcessing: updatedSong.task_id ? [updatedSong.task_id] : undefined
       });
 
-      // IMMUTABLE UPDATE: Update song in the store
-      set((state: SongState) => ({
-        songs: state.songs.map(song => 
-          song.id === updatedSong.id 
-            ? { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
-            : song 
-        )
-      }));
+      // IMMUTABLE UPDATE: Update or add song in the store
+      set((state: SongState) => {
+        const songIndex = state.songs.findIndex(s => s.id === updatedSong.id);
+        let newSongsArray;
+        if (songIndex !== -1) {
+          // Update existing song
+          newSongsArray = [
+            ...state.songs.slice(0, songIndex),
+            { ...(updatedSong as Song), _lastUpdated: Date.now() }, // Create new object
+            ...state.songs.slice(songIndex + 1)
+          ];
+        } else {
+          // Add new song if it wasn't found
+          newSongsArray = [
+            ...state.songs, 
+            { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
+          ];
+        }
+        return { songs: newSongsArray };
+      });
       
       // Update processing state (redundant with batch update but safe)
       updateSongProcessingState(updatedSong.task_id, true, get);
@@ -312,13 +360,23 @@ export async function handleSongUpdate(
            songIdsToRemoveFromRetrying: [updatedSong.id]
          });
          // IMMUTABLE UPDATE
-         set((state: SongState) => ({
-           songs: state.songs.map(song => 
-             song.id === updatedSong.id 
-               ? { ...(updatedSong as Song), _lastUpdated: Date.now() } 
-               : song 
-           )
-         }));
+         set((state: SongState) => {
+           const songIndex = state.songs.findIndex(s => s.id === updatedSong.id);
+           let newSongsArray;
+           if (songIndex !== -1) {
+             newSongsArray = [
+               ...state.songs.slice(0, songIndex),
+               { ...(updatedSong as Song), _lastUpdated: Date.now() }, 
+               ...state.songs.slice(songIndex + 1)
+             ];
+           } else {
+             newSongsArray = [
+               ...state.songs, 
+               { ...(updatedSong as Song), _lastUpdated: Date.now() }
+             ];
+           }
+           return { songs: newSongsArray };
+         });
          return;
       }
 
@@ -329,25 +387,46 @@ export async function handleSongUpdate(
       });
 
       // IMMUTABLE UPDATE
-      set((state: SongState) => ({
-        songs: state.songs.map(song => 
-          song.id === updatedSong.id 
-            ? { ...(updatedSong as Song), _lastUpdated: Date.now() } 
-            : song 
-        )
-      }));
+      set((state: SongState) => {
+        const songIndex = state.songs.findIndex(s => s.id === updatedSong.id);
+        let newSongsArray;
+        if (songIndex !== -1) {
+          newSongsArray = [
+            ...state.songs.slice(0, songIndex),
+            { ...(updatedSong as Song), _lastUpdated: Date.now() }, 
+            ...state.songs.slice(songIndex + 1)
+          ];
+        } else {
+          newSongsArray = [
+            ...state.songs, 
+            { ...(updatedSong as Song), _lastUpdated: Date.now() }
+          ];
+        }
+        return { songs: newSongsArray };
+      });
       return;
   }
 
   // This final block should ideally not be reached if all cases return
-  console.warn(`Song ${updatedSong.id} update fell through the switch statement. State: ${songState}. Performing final immutable update.`);
-  set((state: SongState) => ({
-    songs: state.songs.map(song => 
-      song.id === updatedSong.id 
-        ? { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
-        : song 
-    )
-  }));
+  // Kept for safety, but should also handle insert/update correctly
+  console.warn(`Song ${updatedSong.id} update fell through the switch statement. State: ${songState}. Performing final update/insert.`);
+  set((state: SongState) => {
+    const songIndex = state.songs.findIndex(s => s.id === updatedSong.id);
+    let newSongsArray;
+    if (songIndex !== -1) {
+      newSongsArray = [
+        ...state.songs.slice(0, songIndex),
+        { ...(updatedSong as Song), _lastUpdated: Date.now() }, // Create new object
+        ...state.songs.slice(songIndex + 1)
+      ];
+    } else {
+      newSongsArray = [
+        ...state.songs, 
+        { ...(updatedSong as Song), _lastUpdated: Date.now() } // Create new object
+      ];
+    }
+    return { songs: newSongsArray };
+  });
 }
 
 /**

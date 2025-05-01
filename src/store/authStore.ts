@@ -47,131 +47,141 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const user = get().user;
     if (!user) return;
 
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !session) {
-      console.error('Session error or no session during profile load, signing out.');
-      await supabase.auth.signOut();
-      set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false }); 
-      return;
-    }
+    set({ isLoading: true });
 
-    const MAX_RETRIES = 3;
-    const RETRY_DELAY = 2000;
-    let retryCount = 0;
-    
-    while (retryCount < MAX_RETRIES) {
-      try {
-        if (retryCount > 0) {
-          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retryCount));
-        }
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('Session error or no session during profile load, signing out.');
+        await supabase.auth.signOut();
+        set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false }); 
+        return;
+      }
 
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (!currentSession) {
-          console.error('Session expired during profile load retry loop, signing out.');
-          await supabase.auth.signOut();
-          set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false });
-          return;
-        }
+      const MAX_RETRIES = 3;
+      const RETRY_DELAY = 2000;
+      let retryCount = 0;
+      
+      while (retryCount < MAX_RETRIES) {
+        try {
+          if (retryCount > 0) {
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retryCount));
+          }
 
-        const { data: profileData, error } = await supabase
-          .from('profiles')
-          .select(`
-            id,
-            email,
-            is_premium,
-            daily_generations,
-            last_generation_date,
-            baby_name,
-            preferred_language,
-            created_at,
-            gender,
-            birth_month,
-            birth_year,
-            age_group,
-            timezone
-          `)
-          .eq('id', user.id)
-          .single();
-        
-        if (error) {
-          if (error.code === 'PGRST116' || error.message.includes('contains 0 rows')) {
-            console.error('Profile not found for user, signing out.');
+          if (retryCount > 0) {
+            const { data: { session: refreshedSession } } = await supabase.auth.getSession();
+            if (!refreshedSession) {
+              console.error('Session expired during profile load retry loop, signing out.');
+              await supabase.auth.signOut();
+              set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false });
+              return;
+            }
+          }
+
+          const { data: profileData, error } = await supabase
+            .from('profiles')
+            .select(`
+              id,
+              email,
+              is_premium,
+              daily_generations,
+              last_generation_date,
+              baby_name,
+              preferred_language,
+              created_at,
+              gender,
+              birth_month,
+              birth_year,
+              age_group,
+              timezone
+            `)
+            .eq('id', user.id)
+            .single();
+          
+          if (error) {
+            if (error.code === 'PGRST116' || error.message.includes('contains 0 rows')) {
+              console.error('Profile not found for user, signing out.');
+              await supabase.auth.signOut();
+              set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false });
+              return;
+            }
+            throw error;
+          }
+
+          if (profileData) {
+            const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            
+            if (profileData.timezone !== userTimeZone) {
+               console.log(`Detected timezone change: DB='${profileData.timezone}', Local='${userTimeZone}'. Updating profile timezone.`);
+               try {
+                   const { data: updatedData, error: updateError } = await supabase
+                     .from('profiles')
+                     .update({ timezone: userTimeZone })
+                     .eq('id', user.id)
+                     .select('timezone')
+                     .single();
+
+                   if (updateError) {
+                     console.error('Failed to update timezone in DB:', updateError);
+                   } else if (updatedData && updatedData.timezone) { 
+                     console.log('Timezone updated successfully in DB.');
+                     profileData.timezone = updatedData.timezone;
+                   } else {
+                      console.warn('Timezone update call succeeded but did not return updated data. Using detected local timezone for session.');
+                      profileData.timezone = userTimeZone;
+                   }
+               } catch (tzUpdateErr) {
+                   console.error('Error during timezone update attempt:', tzUpdateErr);
+               }
+            }
+
+            const userProfile: UserProfile = {
+              id: profileData.id,
+              email: profileData.email,
+              isPremium: profileData.is_premium,
+              dailyGenerations: profileData.daily_generations,
+              lastGenerationDate: profileData.last_generation_date,
+              babyName: profileData.baby_name,
+              preferredLanguage: profileData.preferred_language || DEFAULT_LANGUAGE,
+              gender: profileData.gender,
+              birthMonth: profileData.birth_month,
+              birthYear: profileData.birth_year,
+              ageGroup: profileData.age_group,
+              timezone: profileData.timezone
+            };
+          
+            set({ profile: userProfile });
+            
+            if (!userProfile.birthMonth || !userProfile.birthYear) {
+              console.log('Profile incomplete (missing birth month/year), setting showPostSignupOnboarding flag.');
+              set({ showPostSignupOnboarding: true });
+            } else {
+               if (get().showPostSignupOnboarding) {
+                  console.log('Profile complete, ensuring showPostSignupOnboarding flag is false.');
+                  set({ showPostSignupOnboarding: false });
+               }
+            }
+            
+            return;
+          } else {
+            throw new Error('No profile data received despite no error');
+          }
+        } catch (err) {
+          retryCount++;
+          console.error(`Error loading profile (attempt ${retryCount}/${MAX_RETRIES}):`, err);
+
+          if (retryCount === MAX_RETRIES) {
+            console.error('Max retries reached for loading profile. Signing out.');
             await supabase.auth.signOut();
-            set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false });
+            set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false }); 
             return;
           }
-          throw error;
         }
-
-        if (profileData) {
-          const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          
-          if (profileData.timezone !== userTimeZone) {
-             console.log(`Detected timezone change: DB='${profileData.timezone}', Local='${userTimeZone}'. Updating profile timezone.`);
-             try {
-                 const { data: updatedData, error: updateError } = await supabase
-                   .from('profiles')
-                   .update({ timezone: userTimeZone })
-                   .eq('id', user.id)
-                   .select('timezone')
-                   .single();
-
-                 if (updateError) {
-                   console.error('Failed to update timezone in DB:', updateError);
-                 } else if (updatedData && updatedData.timezone) { 
-                   console.log('Timezone updated successfully in DB.');
-                   profileData.timezone = updatedData.timezone;
-                 } else {
-                    console.warn('Timezone update call succeeded but did not return updated data. Using detected local timezone for session.');
-                    profileData.timezone = userTimeZone;
-                 }
-             } catch (tzUpdateErr) {
-                 console.error('Error during timezone update attempt:', tzUpdateErr);
-             }
-          }
-
-          const userProfile: UserProfile = {
-            id: profileData.id,
-            email: profileData.email,
-            isPremium: profileData.is_premium,
-            dailyGenerations: profileData.daily_generations,
-            lastGenerationDate: profileData.last_generation_date,
-            babyName: profileData.baby_name,
-            preferredLanguage: profileData.preferred_language || DEFAULT_LANGUAGE,
-            gender: profileData.gender,
-            birthMonth: profileData.birth_month,
-            birthYear: profileData.birth_year,
-            ageGroup: profileData.age_group,
-            timezone: profileData.timezone
-          };
-        
-          set({ profile: userProfile });
-          
-          if (!userProfile.birthMonth || !userProfile.birthYear) {
-            console.log('Profile incomplete (missing birth month/year), setting showPostSignupOnboarding flag.');
-            set({ showPostSignupOnboarding: true });
-          } else {
-             if (get().showPostSignupOnboarding) {
-                console.log('Profile complete, ensuring showPostSignupOnboarding flag is false.');
-                set({ showPostSignupOnboarding: false });
-             }
-          }
-          
-          return;
-        } else {
-          throw new Error('No profile data received despite no error');
-        }
-      } catch (err) {
-        retryCount++;
-        console.error(`Error loading profile (attempt ${retryCount}/${MAX_RETRIES}):`, err);
-
-        if (retryCount === MAX_RETRIES) {
-          console.error('Max retries reached for loading profile. Signing out.');
-          await supabase.auth.signOut();
-          set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false, isLoading: false }); 
-          return;
-        }
+      }
+    } finally {
+      if (get().user) {
+        set({ isLoading: false });
       }
     }
   },

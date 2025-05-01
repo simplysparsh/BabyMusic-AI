@@ -2,7 +2,6 @@ import { supabase } from '../lib/supabase';
 import { createMusicGenerationTask } from '../lib/piapi';
 import { PRESET_CONFIGS } from '../data/lyrics';
 import { getPresetType } from '../utils/presetUtils';
-import { DEFAULT_LANGUAGE } from '../types';
 import { withRetry } from '../utils/dbUtils';
 import type {
   Song,

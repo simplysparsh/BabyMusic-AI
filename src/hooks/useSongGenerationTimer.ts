@@ -34,7 +34,15 @@ const notifyListeners = (songId: string) => {
 
 // Start a timer for a specific song
 const startTimer = (songId: string) => {
-  // If timer already exists, just subscribe to it
+  // Check if a timer exists and has already completed
+  const existingTimer = activeTimers.get(songId);
+  if (existingTimer && existingTimer.timeLeft <= 0) {
+    // Clean up the completed timer before starting a new one
+    stopTimer(songId);
+  }
+
+  // If a timer still exists after the potential cleanup (meaning it was already running and > 0),
+  // we don't need to create a new one. Just exit.
   if (activeTimers.has(songId)) {
     return;
   }

@@ -159,32 +159,22 @@ export class SongService {
    * Starts song generation for a song record that already exists in the database
    * @param dbSong The database song record to generate
    * @param babyName The baby's name for personalization
+   * @param ageGroup The baby's age group (optional)
+   * @param gender The baby's gender (optional)
    * @returns The task ID for the generation task
    */
-  static async startSongGeneration(dbSong: DatabaseSong, babyName: string): Promise<string> {
+  static async startSongGeneration(
+    dbSong: DatabaseSong, 
+    babyName: string,
+    ageGroup?: AgeGroup,
+    gender?: string
+  ): Promise<string> {
     if (!dbSong.id) {
       throw new Error('Song ID is required to start generation');
     }
     
     try {
-      // Get profile data if needed
-      let ageGroup: AgeGroup | undefined;
-      let gender: string | undefined;
-      
-      if (dbSong.user_id) {
-        const profileResult = await withRetry(() => 
-          supabase
-            .from('profiles')
-            .select('age_group, gender')
-            .eq('id', dbSong.user_id)
-            .single()
-        );
-          
-        ageGroup = profileResult.data?.age_group as AgeGroup | undefined;
-        gender = profileResult.data?.gender as string | undefined;
-      }
-      
-      // Create task
+      // Create task - use passed-in ageGroup and gender
       const taskId = await createMusicGenerationTask({
         theme: dbSong.theme,
         mood: dbSong.mood,
@@ -437,8 +427,10 @@ export class SongService {
       songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
       preset_type?: PresetType;
     };
+    ageGroup?: AgeGroup;
+    gender?: string;
   }): Promise<Song> {
-    const { userId, name, babyName, songParams } = params;
+    const { userId, name, babyName, songParams, ageGroup, gender } = params;
     const { theme, mood, userInput, tempo, songType, isInstrumental, voice, preset_type: presetTypeParam } = songParams;
 
     console.log('Creating song with params:', {
@@ -521,7 +513,7 @@ export class SongService {
     // Start generation
     let taskId;
     try {
-      taskId = await this.startSongGeneration(dbSong as DatabaseSong, babyName);
+      taskId = await this.startSongGeneration(dbSong as DatabaseSong, babyName, ageGroup, gender);
     } catch (error) {
       console.error('Failed to start song generation:', error);
       throw error;
@@ -558,6 +550,24 @@ export class SongService {
       }
       console.log(`${logPrefix}: Existing preset songs deleted successfully.`);
 
+      // --- Add profile fetch --- 
+      let profileData: { age_group?: AgeGroup, gender?: string } | null = null;
+      try {
+        const result = await withRetry(() =>
+          supabase
+            .from('profiles')
+            .select('age_group, gender')
+            .eq('id', userId)
+            .single()
+        );
+        if (result.error) throw result.error; // Let withRetry handle logging/throwing final error
+        profileData = result.data;
+      } catch (error) {
+        console.error(`${logPrefix}: Failed to fetch profile data for song generation:`, error);
+        throw new Error('Failed to fetch profile data, cannot regenerate songs.'); // Stop regeneration if profile fetch fails
+      }
+      // --- End profile fetch ---
+
       // Create new preset songs in parallel
       console.log(`${logPrefix}: Creating new preset songs...`);
       const presetPromises = Object.entries(PRESET_CONFIGS).map(([type, config]) => 
@@ -570,7 +580,10 @@ export class SongService {
             songType: 'preset',
             preset_type: type as PresetType
             // Gender will be fetched within startSongGeneration from profile
-          }
+          },
+          // Pass fetched profile data
+          ageGroup: profileData?.age_group,
+          gender: profileData?.gender
         })
       );
 

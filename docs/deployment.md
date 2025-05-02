@@ -92,8 +92,8 @@ For functions that should only be called by authenticated users, use:
 
 ```bash
 supabase functions deploy function-name
-
 supabase functions deploy toggle-favorite
+supabase functions deploy increment-play-count
 ```
 
 The default behavior will require valid JWT tokens.

@@ -1,7 +1,7 @@
 import type { ThemeType } from '../../types';
 import { THEMES } from './themeData';
 import { useAuthStore } from '../../store/authStore';
-import { LockKeyhole } from 'lucide-react';
+import { LockKeyhole, Sparkles } from 'lucide-react';
 // import { Link } from 'react-router-dom'; // Keep Link removed/commented
 
 // Define premium themes
@@ -78,15 +78,17 @@ export default function ThemeSelector({ selectedTheme, onThemeSelect }: ThemeSel
         ))}
       </div>
       
-      {/* Subtle hint for premium themes */}
+      {/* Subtle hint for premium themes - Restyled */} 
       {userLoaded && !isPremium && (
-        <div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-purple-900/30 to-indigo-900/30 text-center text-sm text-indigo-200 border border-indigo-700/50 shadow-inner flex items-center justify-center gap-2">
-          <LockKeyhole className="w-4 h-4 text-indigo-300" />
-          <span className="hover:text-white transition-colors">
-            <a href="/premium">
-              Unlock <strong>Indian Ragas</strong> & <strong>Western Classical</strong> themes with <span className="font-semibold text-white underline">Premium</span>!
-            </a>
-          </span>
+        // Use a slightly different but related gradient/border style
+        <div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10 text-center border border-primary/20 shadow-inner">
+          <a href="/premium" className="group inline-flex items-center justify-center gap-2">
+             {/* Changed icon to Sparkles */}
+            <Sparkles className="w-4 h-4 text-primary/80 group-hover:text-primary transition-colors duration-300" />
+            <span className="text-sm text-white/70 group-hover:text-white transition-colors">
+              Unlock <strong>Indian Ragas</strong> & <strong>Western Classical</strong> themes with <strong className="font-semibold text-primary underline group-hover:text-secondary transition-colors">Premium!</strong>
+            </span>
+          </a>
         </div>
       )}
     </div>

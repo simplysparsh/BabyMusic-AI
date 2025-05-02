@@ -65,4 +65,28 @@ Supabase supports webhooks for real-time event notifications. Baby Music AI uses
 
 The webhook endpoint is implemented as an Edge Function that listens for incoming HTTP POST requests. When a webhook event is received, the Edge Function validates the request signature, extracts the relevant data, and updates the corresponding song record in the database.
 
+## Supabase Edge Functions
+
+Edge Functions provide serverless compute capabilities close to the user.
+
+### `piapi-webhook`
+
+-   **Purpose:** Handles incoming webhooks from the PIAPI.ai service after song generation is complete.
+-   **Location:** `supabase/functions/piapi-webhook`
+-   **Details:** Updates the corresponding song record in the `songs` table with the `audio_url` or error status based on the webhook payload.
+
+### `toggle-favorite` (New)
+
+-   **Purpose:** Allows authenticated users to toggle the favorite status of their own songs.
+-   **Location:** `supabase/functions/toggle-favorite`
+-   **Trigger:** HTTP POST request.
+-   **Input:** JSON body containing `{ "song_id": "uuid" }`.
+-   **Auth:** Requires Supabase JWT in Authorization header.
+-   **Logic:**
+    1. Authenticates the user.
+    2. Retrieves the song specified by `song_id`.
+    3. Verifies the authenticated user is the owner (`user_id`) of the song.
+    4. Updates the `is_favorite` boolean column for that song record.
+    5. Returns the new favorite status.
+
 By leveraging Supabase's backend services, Baby Music AI can focus on delivering a seamless user experience while benefiting from a scalable, secure, and feature-rich backend infrastructure.

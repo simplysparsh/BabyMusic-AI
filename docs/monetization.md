@@ -59,8 +59,11 @@ Users can experience core functionality for free, but require a premium subscrip
     -   Atomically increments `monthly_plays_count`.
     -   Checks `play_count_reset_at` to handle monthly reset.
     -   Called securely from client (`authStore.incrementPlayCount` placeholder).
--   **Favorite Toggle:** Need an Edge Function (`toggleFavoriteSong`?):
-    -   Accepts `song_id` (and uses caller's `user_id`).
+-   **Favorite Toggle:** Supabase Edge Function `toggle-favorite` (Implemented & Deployed):
+    -   Located at `supabase/functions/toggle-favorite`.
+    -   Accepts `song_id` in JSON body.
+    -   Authenticates user via Authorization header.
+    -   Verifies user owns the song.
     -   Updates `is_favorite` on the specific song record WHERE `user_id` matches.
     -   Called from client (`SongItem.handleToggleFavorite` placeholder).
 -   **Stripe Integration:**

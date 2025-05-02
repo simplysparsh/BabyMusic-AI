@@ -3,10 +3,12 @@ import { Play, Pause, ChevronDown, RefreshCw, Music, LockKeyhole, Download, Hear
 import { SongStateService } from '../services/songStateService';
 import type { Song } from '../types';
 import { useSongStore } from '../store/songStore';
-import { SongService } from '../services/songService';
 import { useAuthStore } from '../store/authStore';
 import { useErrorStore } from '../store/errorStore';
 import SongGenerationTimer from './common/SongGenerationTimer';
+import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { SongService } from '../services/songService';
 
 // Define the specific error message for play limit
 const PLAY_LIMIT_ERROR_MSG = 'Monthly play limit reached. Upgrade to Premium for unlimited listening!';
@@ -26,6 +28,7 @@ export default function SongItem({
 }: SongItemProps) {
   const [expandedVariations, setExpandedVariations] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const { retryingSongs, setRetrying } = useSongStore();
   const { user, profile } = useAuthStore((state) => ({ 
     user: state.user, 
@@ -33,6 +36,8 @@ export default function SongItem({
   }));
   const isPremium = profile?.isPremium ?? false;
   const globalError = useErrorStore((state) => state.error);
+  const setGlobalError = useErrorStore((state) => state.setError);
+  const clearGlobalError = useErrorStore((state) => state.clearError);
 
   // Check if the global error is the play limit error
   const isPlayLimitReached = globalError === PLAY_LIMIT_ERROR_MSG;
@@ -68,20 +73,6 @@ export default function SongItem({
     }
   };
 
-  // Handle retry button click
-  const handleRetry = async () => {
-    if (song.id && !isRetrying && user) {
-      try {
-        setRetrying(song.id, true);
-        const babyName = user.user_metadata?.babyName || 'Baby';
-        await SongService.retrySongGeneration(song.id, user.id, babyName);
-      } catch (error) {
-        console.error('Failed to retry song:', error);
-        setRetrying(song.id, false);
-      }
-    }
-  };
-
   // Handle Download Click
   const handleDownload = () => {
     if (!isPremium || !isPlayable || !song.audio_url) return;
@@ -97,13 +88,57 @@ export default function SongItem({
     document.body.removeChild(link);
   };
 
-  // Handle Toggle Favorite Click
-  const handleToggleFavorite = () => {
-    if (!isPremium || !isPlayable) return;
-    // TODO: Implement backend call to update favorite status
-    // e.g., toggleFavoriteSong(song.id, !isFavorited);
-    setIsFavorited(!isFavorited);
-    console.log(`Toggled favorite for song ${song.id} to ${!isFavorited}`);
+  // Handle retry button click
+  const handleRetry = async () => {
+    if (song.id && !isRetrying && user) {
+      try {
+        setRetrying(song.id, true);
+        // Ensure user_metadata exists before accessing it
+        const babyName = user?.user_metadata?.babyName || 'Baby'; 
+        await SongService.retrySongGeneration(song.id, user.id, babyName); 
+      } catch (error) {
+        console.error('Failed to retry song:', error);
+        setRetrying(song.id, false);
+      }
+    }
+  };
+
+  // Handle Toggle Favorite Click - Updated to call Supabase function
+  const handleToggleFavorite = async () => {
+    if (!isPremium || !isPlayable || isTogglingFavorite) return;
+    
+    setIsTogglingFavorite(true);
+    clearGlobalError(); // Clear previous errors
+    const originalFavoriteStatus = isFavorited; // Store original status for rollback
+
+    try {
+      console.log(`Invoking toggle-favorite for song ${song.id}`);
+      const { data, error } = await supabase.functions.invoke('toggle-favorite', {
+        body: { song_id: song.id },
+      });
+
+      if (error) {
+        throw new Error(`Failed to toggle favorite: ${error.message}`);
+      }
+
+      if (data && data.success) {
+        // Update local state based on the actual result from the function
+        setIsFavorited(data.is_favorite);
+        console.log(`Successfully toggled favorite for song ${song.id} to ${data.is_favorite}`);
+        // TODO: Optionally, trigger a refresh/refetch of song list if needed elsewhere
+      } else {
+        // Handle unexpected response from function
+        throw new Error(data?.error || 'Unexpected response from toggle function.');
+      }
+
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      setGlobalError(error instanceof Error ? error.message : 'Could not update favorite status.');
+      // Rollback optimistic UI update on error
+      setIsFavorited(originalFavoriteStatus);
+    } finally {
+      setIsTogglingFavorite(false);
+    }
   };
 
   return (
@@ -141,17 +176,23 @@ export default function SongItem({
               <div className="flex items-center gap-0.5 sm:gap-1">
                 <button
                   onClick={handleToggleFavorite}
-                  disabled={!isPremium}
+                  disabled={!isPremium || isTogglingFavorite}
                   aria-label={!isPremium ? "Favorite song (Premium only)" : (isFavorited ? "Remove from favorites" : "Add to favorites")}
                   title={!isPremium ? "Favorite song (Premium only)" : (isFavorited ? "Remove from favorites" : "Add to favorites")}
-                  className={`transition-all duration-300 group flex items-center justify-center p-1 sm:p-1.5 rounded-full 
+                  className={`transition-all duration-300 group flex items-center justify-center p-1 sm:p-1.5 rounded-full relative 
                            ${!isPremium 
-                             ? 'text-white/30 cursor-not-allowed bg-black/20'
+                             ? 'text-white/30 cursor-not-allowed bg-black/20' 
                              : (isFavorited 
-                               ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20'
-                               : 'text-white/60 hover:text-red-400 bg-white/10 hover:bg-white/20')} `}
+                               ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20' 
+                               : 'text-white/60 hover:text-red-400 bg-white/10 hover:bg-white/20')} 
+                           ${isTogglingFavorite ? 'opacity-50 cursor-wait' : ''}`}
                 >
                   <Heart className={`w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors ${isPremium && isFavorited ? 'fill-current' : 'fill-none'} ${!isPremium ? 'text-white/30' : ''}`} />
+                  {isTogglingFavorite && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
+                      <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
+                    </div>
+                  )}
                 </button>
                 {!isPremium && (
                   <span title="Premium Feature">

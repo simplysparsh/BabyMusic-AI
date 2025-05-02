@@ -39,8 +39,10 @@ export class ClaudeAPI {
       .replace(/^\s*\n/, '')
       .trim();
     
-    // Check if response contains the babyName directly
-    const hasName = babyName ? cleanedText.includes(babyName) : true;
+    // Check if response contains the babyName directly (case-insensitive)
+    const hasName = babyName
+      ? cleanedText.toLowerCase().includes(babyName.toLowerCase())
+      : true;
     
     // Check if we need to truncate the lyrics
     const wasTruncated = cleanedText.length > 1000;

@@ -4,7 +4,6 @@ import { useSongStore } from '../store/songStore';
 import { useAuthStore } from '../store/authStore';
 import { useAudioStore } from '../store/audioStore';
 import SongItem from './SongItem';
-import { Song } from '../types'; // Import Song type
 
 type TabType = 'custom' | 'preset'; // Define tab types
 

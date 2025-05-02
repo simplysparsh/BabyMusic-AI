@@ -96,8 +96,7 @@ export default function MusicGenerator() {
 
     // Check generation limit for free users before validating inputs
     if (isNonPresetAttempt && !profile.isPremium && profile.generationCount >= GENERATION_LIMIT) {
-      setError('You have reached your free generation limit. Upgrade to Premium for unlimited songs!');
-      // TODO: Add link/button to upgrade page in the error message or nearby
+      setError('Free generation limit reached (2 songs). Please upgrade to Premium for unlimited creations!');
       return;
     }
     
@@ -170,7 +169,7 @@ export default function MusicGenerator() {
         // from-scratch mode
         // Check generation limit again (redundant but safe)
         if (!profile.isPremium && profile.generationCount >= GENERATION_LIMIT) {
-          setError('Generation limit reached. Please upgrade.');
+          setError('Generation limit reached. Please upgrade to Premium.');
           return;
         }
         console.log('Creating custom song:', {

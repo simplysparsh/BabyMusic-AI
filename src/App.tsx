@@ -2,6 +2,7 @@ import Header from './components/Header';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Methodology from './pages/Methodology';
+import PremiumPage from './pages/PremiumPage';
 import { useEffect, useState, Suspense } from 'react';
 import { useAuthStore } from './store/authStore'; 
 import { useSongStore } from './store/songStore';
@@ -59,6 +60,8 @@ function App() {
       <Suspense fallback={null}>
         {path === '/methodology' ? (
           <Methodology />
+        ) : path === '/premium' ? (
+          <PremiumPage />
         ) : (
           user ? <Dashboard /> : <Landing />
         )}

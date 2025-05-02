@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useErrorStore } from '../../store/errorStore';
 import { Language, DEFAULT_LANGUAGE } from '../../types';
@@ -120,6 +121,26 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         </button>
 
         <h2 className="text-3xl font-bold text-white mb-8">Profile Settings</h2>
+
+        <div className="mb-6 p-4 rounded-lg bg-white/5 border border-white/10">
+          <h3 className="text-sm font-medium text-white/60 mb-2">Subscription Status</h3>
+          {profile?.isPremium ? (
+            <p className="flex items-center gap-2 font-semibold text-green-400">
+              <Star className="w-4 h-4 fill-current text-yellow-400" /> Premium
+            </p>
+          ) : (
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-semibold text-white/80">Free Plan</p>
+              <Link 
+                to="/premium" 
+                onClick={onClose}
+                className="px-3 py-1 rounded-md bg-gradient-to-r from-primary to-secondary text-xs text-black font-bold hover:opacity-90 transition-opacity duration-300 shadow-sm"
+              >
+                Upgrade
+              </Link>
+            </div>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

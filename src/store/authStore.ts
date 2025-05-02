@@ -35,7 +35,7 @@ interface AuthState {
   signOut: () => Promise<void>;
   loadUser: () => Promise<void | (() => void)>; // Fix return type to match implementation
   hidePostSignupOnboarding: () => void;
-  incrementPlayCount: () => void; // Added
+  incrementPlayCount: () => Promise<void>; // Made async
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -484,22 +484,48 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ showPostSignupOnboarding: false });
   },
   
-  // Added function to increment play count (client-side approximation)
-  incrementPlayCount: () => {
-    set(state => {
-      if (state.profile && !state.profile.isPremium) {
-        const newCount = (state.profile.monthlyPlaysCount || 0) + 1;
-        // TODO: Call backend function here to increment play count persistently
-        // e.g., UserService.incrementPlayCount(state.user.id);
-        console.log(`[Client] Incrementing monthlyPlaysCount to ${newCount} for user ${state.profile.id}`);
-        return {
-          profile: { 
-            ...state.profile, 
-            monthlyPlaysCount: newCount 
-          }
-        };
+  // Updated function to call backend
+  incrementPlayCount: async () => { // Made async
+    const profile = get().profile;
+    const user = get().user;
+
+    // Only increment for logged-in, non-premium users
+    if (profile && user && !profile.isPremium) {
+      const currentCount = profile.monthlyPlaysCount || 0;
+      
+      // Optimistically update UI first
+      // TODO: Consider if optimistic update is desired, or wait for function result?
+      set(state => ({
+        profile: state.profile ? { ...state.profile, monthlyPlaysCount: currentCount + 1 } : null
+      }));
+      
+      try {
+        console.log(`Invoking increment-play-count for user ${user.id}`);
+        const { data, error } = await supabase.functions.invoke('increment-play-count');
+
+        if (error) {
+          throw new Error(`increment-play-count failed: ${error.message}`);
+        }
+
+        if (!data || !data.success) {
+           throw new Error(data?.error || 'Increment play count function returned failure.');
+        }
+        
+        console.log(`Backend confirmed play count incremented. New count (from backend): ${data.newPlayCount}`);
+        // Optionally update state again with confirmed count from backend if needed
+        // set(state => ({
+        //   profile: state.profile ? { ...state.profile, monthlyPlaysCount: data.newPlayCount } : null
+        // }));
+
+      } catch (error) {
+        console.error('Error invoking increment-play-count:', error);
+        // Rollback optimistic update on error
+        set(state => ({
+          profile: state.profile ? { ...state.profile, monthlyPlaysCount: currentCount } : null
+        }));
+        // Optionally surface error via useErrorStore
+        // useErrorStore.getState().setError('Failed to record play count.');
       }
-      return {}; // No change if premium or no profile
-    });
+    }
   }
 }));

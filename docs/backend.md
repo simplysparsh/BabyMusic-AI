@@ -89,4 +89,18 @@ Edge Functions provide serverless compute capabilities close to the user.
     4. Updates the `is_favorite` boolean column for that song record.
     5. Returns the new favorite status.
 
+### `increment-play-count` (New)
+
+-   **Purpose:** Increments the monthly play count for an authenticated user, handling monthly resets.
+-   **Location:** `supabase/functions/increment-play-count`
+-   **Trigger:** HTTP POST request.
+-   **Input:** None (uses authenticated user context).
+-   **Auth:** Requires Supabase JWT in Authorization header.
+-   **Logic:**
+    1. Authenticates the user.
+    2. Retrieves user's profile (`monthly_plays_count`, `play_count_reset_at`) using an Admin client.
+    3. Determines if the count needs resetting based on `play_count_reset_at` (older than 1 month).
+    4. Updates `monthly_plays_count` (either reset to 1 or incremented) and `play_count_reset_at` (if reset) and `last_active_date`.
+    5. Returns success status.
+
 By leveraging Supabase's backend services, Baby Music AI can focus on delivering a seamless user experience while benefiting from a scalable, secure, and feature-rich backend infrastructure.

@@ -54,10 +54,17 @@ Users can experience core functionality for free, but require a premium subscrip
 ### 5.2 Server-Side Logic (Supabase Functions / Backend)
 
 -   **Generation Check:** Song creation function MUST verify `is_premium` or `generation_count < limit` before calling external APIs. Increment `generation_count` *after* successful API call initiation.
--   **Play Count:** Need an Edge Function (`incrementPlayCount`?):
-    -   Accepts `user_id` (or uses caller's ID).
-    -   Atomically increments `monthly_plays_count`.
-    -   Checks `play_count_reset_at` to handle monthly reset.
+-   **Play Count:** Supabase Edge Function `increment-play-count` (Implemented & Deployed):
+    -   Location: `supabase/functions/increment-play-count`
+    -   Trigger: HTTP POST request.
+    -   Auth: Requires Supabase JWT in Authorization header.
+    -   Logic:
+        1. Authenticates the user.
+        2. Fetches user's profile (`monthly_plays_count`, `play_count_reset_at`) using Admin client.
+        3. Checks if `play_count_reset_at` is older than 1 month.
+        4. If yes, sets count to 1 and updates `play_count_reset_at` to now.
+        5. If no, increments `monthly_plays_count`.
+        6. Updates the profile record (incl. `last_active_date`).
     -   Called securely from client (`authStore.incrementPlayCount` placeholder).
 -   **Favorite Toggle:** Supabase Edge Function `toggle-favorite` (Implemented & Deployed):
     -   Located at `supabase/functions/toggle-favorite`.

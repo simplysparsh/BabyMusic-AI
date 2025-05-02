@@ -52,11 +52,17 @@ interface RequestBody {
   gender?: string;
 }
 
+// Define specific type for profile data fetched
+interface ProfileLimitData {
+  is_premium: boolean | null;
+  generation_count: number | null;
+}
+
 const GENERATION_LIMIT = 2;
 
 console.log(`Function 'initiate-song-creation' up and running!`);
 
-async function getProfileAndCheckLimit(supabaseAdmin: SupabaseClient, userId: string): Promise<{ allowed: boolean; profileData?: any }> {
+async function getProfileAndCheckLimit(supabaseAdmin: SupabaseClient, userId: string): Promise<{ allowed: boolean; profileData?: ProfileLimitData }> {
   const { data: profile, error: fetchError } = await supabaseAdmin
     .from('profiles')
     .select('is_premium, generation_count')

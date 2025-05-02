@@ -1,8 +1,12 @@
 import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight, LockKeyhole } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
 import SongGenerationTimer from '../common/SongGenerationTimer';
+import { useErrorStore } from '../../store/errorStore';
+
+// Define the specific error message for play limit
+const PLAY_LIMIT_ERROR_MSG = 'Monthly play limit reached. Upgrade to Premium for unlimited listening!';
 
 interface PresetCardProps {
   type: PresetType;
@@ -166,11 +170,15 @@ export default function PresetSongCard({
     }
   }, [currentSong, type]);
   
+  const globalError = useErrorStore((state) => state.error);
+  const isPlayLimitReached = globalError === PLAY_LIMIT_ERROR_MSG;
+  
   // Handle card click
   const handleCardClick = useCallback(() => {
-    // If already generating without audio, do nothing
-    if (songState === SongState.GENERATING && !currentSong?.audio_url) {
-      console.log(`Card click ignored: ${type} preset is generating without audio`);
+    // Ignore if generating or if play limit is reached for a READY song
+    if ((songState === SongState.GENERATING && !currentSong?.audio_url) || 
+        (songState === SongState.READY && isPlayLimitReached)) {
+      console.log(`Card click ignored: ${type} preset - State: ${songState}, PlayLimitReached: ${isPlayLimitReached}`);
       return;
     }
     
@@ -184,8 +192,8 @@ export default function PresetSongCard({
     
     switch (songState) {
       case SongState.READY:
-        // Play the currently selected version if it's ready and has a URL
-        if (urlOfCurrentVersion) {
+        // Play the currently selected version if it's ready, has a URL, and limit NOT reached
+        if (urlOfCurrentVersion && !isPlayLimitReached) {
           onPlayClick(urlOfCurrentVersion, type);
         }
         break;
@@ -202,7 +210,7 @@ export default function PresetSongCard({
         onGenerateClick(type);
         break;
     }
-  }, [songState, urlOfCurrentVersion, type, onPlayClick, onGenerateClick, canRetry, isReady, currentSong?.id, currentSong?.audio_url]);
+  }, [songState, urlOfCurrentVersion, type, onPlayClick, onGenerateClick, canRetry, isReady, currentSong?.id, currentSong?.audio_url, isPlayLimitReached]);
 
   // Get color scheme based on preset type
   const getColorScheme = () => {
@@ -251,6 +259,18 @@ export default function PresetSongCard({
     
     // Determine if the *currently selected* version is the one playing
     const isThisVersionPlaying = isPlaying && currentPlayingUrl === urlOfCurrentVersion;
+
+    // Show Lock icon if READY but limit reached
+    if (songState === SongState.READY && isPlayLimitReached) {
+      return (
+        <span key={statusKey + '-limit'} className="inline-flex items-center text-xs bg-yellow-500/20 text-yellow-300
+                       px-3 py-1.5 rounded-full ml-2 border border-yellow-500/20
+                       shadow-lg z-10 whitespace-nowrap">
+          <LockKeyhole className="w-3 h-3 mr-1" />
+          Limit Reached
+        </span>
+      );
+    }
 
     if (songState === SongState.GENERATING) {
       return (
@@ -308,17 +328,22 @@ export default function PresetSongCard({
     );
   };
 
+  // Determine if the card itself should be marked as disabled
+  const isCardDisabled = (songState === SongState.GENERATING && !currentSong?.audio_url) || 
+                         (songState === SongState.READY && isPlayLimitReached);
+
   return (
     <div
       onClick={handleCardClick}
       role="button"
-      aria-disabled={songState === SongState.GENERATING}
+      aria-disabled={isCardDisabled}
       data-preset-type={type}
       data-song-state={songState}
-      className={`relative overflow-hidden rounded-2xl p-5 sm:p-7 text-left min-h-[100px] cursor-pointer
-                 aria-disabled:cursor-not-allowed
+      data-play-limit-reached={isPlayLimitReached}
+      className={`relative overflow-hidden rounded-2xl p-5 sm:p-7 text-left min-h-[100px] 
+                 ${isCardDisabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer active:scale-95'}
                  transition-all duration-500 group flex items-start gap-4 backdrop-blur-sm bg-black/60
-                 bg-gradient-to-br active:scale-95 touch-manipulation
+                 bg-gradient-to-br touch-manipulation
                  ${colors.gradientFrom} ${colors.gradientTo}`}
     >
       <div className={`w-14 h-14 rounded-xl ${colors.bgColor}/10 flex items-center justify-center

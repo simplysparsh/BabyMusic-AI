@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, ChevronDown, RefreshCw, Music } from 'lucide-react';
+import { Play, Pause, ChevronDown, RefreshCw, Music, LockKeyhole } from 'lucide-react';
 import { SongStateService } from '../services/songStateService';
 import type { Song } from '../types';
 import { useSongStore } from '../store/songStore';
 import { SongService } from '../services/songService';
 import { useAuthStore } from '../store/authStore';
+import { useErrorStore } from '../store/errorStore';
 import SongGenerationTimer from './common/SongGenerationTimer';
+
+// Define the specific error message for play limit
+const PLAY_LIMIT_ERROR_MSG = 'Monthly play limit reached. Upgrade to Premium for unlimited listening!';
 
 interface SongItemProps {
   song: Song;
@@ -23,6 +27,10 @@ export default function SongItem({
   const [expandedVariations, setExpandedVariations] = useState(false);
   const { retryingSongs, setRetrying } = useSongStore();
   const { user } = useAuthStore();
+  const globalError = useErrorStore((state) => state.error);
+
+  // Check if the global error is the play limit error
+  const isPlayLimitReached = globalError === PLAY_LIMIT_ERROR_MSG;
 
   // Get all the song state information from SongStateService
   const isGenerating = SongStateService.isGenerating(song);
@@ -31,6 +39,9 @@ export default function SongItem({
   const canRetry = SongStateService.canRetry(song);
   const isPlayable = SongStateService.isPlayable(song);
   const isPreset = SongStateService.isPresetSong(song);
+  
+  // Determine final play button disabled state
+  const playButtonDisabled = !isPlayable || isPlayLimitReached;
 
   // Check if the song is currently being retried
   const isRetrying = retryingSongs.has(song.id);
@@ -99,15 +110,19 @@ export default function SongItem({
               </button>
             )}
             <button
-              onClick={() => isPlayable && audioUrl && onPlayClick(audioUrl, song.id)}
-              disabled={!isPlayable}
-              aria-label={isPlaying && currentSong === audioUrl ? "Pause" : "Play"}
+              onClick={() => !playButtonDisabled && audioUrl && onPlayClick(audioUrl, song.id)}
+              disabled={playButtonDisabled}
+              aria-label={isPlayLimitReached ? "Play limit reached" : (isPlaying && currentSong === audioUrl ? "Pause" : "Play")}
               className={`transition-all duration-300 group flex items-center justify-center p-2.5 rounded-full 
-                       ${isPlaying && currentSong === audioUrl 
-                          ? 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-lg' 
-                          : 'text-white/70 hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed bg-white/10 hover:bg-white/20'}`}
+                       ${isPlayLimitReached
+                         ? 'bg-yellow-500/20 text-yellow-300 cursor-not-allowed'
+                         : (isPlaying && currentSong === audioUrl 
+                           ? 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-lg' 
+                           : 'text-white/70 hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed bg-white/10 hover:bg-white/20')}`}
             >
-              {isPlaying && currentSong === audioUrl ? (
+              {isPlayLimitReached ? (
+                <LockKeyhole className="w-5 h-5" />
+              ) : isPlaying && currentSong === audioUrl ? (
                 <Pause className="w-5 h-5" />
               ) : (
                 <Play className="w-5 h-5 transition-transform group-hover:scale-110" />

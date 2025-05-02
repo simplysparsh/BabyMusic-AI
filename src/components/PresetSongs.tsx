@@ -69,6 +69,24 @@ const PresetSongs: FC = () => {
           // Find the song for this preset type
           const songForType = songs.find(s => s.preset_type === type);
           
+          /**
+           * KEY MANAGEMENT FOR PRESET SONG CARDS:
+           * 
+           * This key generation strategy is crucial for the preset song regeneration flow:
+           * 
+           * 1. When a preset song is regenerated:
+           *    - The old song is removed from store and database
+           *    - A new song with a new ID and task_id is created
+           *    - This creates a completely different key value
+           * 
+           * 2. React uses this key change to:
+           *    - Completely unmount the old component instance
+           *    - Mount a fresh instance with the new song data
+           *    - This ensures clean internal state and proper re-rendering
+           * 
+           * The key includes both song ID and task_id to ensure remounting happens
+           * for any significant change to the song's identity or generation status.
+           */
           // Create a deterministic key based on type, song ID, and task_id (if available)
           // This still forces React to remount when song is regenerated due to the task_id changing
           const cardKey = `${type}-${songForType?.id ?? 'none'}-${songForType?.task_id ?? 'no-task'}`;

@@ -137,7 +137,30 @@ export const useSongStore = create<SongState>((set, get) => {
     // The type checker should ensure this matches the signature in SongState
     setupSubscription: subscriptions.setupSubscription,
     
-    // Add a new action for preset song regeneration
+    /**
+     * Handles UI state during preset song regeneration.
+     * 
+     * APPROACH EXPLANATION:
+     * When baby name changes, we need to regenerate all preset songs. This function
+     * immediately removes all preset songs from the store, causing the UI to show
+     * an empty state briefly before new songs appear.
+     * 
+     * WHY THIS WORKS:
+     * 1. Removing songs creates a clean slate - prevents UI showing old songs in a 
+     *    transitional state
+     * 2. When new songs arrive via Supabase subscriptions, they'll create fresh 
+     *    cards in "Generating" state
+     * 3. This approach ensures visual consistency across all preset song cards
+     *    (rather than some showing error states and others showing generating)
+     * 
+     * CAUTION FOR FUTURE DEVELOPERS:
+     * This approach depends on the following sequence of events:
+     * a) Remove preset songs from store (this function)
+     * b) Backend regeneratePresetSongs deletes songs from database
+     * c) Backend creates new preset songs with task_ids
+     * d) Supabase real-time subscriptions pick up the new songs
+     * e) New songs appear in UI with "Generating" state
+     */
     notifyPresetSongsRegenerating: () => {
       const allSongs = get().songs;
       // Find all preset songs

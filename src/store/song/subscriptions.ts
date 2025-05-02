@@ -83,6 +83,24 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
           
           console.log(`DELETE event received for song ${oldSong.id}, preset_type: ${oldSong.preset_type || 'none'}`);
           
+          /**
+           * HANDLING SONG DELETIONS:
+           * 
+           * This handler is particularly important for the preset song regeneration flow:
+           * 
+           * 1. For preset songs (when preset_type exists):
+           *    - We typically already removed these from the store via notifyPresetSongsRegenerating
+           *    - This handler ensures any songs that weren't manually removed get cleaned up
+           *    - It's a safety net for consistent store state during regeneration
+           * 
+           * 2. For regular song deletions:
+           *    - We use the standard batchUpdate mechanism
+           *    - This ensures task IDs are properly cleaned up from processing lists
+           * 
+           * This dual-approach ensures proper handling of both user-initiated deletions
+           * and system-initiated regeneration deletions.
+           */
+          
           // Handle the deletion by updating the store
           if (oldSong.preset_type) {
             // This is a preset song being deleted - likely during regeneration

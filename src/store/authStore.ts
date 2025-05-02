@@ -232,13 +232,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (trimmedNewName !== currentProfile?.babyName && genderForRegen) {
         console.log('Baby name changed, triggering preset song regeneration...');
         
+        /**
+         * PRESET SONG REGENERATION STRATEGY:
+         * 
+         * 1. IMMEDIATELY REMOVE SONGS FROM STORE:
+         *    Before starting the backend regeneration process, we first remove
+         *    all preset songs from the UI state using notifyPresetSongsRegenerating.
+         *    This creates an immediate visual effect where preset cards disappear briefly.
+         * 
+         * 2. THEN START BACKEND REGENERATION:
+         *    The regeneratePresetSongs service method will:
+         *    - Delete all preset songs from the database
+         *    - Create new ones with the updated baby name
+         *    - The subscription system will handle adding the new songs to the store
+         * 
+         * This two-step approach ensures a consistent UI experience during regeneration,
+         * preventing cards from showing mixed states or stale data.
+         */
+        
         // Clear out preset songs from the store immediately using the store's method
         const songStore = useSongStore.getState();
         songStore.notifyPresetSongsRegenerating();
-        
-        // Force render update by adding a temporary attribute to document body
-        document.body.setAttribute('data-regenerating-presets', 'true');
-        setTimeout(() => document.body.removeAttribute('data-regenerating-presets'), 100);
         
         // Now start the actual backend regeneration process
         SongService.regeneratePresetSongs(user.id, trimmedNewName, genderForRegen)

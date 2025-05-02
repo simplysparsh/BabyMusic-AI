@@ -1,7 +1,7 @@
 import type { ThemeType } from '../../types';
 import { THEMES } from './themeData';
 import { useAuthStore } from '../../store/authStore';
-import { LockKeyhole, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 // import { Link } from 'react-router-dom'; // Keep Link removed/commented
 
 // Define premium themes

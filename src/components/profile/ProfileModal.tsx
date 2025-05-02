@@ -1,6 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { X, Star } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useErrorStore } from '../../store/errorStore';
 import { Language, DEFAULT_LANGUAGE } from '../../types';
@@ -131,13 +130,13 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           ) : (
             <div className="flex items-center justify-between gap-2">
               <p className="font-semibold text-white/80">Free Plan</p>
-              <Link 
-                to="/premium" 
+              <a 
+                href="/premium" 
                 onClick={onClose}
                 className="px-3 py-1 rounded-md bg-gradient-to-r from-primary to-secondary text-xs text-black font-bold hover:opacity-90 transition-opacity duration-300 shadow-sm"
               >
                 Upgrade
-              </Link>
+              </a>
             </div>
           )}
         </div>

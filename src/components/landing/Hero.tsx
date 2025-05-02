@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { isValidEmail } from '../../utils/validation';
-import { Link } from 'react-router-dom';
 
 interface HeroProps {
   onOpenAuth: () => void;
@@ -162,12 +161,12 @@ export default function Hero({ onOpenAuth }: HeroProps) {
                 Get Started Free
                 <ArrowRight className="w-5 h-5 ml-2 inline-block" />
               </button>
-              <Link 
-                to="/premium"
+              <a 
+                href="/premium"
                 className="text-sm sm:text-base text-white/70 hover:text-primary transition-colors duration-300 underline underline-offset-4"
               >
                 Premium 
-              </Link>
+              </a>
             </div>
           )}
         </div>

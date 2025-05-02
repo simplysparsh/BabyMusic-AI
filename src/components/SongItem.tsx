@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, ChevronDown, RefreshCw, Music, LockKeyhole, Download, Heart } from 'lucide-react';
+import { Play, Pause, ChevronDown, RefreshCw, Music, LockKeyhole, Download, Heart, Sparkles } from 'lucide-react';
 import { SongStateService } from '../services/songStateService';
 import type { Song } from '../types';
 import { useSongStore } from '../store/songStore';
@@ -107,72 +107,85 @@ export default function SongItem({
   };
 
   return (
-    <div className="card group mb-4 flex items-center gap-4 rounded-2xl border border-white/10 bg-neutral-800 p-4 shadow-lg transition-all duration-300 hover:border-white/20">
-      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 shadow-inner 
-                    sm:h-16 sm:w-16">
-        <Music className="h-6 w-6 text-primary/80 sm:h-8 sm:w-8" />
+    <div className="card group mb-4 flex items-center gap-3 sm:gap-4 rounded-2xl border border-white/10 bg-neutral-800 p-3 sm:p-4 shadow-lg transition-all duration-300 hover:border-white/20">
+      <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 shadow-inner">
+        <Music className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80" />
       </div>
 
       <div className="flex-grow overflow-hidden">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex-grow overflow-hidden">
-            <h3 className="truncate text-base font-medium text-white sm:text-lg">
+          <div className="flex-grow overflow-hidden mr-1">
+            <h3 className="text-sm sm:text-base font-medium text-white break-words">
               {song.name}
             </h3>
-            <p className="truncate text-xs text-white/60 sm:text-sm">
+            <p className="text-xs text-white/60 break-words">
               {`${song.mood || ''} ${song.theme ? `• ${song.theme}` : ''}`}
             </p>
           </div>
           
-          <div className="flex flex-shrink-0 items-center space-x-1 sm:space-x-2">
+          <div className="flex flex-shrink-0 items-center space-x-0.5 sm:space-x-1">
             {hasVariations && (
               <button
                 onClick={toggleExpand}
-                className="text-white/60 transition-all duration-300 hover:text-primary p-1.5 sm:p-2 rounded-full"
+                className="text-white/60 transition-all duration-300 hover:text-primary p-1 sm:p-1.5 rounded-full"
                 aria-label="Toggle variations"
               >
                 <ChevronDown
-                  className={`h-4 w-4 sm:h-5 sm:w-5 transform transition-transform ${
+                  className={`h-3.5 w-3.5 sm:h-5 sm:h-5 transform transition-transform ${
                     expandedVariations ? 'rotate-180' : ''
                   }`}
                 />
               </button>
             )}
             {isPlayable && (
-              <button
-                onClick={handleToggleFavorite}
-                disabled={!isPremium}
-                aria-label={!isPremium ? "Favorite song (Premium only)" : (isFavorited ? "Remove from favorites" : "Add to favorites")}
-                title={!isPremium ? "Favorite song (Premium only)" : (isFavorited ? "Remove from favorites" : "Add to favorites")}
-                className={`transition-all duration-300 group flex items-center justify-center p-1.5 sm:p-2 rounded-full 
-                         ${!isPremium 
-                           ? 'text-white/30 cursor-not-allowed bg-black/20'
-                           : (isFavorited 
-                             ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20'
-                             : 'text-white/60 hover:text-red-400 bg-white/10 hover:bg-white/20')} `}
-              >
-                <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isPremium && isFavorited ? 'fill-current' : 'fill-none'} ${!isPremium ? 'text-white/30' : ''}`} />
-              </button>
+              <div className="flex items-center gap-0.5 sm:gap-1">
+                <button
+                  onClick={handleToggleFavorite}
+                  disabled={!isPremium}
+                  aria-label={!isPremium ? "Favorite song (Premium only)" : (isFavorited ? "Remove from favorites" : "Add to favorites")}
+                  title={!isPremium ? "Favorite song (Premium only)" : (isFavorited ? "Remove from favorites" : "Add to favorites")}
+                  className={`transition-all duration-300 group flex items-center justify-center p-1 sm:p-1.5 rounded-full 
+                           ${!isPremium 
+                             ? 'text-white/30 cursor-not-allowed bg-black/20'
+                             : (isFavorited 
+                               ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20'
+                               : 'text-white/60 hover:text-red-400 bg-white/10 hover:bg-white/20')} `}
+                >
+                  <Heart className={`w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors ${isPremium && isFavorited ? 'fill-current' : 'fill-none'} ${!isPremium ? 'text-white/30' : ''}`} />
+                </button>
+                {!isPremium && (
+                  <span title="Premium Feature">
+                    <Sparkles className="w-3.5 h-3.5 text-yellow-400/80 flex-shrink-0" />
+                  </span>
+                )}
+              </div>
             )}
             {isPlayable && (
-              <button
-                onClick={handleDownload}
-                disabled={!isPremium}
-                aria-label={!isPremium ? "Download song (Premium only)" : "Download song"}
-                title={!isPremium ? "Download song (Premium only)" : "Download MP3"}
-                className={`transition-all duration-300 group flex items-center justify-center p-1.5 sm:p-2 rounded-full 
-                         ${!isPremium 
-                           ? 'text-white/30 cursor-not-allowed bg-black/20'
-                           : 'text-white/60 hover:text-primary bg-white/10 hover:bg-white/20'}`}
-              >
-                <Download className={`w-4 h-4 sm:w-5 sm:h-5 ${isPremium ? 'transition-transform group-hover:scale-110' : ''}`} />
-              </button>
+              <div className="flex items-center gap-0.5 sm:gap-1">
+                <button
+                  onClick={handleDownload}
+                  disabled={!isPremium}
+                  aria-label={!isPremium ? "Download song (Premium only)" : "Download song"}
+                  title={!isPremium ? "Download song (Premium only)" : "Download MP3"}
+                  className={`transition-all duration-300 group flex items-center justify-center p-1 sm:p-1.5 rounded-full 
+                           ${!isPremium 
+                             ? 'text-white/30 cursor-not-allowed bg-black/20'
+                             : 'text-white/60 hover:text-primary bg-white/10 hover:bg-white/20'}`}
+                >
+                  <Download className={`w-3.5 h-3.5 sm:w-5 sm:h-5 ${isPremium ? 'transition-transform group-hover:scale-110' : ''}`} />
+                </button>
+                {!isPremium && (
+                  <span title="Premium Feature">
+                    <Sparkles className="w-3.5 h-3.5 text-yellow-400/80 flex-shrink-0" />
+                  </span>
+                )}
+              </div>
             )}
             <button
               onClick={() => !playButtonDisabled && audioUrl && onPlayClick(audioUrl, song.id)}
               disabled={playButtonDisabled}
               aria-label={isPlayLimitReached ? "Play limit reached" : (isPlaying && currentSong === audioUrl ? "Pause" : "Play")}
-              className={`transition-all duration-300 group flex items-center justify-center p-1.5 sm:p-2 rounded-full 
+              className={`transition-all duration-300 group flex items-center justify-center p-1 sm:p-1.5 rounded-full 
                        ${isPlayLimitReached
                          ? 'bg-yellow-500/20 text-yellow-300 cursor-not-allowed'
                          : (isPlaying && currentSong === audioUrl 
@@ -180,11 +193,11 @@ export default function SongItem({
                            : 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-lg hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed')}`}
             >
               {isPlayLimitReached ? (
-                <LockKeyhole className="w-4 h-4 sm:w-5 sm:h-5" />
+                <LockKeyhole className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
               ) : isPlaying && currentSong === audioUrl ? (
-                <Pause className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Pause className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
               ) : (
-                <Play className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
+                <Play className="w-3.5 h-3.5 sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
               )}
             </button>
           </div>

@@ -1,5 +1,6 @@
 import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight, LockKeyhole, Download } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
 import SongGenerationTimer from '../common/SongGenerationTimer';
@@ -415,27 +416,18 @@ export default function PresetSongCard({
           
           {/* Download Button (Premium Only) */} 
           {isReady && (
-             <div className="flex items-center gap-1"> {/* Group button and label */} 
-               <button
-                 onClick={handleDownload}
-                 disabled={!isPremium}
-                 aria-label={!isPremium ? "Download song (Premium only)" : "Download song"} // Update aria-label
-                 title={!isPremium ? "Download song (Premium only)" : "Download MP3"} // Basic tooltip via title
-                 className={`transition-all duration-300 group flex items-center justify-center p-1.5 sm:p-2 rounded-full 
-                          ${!isPremium 
-                            ? 'text-white/30 cursor-not-allowed bg-white/5' // Style for disabled non-premium (greyed out)
-                            : 'text-white/60 hover:text-primary bg-white/10 hover:bg-white/20'}`}
-              >
-                 {/* Always show Download icon, but styled differently if disabled */} 
-                <Download className={`w-4 h-4 sm:w-5 sm:h-5 ${isPremium ? 'transition-transform group-hover:scale-110' : ''}`} />
-               </button>
-               {/* Add Premium label if not premium */} 
-               {!isPremium && (
-                 <span className="text-xs font-semibold text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded-sm">
-                   PRO
-                 </span>
-               )}
-             </div>
+             <button
+               onClick={handleDownload}
+               disabled={!isPremium}
+               aria-label={!isPremium ? "Download song (Premium only)" : "Download song"} 
+               title={!isPremium ? "Download song (Premium only)" : "Download MP3"} 
+               className={`transition-all duration-300 group flex items-center justify-center p-1.5 sm:p-2 rounded-full 
+                        ${!isPremium 
+                          ? 'text-white/30 cursor-not-allowed bg-black/20'
+                          : 'text-white/60 hover:text-primary bg-white/10 hover:bg-white/20'}`}
+            >
+              <Download className={`w-3 h-3 sm:w-4 sm:h-4 ${isPremium ? 'transition-transform group-hover:scale-110' : ''}`} />
+             </button>
           )}
         </div>
       </div>

@@ -92,7 +92,7 @@ For functions that should only be called by authenticated users, use:
 
 ```bash
 supabase functions deploy function-name
-# Example for a specific function:
+
 supabase functions deploy toggle-favorite
 ```
 

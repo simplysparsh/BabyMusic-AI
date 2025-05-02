@@ -1,9 +1,10 @@
 import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight, LockKeyhole } from 'lucide-react';
+import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight, LockKeyhole, Download } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
 import SongGenerationTimer from '../common/SongGenerationTimer';
 import { useErrorStore } from '../../store/errorStore';
+import { useAuthStore } from '../../store/authStore';
 
 // Define the specific error message for play limit
 const PLAY_LIMIT_ERROR_MSG = 'Monthly play limit reached. Upgrade to Premium for unlimited listening!';
@@ -172,7 +173,22 @@ export default function PresetSongCard({
   
   const globalError = useErrorStore((state) => state.error);
   const isPlayLimitReached = globalError === PLAY_LIMIT_ERROR_MSG;
+  const isPremium = useAuthStore((state) => state.profile?.isPremium) ?? false;
   
+  // Handle Download Click
+  const handleDownload = useCallback((e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation(); // Prevent card click event
+    if (!isPremium || !isReady || !urlOfCurrentVersion) return;
+    
+    const link = document.createElement('a');
+    link.href = urlOfCurrentVersion;
+    const filename = `${currentSong?.name || 'preset-song'}_v${currentVariationIndex + 1}.mp3`;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [isPremium, isReady, urlOfCurrentVersion, currentSong?.name, currentVariationIndex]);
+
   // Handle card click
   const handleCardClick = useCallback(() => {
     // Ignore if generating or if play limit is reached for a READY song
@@ -351,51 +367,71 @@ export default function PresetSongCard({
       >
         <Icon className={`w-6 h-6 ${colors.textColor}`} />
       </div>
-      <div className="relative">
-        <h3 className="text-base font-medium text-white mb-1 flex items-center gap-1.5
-                     group-hover:text-opacity-90">
-          {title}
-          <span className="text-base">{colors.emoji}</span>
-          {/* Status indicator */}
+      <div className="relative flex-grow">
+        <div className="flex items-center justify-between gap-1.5 mb-1">
+          <h3 className="text-base font-medium text-white flex items-center gap-1.5
+                       group-hover:text-opacity-90">
+            {title}
+            <span className="text-base">{colors.emoji}</span>
+          </h3>
           {renderStatusIndicator()}
-        </h3>
-        <p className="text-xs text-white/60 transition-colors">
+        </div>
+        <p className="text-xs text-white/60 transition-colors pr-10">
           {songState === SongState.GENERATING ? (
             <span className="text-primary animate-pulse inline-block">
               Creating your special song...
             </span>
           ) : description}
         </p>
-        {hasVariations && songState !== SongState.GENERATING && currentSong && (
-          <div className="flex items-center gap-1 mt-3 text-white/60">
-            {/* Previous button - Disable if only 1 version */}
-            <div
-              role="button"
-              tabIndex={totalVersions > 1 ? 0 : -1}
-              aria-disabled={totalVersions <= 1}
-              onClick={(e: MouseEvent<HTMLDivElement>) => totalVersions > 1 && onVariationChange(e, type, 'prev')}
-              onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => totalVersions > 1 && e.key === 'Enter' && onVariationChange(e as unknown as MouseEvent<HTMLDivElement>, type, 'prev')}
-              className={`p-1 rounded-full transition-colors ${totalVersions > 1 ? 'hover:bg-white/10' : 'opacity-50 cursor-default'}`}
-            >
-              <ChevronLeft className="w-3 h-3" />
+        <div className="flex items-center justify-between mt-3">
+          {hasVariations && songState !== SongState.GENERATING && currentSong && (
+            <div className="flex items-center gap-1 text-white/60">
+              <div
+                role="button"
+                tabIndex={totalVersions > 1 ? 0 : -1}
+                aria-disabled={totalVersions <= 1}
+                onClick={(e: MouseEvent<HTMLDivElement>) => { e.stopPropagation(); totalVersions > 1 && onVariationChange(e, type, 'prev'); }}
+                onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => { if(e.key === 'Enter') {e.stopPropagation(); totalVersions > 1 && onVariationChange(e as unknown as MouseEvent<HTMLDivElement>, type, 'prev');} }}
+                className={`p-1 rounded-full transition-colors ${totalVersions > 1 ? 'hover:bg-white/10' : 'opacity-50 cursor-default'}`}
+              >
+                <ChevronLeft className="w-3 h-3" />
+              </div>
+              <span className="text-xs">
+                {currentVariationIndex + 1}/{totalVersions} 
+              </span>
+              <div
+                role="button"
+                tabIndex={totalVersions > 1 ? 0 : -1}
+                aria-disabled={totalVersions <= 1}
+                onClick={(e: MouseEvent<HTMLDivElement>) => { e.stopPropagation(); totalVersions > 1 && onVariationChange(e, type, 'next'); }}
+                onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => { if(e.key === 'Enter') {e.stopPropagation(); totalVersions > 1 && onVariationChange(e as unknown as MouseEvent<HTMLDivElement>, type, 'next'); }}}
+                className={`p-1 rounded-full transition-colors ${totalVersions > 1 ? 'hover:bg-white/10' : 'opacity-50 cursor-default'}`}
+              >
+                <ChevronRight className="w-3 h-3" />
+              </div>
             </div>
-            {/* Counter uses totalVersions */}
-            <span className="text-xs">
-              {currentVariationIndex + 1}/{totalVersions} 
-            </span>
-            {/* Next button - Disable if only 1 version */}
-            <div
-              role="button"
-              tabIndex={totalVersions > 1 ? 0 : -1}
-              aria-disabled={totalVersions <= 1}
-              onClick={(e: MouseEvent<HTMLDivElement>) => totalVersions > 1 && onVariationChange(e, type, 'next')}
-              onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => totalVersions > 1 && e.key === 'Enter' && onVariationChange(e as unknown as MouseEvent<HTMLDivElement>, type, 'next')}
-              className={`p-1 rounded-full transition-colors ${totalVersions > 1 ? 'hover:bg-white/10' : 'opacity-50 cursor-default'}`}
+          )}
+          {!(hasVariations && songState !== SongState.GENERATING && currentSong) && <div className="flex-grow"></div>}
+          
+          {isReady && (
+             <button
+               onClick={handleDownload}
+               disabled={!isPremium}
+               aria-label="Download song"
+               title={!isPremium ? "Download song (Premium only)" : "Download MP3"}
+               className={`transition-all duration-300 group flex items-center justify-center p-1.5 sm:p-2 rounded-full 
+                        ${!isPremium 
+                          ? 'text-white/30 cursor-not-allowed'
+                          : 'text-white/60 hover:text-primary bg-white/10 hover:bg-white/20'}`}
             >
-              <ChevronRight className="w-3 h-3" />
-            </div>
-          </div>
-        )}
+              {!isPremium ? (
+                 <LockKeyhole className="w-4 h-4 sm:w-5 sm:h-5" />
+              ) : (
+                 <Download className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
+              )}
+             </button>
+          )}
+        </div>
       </div>
       <div className="absolute bottom-0 right-0 w-24 h-24 
                     bg-gradient-radial from-white/5 to-transparent 

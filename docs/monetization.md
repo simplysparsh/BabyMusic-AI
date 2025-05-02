@@ -23,85 +23,64 @@ Users can experience core functionality for free, but require a premium subscrip
 | **Song Duration**   | Standard                                      | Standard                           | Kept consistent across tiers for simplicity.                          |
 | **Other (Premium)** | N/A                                           | Advanced Customization (Future), Early Access (Future), Priority Support (Future) | Potential future value adds.                                           |
 
-## 4. Frontend Implementation Details
+## 4. Frontend Implementation Details (Summary)
 
-### 4.1 State Management (`src/store/authStore.ts`)
+-   **State:** `authStore` holds `isPremium`, `generationCount`, `monthlyPlaysCount`. Manual mapping handles `snake_case` from DB to `camelCase` state.
+-   **Gating:** Premium features (Themes, Download, Favorite) are gated in relevant components (`ThemeSelector`, `SongItem`, `PresetSongCard`) by checking `isPremium`.
+-   **Limit Checks:** Client-side checks prevent generation (`MusicGenerator`) and playback (`audioStore`) beyond limits for free users.
+-   **UI Indicators:**
+    -   Disabled premium buttons show greyed-out icons.
+    -   Consolidated hint banners (in `ThemeSelector`, `SongList`) link to `/premium` page.
+    -   Play limit reached state disables play buttons and shows specific status.
+-   **Upgrade Flow:**
+    -   Dedicated `/premium` page created (`PremiumPage.tsx`) showing benefits/pricing.
+    -   Routing handled manually in `App.tsx`.
+    -   Upgrade links added to `ProfileModal`, `ThemeSelector` hint, `SongList` banner, and landing page `Hero`.
 
--   `UserProfile` type (`src/types/index.ts`) extended with:
-    -   `isPremium: boolean`
-    -   `generationCount: number` (Lifetime custom generations)
-    -   `monthlyPlaysCount: number` (Plays this cycle)
-    -   `playCountResetAt?: string | null` (Timestamp for cycle reset - backend managed)
--   `loadProfile` function updated to fetch these fields from the `profiles` table.
--   `incrementPlayCount` function added (client-side only for now) to update local state after a successful play by a free user. **TODO:** This needs to call a backend function.
+## 5. Backend Implementation Details
 
-### 4.2 Theme Gating (`src/components/music-generator/ThemeSelector.tsx`)
+### 5.1 Database Schema (`supabase/migrations`)
 
--   Reads `isPremium` status from `authStore`.
--   Filters the `THEMES` array, excluding `indianClassical` and `westernClassical` for free users.
--   Displays a subtle hint below the theme grid for free users, indicating the locked themes are available with Premium.
+-   Migrations should be created using `supabase migration new <name>` and applied via `supabase db push`.
+-   SQL statements should use `IF NOT EXISTS` for idempotency.
+-   **`profiles` table:**
+    -   `is_premium BOOLEAN DEFAULT false` (Already existed)
+    -   `generation_count INTEGER DEFAULT 0` (Added)
+    -   `monthly_plays_count INTEGER DEFAULT 0` (Added)
+    -   `play_count_reset_at TIMESTAMPTZ` (Added)
+-   **`songs` table:**
+    -   `is_favorite BOOLEAN DEFAULT false` (Added - simpler than join table as songs are per-user)
 
-### 4.3 Generation Limit (`src/components/MusicGenerator.tsx`)
+### 5.2 Server-Side Logic (Supabase Functions / Backend)
 
--   Reads `isPremium` and `generationCount` from `authStore`.
--   Defines `GENERATION_LIMIT = 2`.
--   `handleGenerate` function checks: If user is free and `generationCount >= GENERATION_LIMIT`, it sets an error and prevents calling `createSong` for non-preset types.
--   The "Create Music" button (`isCreateButtonDisabled`) is disabled if the limit is reached for a free user attempting non-preset generation.
--   **TODO:** Backend needs to perform the authoritative check and increment `generation_count`.
+-   **Generation Check:** Song creation function MUST verify `is_premium` or `generation_count < limit` before calling external APIs. Increment `generation_count` *after* successful API call initiation.
+-   **Play Count:** Need an Edge Function (`incrementPlayCount`?):
+    -   Accepts `user_id` (or uses caller's ID).
+    -   Atomically increments `monthly_plays_count`.
+    -   Checks `play_count_reset_at` to handle monthly reset.
+    -   Called securely from client (`authStore.incrementPlayCount` placeholder).
+-   **Favorite Toggle:** Need an Edge Function (`toggleFavoriteSong`?):
+    -   Accepts `song_id` (and uses caller's `user_id`).
+    -   Updates `is_favorite` on the specific song record WHERE `user_id` matches.
+    -   Called from client (`SongItem.handleToggleFavorite` placeholder).
+-   **Stripe Integration:**
+    -   Requires Stripe setup (products, prices).
+    -   Frontend initiates checkout (likely via call to a backend function).
+    -   Need a secure webhook handler Function (`/api/stripe-webhook`?):
+        -   Listens for relevant Stripe events (`checkout.session.completed`, subscription updates).
+        -   Verifies webhook signature.
+        -   Updates `is_premium` flag in the `profiles` table.
 
-### 4.4 Play Limit (`src/store/audioStore.ts`)
+## 6. Pending Work
 
--   Reads `profile` (including `isPremium`, `monthlyPlaysCount`) from `authStore`.
--   Defines `MONTHLY_PLAY_LIMIT = 25`.
--   `playAudio` function checks: If user is free and `monthlyPlaysCount >= MONTHLY_PLAY_LIMIT`, it sets an error in `errorStore` and prevents playback.
--   If playback is allowed for a free user, it calls `authStore.incrementPlayCount()` after playback starts.
--   **TODO:** Backend should manage the authoritative count and reset logic based on `play_count_reset_at`.
+-   **Backend Implementation:** Implement all server-side logic described above.
+-   **Connect Frontend<>Backend:** Replace TODOs in frontend stores/components to call the new backend functions.
+-   **Fetch Favorites:** Update song loading logic to fetch the `is_favorite` status and initialize `SongItem` state.
+-   **Stripe Checkout UI:** Implement the frontend part of initiating the Stripe checkout flow from the `/premium` page buttons.
+-   **Tooltips:** Consider adding a proper Tooltip component for better UX on disabled buttons.
+-   **Error Handling:** Refine display of limit errors to provide clearer calls to action (e.g., link/button to `/premium`).
 
-### 4.5 Play Limit UI Feedback
-
--   **`src/components/SongItem.tsx`:**
-    -   Reads `error` from `errorStore`.
-    -   Checks if `error === PLAY_LIMIT_ERROR_MSG`.
-    -   If true, disables the Play button and shows a `LockKeyhole` icon.
--   **`src/components/preset/PresetSongCard.tsx`:**
-    -   Reads `error` from `errorStore`.
-    -   Checks if `error === PLAY_LIMIT_ERROR_MSG`.
-    -   If true and `songState === READY`, prevents `handleCardClick` from playing audio.
-    -   `renderStatusIndicator` shows a "Limit Reached" status with `LockKeyhole` icon.
-    -   Card `div` `aria-disabled` is set, and styles applied to indicate non-interactivity.
-
-### 4.6 Download Button Gating
-
--   **`src/components/SongItem.tsx`:**
-    -   Added Download button.
-    -   Reads `isPremium` from `authStore`.
-    -   Button is disabled with `LockKeyhole` icon if user is not premium.
-    -   `handleDownload` function implements client-side download logic via temporary `<a>` tag, only runs if premium.
--   **`src/components/preset/PresetSongCard.tsx`:**
-    -   Added Download button.
-    -   Reads `isPremium` from `authStore`.
-    -   Button is visible only when `isReady`.
-    -   Button is disabled with `LockKeyhole` icon if user is not premium.
-    -   `handleDownload` function implements client-side download logic, only runs if premium.
-
-### 4.7 Favorite Button Gating (`src/components/SongItem.tsx`)
-
--   Added Favorite (Heart) button (only for custom songs).
--   Reads `isPremium` from `authStore`.
--   Button is disabled with `LockKeyhole` icon if user is not premium.
--   `handleToggleFavorite` function implemented (client-side state toggle only for now). Icon toggles fill state.
--   **TODO:** Implement backend logic for storing/retrieving favorite status and call from `handleToggleFavorite`.
-
-## 5. Pending UI Work
-
--   **Upgrade Flow UI:** Create a dedicated page/modal (e.g., `/premium`, or triggered from upgrade prompts) that:
-    -   Clearly lists the benefits of Premium vs. Free.
-    -   Displays pricing ($X/month, $Y/year with discount).
-    -   Includes a button to initiate the Stripe checkout process.
--   **Tooltips:** Add tooltips to disabled premium feature buttons for better UX (requires a `Tooltip` component).
--   **Error Handling:** Improve display of limit errors (generation/play) to include clear calls to action (e.g., link to upgrade page).
-
-## 6. Required Backend Implementation
+## 7. Required Backend Implementation
 
 -   **Database (`profiles` table):**
     -   Add `is_premium BOOLEAN DEFAULT false`.

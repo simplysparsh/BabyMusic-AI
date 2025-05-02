@@ -6,7 +6,6 @@ import { useSongStore } from '../store/songStore';
 import { useAuthStore } from '../store/authStore';
 import { useErrorStore } from '../store/errorStore';
 import SongGenerationTimer from './common/SongGenerationTimer';
-import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { SongService } from '../services/songService';
 

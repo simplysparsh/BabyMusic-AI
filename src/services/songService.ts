@@ -567,40 +567,43 @@ export class SongService {
       }
       // --- End profile fetch ---
 
-      // Create new preset songs in parallel
-      console.log(`${logPrefix}: Creating new preset songs...`);
-      const presetPromises = Object.entries(PRESET_CONFIGS).map(([type, config]) => 
-        this.createSong({
-          userId,
-          name: config.title(babyName),
-          babyName, // Pass babyName here
-          songParams: {
-            mood: config.mood,
-            songType: 'preset',
-            preset_type: type as PresetType
-            // Gender will be fetched within startSongGeneration from profile
-          },
-          // Pass fetched profile data
-          ageGroup: profileData?.age_group,
-          gender: profileData?.gender
-        })
-      );
+      // Create new preset songs sequentially
+      console.log(`${logPrefix}: Creating new preset songs sequentially...`);
+      let failedCount = 0;
+      for (const [type, config] of Object.entries(PRESET_CONFIGS)) {
+        console.log(`${logPrefix}: Starting creation for preset type: ${type}`);
+        try {
+          await this.createSong({
+            userId,
+            name: config.title(babyName),
+            babyName, // Pass babyName here
+            songParams: {
+              mood: config.mood,
+              songType: 'preset',
+              preset_type: type as PresetType
+              // Gender will be fetched within startSongGeneration from profile
+            },
+            // Pass fetched profile data
+            ageGroup: profileData?.age_group,
+            gender: profileData?.gender
+          });
+          console.log(`${logPrefix}: Successfully initiated creation for preset type: ${type}`);
+        } catch (songError) {
+          console.error(`${logPrefix}: Failed to create preset song of type ${type}:`, songError);
+          failedCount++;
+          // Continue to the next preset even if one fails
+        }
+      }
 
-      // Wait for all song creation promises to settle
-      const results = await Promise.allSettled(presetPromises);
-      
-      // Check if any promise failed
-      const failedGenerations = results.filter(r => r.status === 'rejected');
-      if (failedGenerations.length > 0) {
-        console.error(`${logPrefix}: Some preset song generations failed:`, failedGenerations);
-        // Decide if this constitutes a full failure or partial success.
-        // For now, we'll consider it a failure for setting the flag.
-        throw new Error(`Failed to generate ${failedGenerations.length} preset songs.`);
+      // Check if any creation failed
+      if (failedCount > 0) {
+        console.error(`${logPrefix}: Failed to initiate creation for ${failedCount} preset songs.`);
+        // Keep regenerationSuccessful as false
       } else {
           regenerationSuccessful = true;
-          console.log(`${logPrefix}: All preset songs created/initiated successfully.`);
+          console.log(`${logPrefix}: All preset songs initiated successfully.`);
       }
-      
+
     } catch (error) {
       console.error(`${logPrefix}: Failed to regenerate preset songs:`, error);
       // Don't re-throw; the goal is to finish the signup/update if possible,

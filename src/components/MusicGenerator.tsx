@@ -11,6 +11,8 @@ import GenerationProgress from './music-generator/GenerationProgress';
 import { SongPromptService } from '../services/songPromptService';
 import { useSongGenerationTimer } from '../hooks/useSongGenerationTimer';
 
+const GENERATION_LIMIT = 2;
+
 type TabType = 'themes' | 'fromScratch';
 
 export default function MusicGenerator() {
@@ -27,7 +29,10 @@ export default function MusicGenerator() {
   const [songType, setSongType] = useState<'preset' | 'theme' | 'theme-with-input' | 'from-scratch'>('theme');
   
   const { createSong, songs } = useSongStore();
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore((state) => ({ 
+    user: state.user, 
+    profile: state.profile 
+  }));
   
   // Identify if a non-preset song is currently generating
   const getGeneratingNonPresetSong = () => {
@@ -48,9 +53,20 @@ export default function MusicGenerator() {
     if (songType === 'preset') {
       return false; 
     }
-    // Disable if trying to generate a non-preset and one is already running
+    
     const isTryingToGenerateNonPreset = songType === 'theme' || songType === 'theme-with-input' || songType === 'from-scratch';
-    return isTryingToGenerateNonPreset && isNonPresetGenerating;
+    
+    // Check if already generating a non-preset song
+    if (isTryingToGenerateNonPreset && isNonPresetGenerating) {
+      return true;
+    }
+    
+    // Check free user generation limit for non-preset songs
+    if (isTryingToGenerateNonPreset && profile && !profile.isPremium && profile.generationCount >= GENERATION_LIMIT) {
+      return true; // Disable if free user is at limit
+    }
+    
+    return false; // Otherwise, enable
   };
 
   // Use the centralized timer hook, only activating it when a non-preset song is generating
@@ -71,8 +87,17 @@ export default function MusicGenerator() {
   }, [activeTab]);
 
   const handleGenerate = async () => {
-    if (!user?.id) {
+    if (!user?.id || !profile) {
       setError('Please sign in to generate music');
+      return;
+    }
+    
+    const isNonPresetAttempt = songType === 'theme' || songType === 'theme-with-input' || songType === 'from-scratch';
+
+    // Check generation limit for free users before validating inputs
+    if (isNonPresetAttempt && !profile.isPremium && profile.generationCount >= GENERATION_LIMIT) {
+      setError('You have reached your free generation limit. Upgrade to Premium for unlimited songs!');
+      // TODO: Add link/button to upgrade page in the error message or nearby
       return;
     }
     
@@ -123,12 +148,6 @@ export default function MusicGenerator() {
         songType
       };
 
-      // Get the user's profile
-      const profile = useAuthStore.getState().profile;
-      if (!profile) {
-        throw new Error('User profile not found');
-      }
-
       if (songType === 'theme' || songType === 'theme-with-input') {
         console.log('Creating themed song:', {
           theme,
@@ -149,6 +168,11 @@ export default function MusicGenerator() {
         });
       } else {
         // from-scratch mode
+        // Check generation limit again (redundant but safe)
+        if (!profile.isPremium && profile.generationCount >= GENERATION_LIMIT) {
+          setError('Generation limit reached. Please upgrade.');
+          return;
+        }
         console.log('Creating custom song:', {
           mood,
           userInput: userInput.trim()

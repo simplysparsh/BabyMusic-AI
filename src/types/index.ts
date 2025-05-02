@@ -66,8 +66,11 @@ export interface UserProfile {
   id: string;
   email: string;
   isPremium: boolean;
+  generationCount: number;
+  monthlyPlaysCount: number;
+  playCountResetAt?: string | null;
   dailyGenerations: number;
-  lastGenerationDate: Date;
+  lastGenerationDate: string | null;
   babyName: string;
   preferredLanguage: Language;
   birthMonth?: number;

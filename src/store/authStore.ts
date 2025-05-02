@@ -35,6 +35,7 @@ interface AuthState {
   signOut: () => Promise<void>;
   loadUser: () => Promise<void | (() => void)>; // Fix return type to match implementation
   hidePostSignupOnboarding: () => void;
+  incrementPlayCount: () => void; // Added
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -85,6 +86,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               id,
               email,
               is_premium,
+              generation_count,
+              monthly_plays_count,
+              play_count_reset_at,
               daily_generations,
               last_generation_date,
               baby_name,
@@ -140,6 +144,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               id: profileData.id,
               email: profileData.email,
               isPremium: profileData.is_premium,
+              generationCount: profileData.generation_count ?? 0,
+              monthlyPlaysCount: profileData.monthly_plays_count ?? 0,
+              playCountResetAt: profileData.play_count_reset_at,
               dailyGenerations: profileData.daily_generations,
               lastGenerationDate: profileData.last_generation_date,
               babyName: profileData.baby_name,
@@ -475,5 +482,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   hidePostSignupOnboarding: () => {
     set({ showPostSignupOnboarding: false });
+  },
+  
+  // Added function to increment play count (client-side approximation)
+  incrementPlayCount: () => {
+    set(state => {
+      if (state.profile && !state.profile.isPremium) {
+        const newCount = (state.profile.monthlyPlaysCount || 0) + 1;
+        // TODO: Call backend function here to increment play count persistently
+        // e.g., UserService.incrementPlayCount(state.user.id);
+        console.log(`[Client] Incrementing monthlyPlaysCount to ${newCount} for user ${state.profile.id}`);
+        return {
+          profile: { 
+            ...state.profile, 
+            monthlyPlaysCount: newCount 
+          }
+        };
+      }
+      return {}; // No change if premium or no profile
+    });
   }
 }));

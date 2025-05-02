@@ -231,6 +231,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (trimmedNewName !== currentProfile?.babyName && genderForRegen) {
         console.log('Baby name changed, triggering preset song regeneration...');
+        
+        // Clear out preset songs from the store immediately using the store's method
+        const songStore = useSongStore.getState();
+        songStore.notifyPresetSongsRegenerating();
+        
+        // Force render update by adding a temporary attribute to document body
+        document.body.setAttribute('data-regenerating-presets', 'true');
+        setTimeout(() => document.body.removeAttribute('data-regenerating-presets'), 100);
+        
+        // Now start the actual backend regeneration process
         SongService.regeneratePresetSongs(user.id, trimmedNewName, genderForRegen)
           .catch(error => {
             console.error('Background preset song regeneration failed:', error);

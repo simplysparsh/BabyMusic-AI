@@ -135,6 +135,28 @@ export const useSongStore = create<SongState>((set, get) => {
 
     // Subscriptions
     // The type checker should ensure this matches the signature in SongState
-    setupSubscription: subscriptions.setupSubscription
+    setupSubscription: subscriptions.setupSubscription,
+    
+    // Add a new action for preset song regeneration
+    notifyPresetSongsRegenerating: () => {
+      const allSongs = get().songs;
+      // Find all preset songs
+      const presetSongs = allSongs.filter(s => s.song_type === 'preset' && s.preset_type);
+      
+      if (presetSongs.length > 0) {
+        console.log(`[PRESET REGENERATION] Preparing UI for regeneration of ${presetSongs.length} preset songs`);
+        
+        // Create a new songs array without the preset songs
+        // This makes all cards behave consistently - like they never existed
+        set({
+          songs: allSongs.filter(s => !(s.song_type === 'preset' && s.preset_type))
+        });
+        
+        // Log the deleted preset song IDs for debugging
+        console.log(`[PRESET REGENERATION] Removed preset songs from store:`, 
+          presetSongs.map(s => ({ id: s.id, type: s.preset_type }))
+        );
+      }
+    },
   };
 });

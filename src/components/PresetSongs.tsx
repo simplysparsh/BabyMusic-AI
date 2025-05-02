@@ -67,11 +67,15 @@ const PresetSongs: FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 relative">
         {PRESETS.map(({ type, icon, title, description }) => {
           // Find the song for this preset type
-          const song = songs.find(s => s.preset_type === type);
+          const songForType = songs.find(s => s.preset_type === type);
+          
+          // Create a deterministic key based on type, song ID, and task_id (if available)
+          // This still forces React to remount when song is regenerated due to the task_id changing
+          const cardKey = `${type}-${songForType?.id ?? 'none'}-${songForType?.task_id ?? 'no-task'}`;
           
           return (
             <PresetSongCard
-              key={type}
+              key={cardKey}
               type={type}
               title={title}
               description={description}
@@ -79,10 +83,10 @@ const PresetSongs: FC = () => {
               songs={songs}
               isPlaying={isPlaying}
               currentPlayingUrl={currentPlayingUrl}
-              onPlayClick={(url) => handlePlay(url)}
+              onPlayClick={handlePlay}
               onGenerateClick={handlePresetClick}
               onVariationChange={handleVariationChange}
-              currentVariationIndex={currentVariationIndices[type] || 0}
+              currentVariationIndex={currentVariationIndices[type] ?? 0}
             />
           );
         })}

@@ -22,7 +22,8 @@ export default function SongGenerationTimer({
   onTimeout,
   songId
 }: SongGenerationTimerProps) {
-  const { timeLeft, formattedTime, progress, totalTime: _totalTime } = useSongGenerationTimer(isGenerating, songId);
+  const { timeLeft, formattedTime, progress, totalTime: _totalTime } = 
+    useSongGenerationTimer(isGenerating, songId);
   
   // Call onTimeout when timer reaches 0
   if (timeLeft === 0 && onTimeout) {

@@ -1,4 +1,4 @@
-import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useMemo } from 'react';
+import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
@@ -31,11 +31,26 @@ export default function PresetSongCard({
   onVariationChange,
   currentVariationIndex
 }: PresetCardProps) {
+  // Store the previous song ID to detect when it changes
+  const prevSongIdRef = useRef<string | undefined>(undefined);
+  
   // Get the current song for this preset type
   const currentSong = useMemo(() => 
     SongStateService.getSongForPresetType(songs, type),
     [songs, type]
   );
+  
+  // Check if song has changed completely (like after deletion/regeneration)
+  useEffect(() => {
+    const currentId = currentSong?.id;
+    if (prevSongIdRef.current && currentId && prevSongIdRef.current !== currentId) {
+      console.log(`[SONG REPLACED] PresetSongCard ${type}: Song ID changed from ${prevSongIdRef.current} to ${currentId}`);
+      // Force update by creating random key
+      const forceUpdateEvent = new CustomEvent('forceUpdate', { detail: { type, id: currentId } });
+      document.dispatchEvent(forceUpdateEvent);
+    }
+    prevSongIdRef.current = currentId;
+  }, [currentSong?.id, type]);
   
   // Compute all state properties using useMemo for reactivity
   const songState = useMemo(() => {
@@ -118,6 +133,13 @@ export default function PresetSongCard({
     const sequenceId = Math.random().toString(36).substring(2, 8);
     
     console.log(`[UI UPDATE] PresetSongCard ${type}: Song state changed to ${songState} at ${timestamp} [${sequenceId}]`);
+    
+    // Force DOM update for song state changes
+    if (currentSong) {
+      document.querySelectorAll(`[data-preset-type="${type}"]`).forEach(el => {
+        el.setAttribute('data-song-state', songState);
+      });
+    }
     
     // For debugging transitions to ready
     if (songState === SongState.READY) {
@@ -224,12 +246,15 @@ export default function PresetSongCard({
 
   // Render the status indicator based on song state
   const renderStatusIndicator = () => {
+    // Create a unique key for the status indicator based on song state and task_id
+    const statusKey = `${type}-status-${songState}-${currentSong?.task_id || currentSong?.id || 'none'}`;
+    
     // Determine if the *currently selected* version is the one playing
     const isThisVersionPlaying = isPlaying && currentPlayingUrl === urlOfCurrentVersion;
 
     if (songState === SongState.GENERATING) {
       return (
-        <span className="inline-flex items-center text-xs bg-primary/20 text-white
+        <span key={statusKey} className="inline-flex items-center text-xs bg-primary/20 text-white
                        px-3 py-1.5 rounded-full ml-2 border border-primary/20
                        shadow-lg z-10 whitespace-nowrap">
           <SongGenerationTimer 
@@ -245,7 +270,7 @@ export default function PresetSongCard({
     
     if (songState === SongState.FAILED) {
       return (
-        <span className="inline-flex items-center text-xs bg-red-500/20 text-white
+        <span key={statusKey} className="inline-flex items-center text-xs bg-red-500/20 text-white
                        px-3 py-1.5 rounded-full ml-2 border border-red-500/20
                        shadow-lg z-10 whitespace-nowrap">
           <RefreshCw className="w-3 h-3 mr-1" />
@@ -256,7 +281,7 @@ export default function PresetSongCard({
     
     if (songState === SongState.READY) {
       return (
-        <span className="inline-flex items-center text-xs bg-gradient-to-br from-black/80 to-black/90 text-green-400
+        <span key={statusKey} className="inline-flex items-center text-xs bg-gradient-to-br from-black/80 to-black/90 text-green-400
                        px-3 py-1.5 rounded-full ml-2 border border-green-500/30
                        shadow-lg z-10 whitespace-nowrap">
           {isThisVersionPlaying ? (
@@ -270,7 +295,7 @@ export default function PresetSongCard({
     }
     
     return (
-      <span className={`inline-flex items-center text-xs bg-white/20 text-white
+      <span key={statusKey} className={`inline-flex items-center text-xs bg-white/20 text-white
                      px-3 py-1.5 rounded-full ml-2 border border-white/20
                      shadow-lg z-10 whitespace-nowrap active:italic
                      ${type === 'playing' ? 'active:bg-[#FF5252]/30' : ''}
@@ -283,22 +308,13 @@ export default function PresetSongCard({
     );
   };
 
-  // Create a stable key for the component that changes when state changes
-  const componentKey = useMemo(() => {
-    // Create a key that will change when key properties change
-    // Include audio_url to catch all transitions
-    const hasLastUpdated = currentSong && '_lastUpdated' in currentSong;
-    const lastUpdatedValue = hasLastUpdated ? (currentSong as any)._lastUpdated : '0';
-    
-    return `preset-${type}-${songState}-${currentSong?.id || 'no-song'}-${currentSong?.task_id ? 'has-task' : 'no-task'}-${currentSong?.audio_url ? 'has-audio' : 'no-audio'}-${lastUpdatedValue}`;
-  }, [type, songState, currentSong]);
-
   return (
     <div
-      key={componentKey}
       onClick={handleCardClick}
       role="button"
       aria-disabled={songState === SongState.GENERATING}
+      data-preset-type={type}
+      data-song-state={songState}
       className={`relative overflow-hidden rounded-2xl p-5 sm:p-7 text-left min-h-[100px] cursor-pointer
                  aria-disabled:cursor-not-allowed
                  transition-all duration-500 group flex items-start gap-4 backdrop-blur-sm bg-black/60

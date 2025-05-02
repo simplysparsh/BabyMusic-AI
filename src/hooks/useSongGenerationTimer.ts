@@ -121,7 +121,7 @@ const startTimer = (songId: string) => {
     stopTimer(songId);
   }
 
-  // 2. If a timer still exists (meaning it was running and > 0), exit.
+  // 2. If a timer still exists (meaning it was running and > 0), exit
   if (activeTimers.has(songId)) {
     return;
   }

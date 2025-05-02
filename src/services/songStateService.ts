@@ -115,14 +115,28 @@ export class SongStateService {
       song.preset_type === presetType && song.song_type === 'preset'
     );
     
-    if (presetSongs.length === 0) return undefined;
+    if (presetSongs.length === 0) {
+      console.log(`No songs found for preset type: ${presetType}`);
+      return undefined;
+    }
     
     // Return the most recently created song for this preset type
-    return presetSongs.sort((a, b) => {
+    const mostRecent = presetSongs.sort((a, b) => {
       const dateA = new Date(a.createdAt || 0);
       const dateB = new Date(b.createdAt || 0);
       return dateB.getTime() - dateA.getTime();
     })[0];
+    
+    // Log for debugging state issues
+    const state = this.getSongState(mostRecent);
+    console.log(`[PRESET SONG] Selected song for ${presetType}: ${mostRecent.id} in state: ${state}`, {
+      hasAudio: !!mostRecent.audio_url,
+      hasTaskId: !!mostRecent.task_id,
+      hasError: !!mostRecent.error,
+      timestamp: new Date().toISOString()
+    });
+    
+    return mostRecent;
   }
 
   /**

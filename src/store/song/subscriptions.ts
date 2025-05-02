@@ -35,34 +35,69 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
     // Subscribe to both songs and variations changes
     const songsSubscription = supabase
       .channel('songs-channel')
+      // Handle new song inserts
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'songs',
           filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
-          // Use type assertion to ensure TypeScript knows the structure
           const typedPayload = payload as RealtimePayload<SongPayload>;
-          const { new: newSong, old: oldSong } = typedPayload;
+          const newSong = typedPayload.new;
+          if (!newSong || !('id' in newSong)) return;
+          await handleSongUpdate(newSong as SongPayload, set, get, supabase);
+        }
+      )
+      // Handle song updates
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'songs',
+          filter: `user_id=eq.${userId}`,
+        },
+        async (payload) => {
+          const typedPayload = payload as RealtimePayload<SongPayload>;
+          const newSong = typedPayload.new;
+          if (!newSong || !('id' in newSong)) return;
+          await handleSongUpdate(newSong as SongPayload, set, get, supabase);
+        }
+      )
+      // Handle song deletions
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'songs',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const typedPayload = payload as RealtimePayload<SongPayload>;
+          const oldSong = typedPayload.old;
+          if (!oldSong || !('id' in oldSong)) return;
           
-          // IMPORTANT: By default, Supabase only includes primary keys in oldSong, not complete data
-          // The handler function should avoid comparing oldSong to newSong for non-primary-key fields
+          console.log(`DELETE event received for song ${oldSong.id}, preset_type: ${oldSong.preset_type || 'none'}`);
           
-          // Add null checks and type assertions
-          if (!oldSong || !newSong || !('id' in oldSong) || !('id' in newSong)) {
-            return;
+          // Handle the deletion by updating the store
+          if (oldSong.preset_type) {
+            // This is a preset song being deleted - likely during regeneration
+            // We need to remove it from the songs array
+            set({
+              songs: get().songs.filter(s => s.id !== oldSong.id)
+            });
+            console.log(`Removed deleted preset song ${oldSong.id} (${oldSong.preset_type}) from store.`);
+          } else {
+            // Standard deletion - use batch update
+            get().batchUpdate({
+              removeSongId: oldSong.id,
+              taskIdsToRemoveFromProcessing: oldSong.task_id ? [oldSong.task_id] : undefined
+            });
           }
-          
-          // Remove the presetSongsProcessing parameter or update the handler function
-          await handleSongUpdate(
-            newSong as SongPayload,
-            set,
-            get,
-            supabase
-          );
         }
       )
       .subscribe();

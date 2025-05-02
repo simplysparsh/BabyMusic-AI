@@ -82,6 +82,7 @@ export interface SongState {
   deleteAllSongs: () => Promise<void>;
   setupSubscription: (userId: string) => (() => void) | undefined;
   resetGeneratingState: () => Promise<void>;
+  notifyPresetSongsRegenerating: () => void; // Method to remove preset songs from the store immediately
 }
 
 export interface CreateSongParams {

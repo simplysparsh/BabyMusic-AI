@@ -53,7 +53,12 @@ Users can experience core functionality for free, but require a premium subscrip
 
 ### 5.2 Server-Side Logic (Supabase Functions / Backend)
 
--   **Generation Check:** Song creation function MUST verify `is_premium` or `generation_count < limit` before calling external APIs. Increment `generation_count` *after* successful API call initiation.
+-   **Generation Check:** Supabase Edge Function `initiate-song-creation` (Partially Implemented & Deployed):
+    -   Location: `supabase/functions/initiate-song-creation`
+    -   Handles authentication and generation limit check.
+    -   Increments `generation_count` for free users if allowed.
+    -   **TODO:** Implement actual song record creation and external API call logic within this function, adapting from `songService.ts`.
+    -   Called securely from client instead of client-side service.
 -   **Play Count:** Supabase Edge Function `increment-play-count` (Implemented & Deployed):
     -   Location: `supabase/functions/increment-play-count`
     -   Trigger: HTTP POST request.

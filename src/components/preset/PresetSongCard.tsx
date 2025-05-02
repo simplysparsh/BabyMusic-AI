@@ -1,6 +1,5 @@
 import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight, LockKeyhole, Download } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
 import SongGenerationTimer from '../common/SongGenerationTimer';

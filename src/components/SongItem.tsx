@@ -128,11 +128,11 @@ export default function SongItem({
             {hasVariations && (
               <button
                 onClick={toggleExpand}
-                className="text-white/60 transition-all duration-300 hover:text-primary"
+                className="text-white/60 transition-all duration-300 hover:text-primary p-1.5 sm:p-2 rounded-full"
                 aria-label="Toggle variations"
               >
                 <ChevronDown
-                  className={`h-5 w-5 transform transition-transform ${
+                  className={`h-4 w-4 sm:h-5 sm:w-5 transform transition-transform ${
                     expandedVariations ? 'rotate-180' : ''
                   }`}
                 />
@@ -142,52 +142,42 @@ export default function SongItem({
               <button
                 onClick={handleToggleFavorite}
                 disabled={!isPremium}
-                aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
-                className={`transition-all duration-300 group flex items-center justify-center p-2 sm:p-2.5 rounded-full 
+                aria-label={!isPremium ? "Favorite song (Premium only)" : (isFavorited ? "Remove from favorites" : "Add to favorites")}
+                title={!isPremium ? "Favorite song (Premium only)" : (isFavorited ? "Remove from favorites" : "Add to favorites")}
+                className={`transition-all duration-300 group flex items-center justify-center p-1.5 sm:p-2 rounded-full 
                          ${!isPremium 
-                           ? 'text-white/30 cursor-not-allowed'
+                           ? 'text-white/30 cursor-not-allowed bg-black/20'
                            : (isFavorited 
                              ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20'
                              : 'text-white/60 hover:text-red-400 bg-white/10 hover:bg-white/20')} `}
               >
-                {!isPremium ? (
-                   <LockKeyhole className="w-4 h-4 sm:w-5 sm:h-5" />
-                ) : (
-                   <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isFavorited ? 'fill-current' : 'fill-none'}`} />
-                )}
-               </button>
+                <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isPremium && isFavorited ? 'fill-current' : 'fill-none'} ${!isPremium ? 'text-white/30' : ''}`} />
+              </button>
             )}
             {isPlayable && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={handleDownload}
-                  disabled={!isPremium}
-                  aria-label={!isPremium ? "Download song (Premium only)" : "Download song"}
-                  title={!isPremium ? "Download song (Premium only)" : "Download MP3"}
-                  className={`transition-all duration-300 group flex items-center justify-center p-2 sm:p-2.5 rounded-full 
-                           ${!isPremium 
-                             ? 'text-white/30 cursor-not-allowed bg-white/5'
-                             : 'text-white/60 hover:text-primary bg-white/10 hover:bg-white/20'}`}
-                >
-                  <Download className={`w-4 h-4 sm:w-5 sm:h-5 ${isPremium ? 'transition-transform group-hover:scale-110' : ''}`} />
-                </button>
-                {!isPremium && (
-                  <span className="text-xs font-semibold text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded-sm">
-                    PRO
-                  </span>
-                )}
-              </div>
+              <button
+                onClick={handleDownload}
+                disabled={!isPremium}
+                aria-label={!isPremium ? "Download song (Premium only)" : "Download song"}
+                title={!isPremium ? "Download song (Premium only)" : "Download MP3"}
+                className={`transition-all duration-300 group flex items-center justify-center p-1.5 sm:p-2 rounded-full 
+                         ${!isPremium 
+                           ? 'text-white/30 cursor-not-allowed bg-black/20'
+                           : 'text-white/60 hover:text-primary bg-white/10 hover:bg-white/20'}`}
+              >
+                <Download className={`w-4 h-4 sm:w-5 sm:h-5 ${isPremium ? 'transition-transform group-hover:scale-110' : ''}`} />
+              </button>
             )}
             <button
               onClick={() => !playButtonDisabled && audioUrl && onPlayClick(audioUrl, song.id)}
               disabled={playButtonDisabled}
               aria-label={isPlayLimitReached ? "Play limit reached" : (isPlaying && currentSong === audioUrl ? "Pause" : "Play")}
-              className={`transition-all duration-300 group flex items-center justify-center p-2.5 rounded-full 
+              className={`transition-all duration-300 group flex items-center justify-center p-1.5 sm:p-2 rounded-full 
                        ${isPlayLimitReached
                          ? 'bg-yellow-500/20 text-yellow-300 cursor-not-allowed'
                          : (isPlaying && currentSong === audioUrl 
-                           ? 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-lg' 
-                           : 'text-white/70 hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed bg-white/10 hover:bg-white/20')}`}
+                           ? 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-lg'
+                           : 'bg-gradient-to-br from-black/80 to-black/90 text-green-400 border border-green-500/30 shadow-lg hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed')}`}
             >
               {isPlayLimitReached ? (
                 <LockKeyhole className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -270,6 +260,7 @@ export default function SongItem({
             </div>
           </div>
         )}
+
       </div>
     </div>
   );

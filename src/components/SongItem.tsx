@@ -158,21 +158,25 @@ export default function SongItem({
                </button>
             )}
             {isPlayable && (
-              <button
-                onClick={handleDownload}
-                disabled={!isPremium}
-                aria-label="Download song"
-                className={`transition-all duration-300 group flex items-center justify-center p-2 sm:p-2.5 rounded-full 
-                         ${!isPremium 
-                           ? 'text-white/30 cursor-not-allowed'
-                           : 'text-white/60 hover:text-primary bg-white/10 hover:bg-white/20'}`}
-              >
-                {!isPremium ? (
-                  <LockKeyhole className="w-4 h-4 sm:w-5 sm:h-5" />
-                ) : (
-                  <Download className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleDownload}
+                  disabled={!isPremium}
+                  aria-label={!isPremium ? "Download song (Premium only)" : "Download song"}
+                  title={!isPremium ? "Download song (Premium only)" : "Download MP3"}
+                  className={`transition-all duration-300 group flex items-center justify-center p-2 sm:p-2.5 rounded-full 
+                           ${!isPremium 
+                             ? 'text-white/30 cursor-not-allowed bg-white/5'
+                             : 'text-white/60 hover:text-primary bg-white/10 hover:bg-white/20'}`}
+                >
+                  <Download className={`w-4 h-4 sm:w-5 sm:h-5 ${isPremium ? 'transition-transform group-hover:scale-110' : ''}`} />
+                </button>
+                {!isPremium && (
+                  <span className="text-xs font-semibold text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded-sm">
+                    PRO
+                  </span>
                 )}
-               </button>
+              </div>
             )}
             <button
               onClick={() => !playButtonDisabled && audioUrl && onPlayClick(audioUrl, song.id)}

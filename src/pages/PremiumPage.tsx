@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom'; // Assuming react-router-dom is used
+// import { Link } from 'react-router-dom'; // Removed Link import
 import { CheckCircle, Zap, Star, Play, Download, Heart, Sparkles, LifeBuoy } from 'lucide-react'; // Example icons
 
 const PremiumPage: React.FC = () => {
@@ -88,9 +88,9 @@ const PremiumPage: React.FC = () => {
         </div>
 
          <div className="text-center mt-12">
-           <Link to="/" className="text-sm text-white/60 hover:text-primary transition-colors">
+           <a href="/" className="text-sm text-white/60 hover:text-primary transition-colors">
              &larr; Back to Dashboard
-           </Link>
+           </a>
          </div>
       </div>
     </div>

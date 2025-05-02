@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { isValidEmail } from '../../utils/validation';
+import { Link } from 'react-router-dom';
 
 interface HeroProps {
   onOpenAuth: () => void;
@@ -153,14 +154,20 @@ export default function Hero({ onOpenAuth }: HeroProps) {
               </form>
             )
           ) : (
-            <div className="flex justify-center">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
               <button 
                 onClick={onOpenAuth}
-                className="btn-primary text-sm sm:text-base px-5 py-2.5 sm:px-6 sm:py-3"
+                className="btn-primary text-sm sm:text-base px-5 py-2.5 sm:px-6 sm:py-3 shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 whitespace-nowrap"
               >
                 Get Started Free
                 <ArrowRight className="w-5 h-5 ml-2 inline-block" />
               </button>
+              <Link 
+                to="/premium"
+                className="text-sm sm:text-base text-white/70 hover:text-primary transition-colors duration-300 underline underline-offset-4"
+              >
+                Premium 
+              </Link>
             </div>
           )}
         </div>

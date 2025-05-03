@@ -6,9 +6,9 @@
 
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../authStore';
-import { SongService } from '../../services/songService';
+import { SongService, mapDatabaseSongToSong } from '../../services/songService';
 import { SongStateService } from '../../services/songStateService';
-import type { Song } from '../../types';
+import type { Song, PresetType } from '../../types';
 import type { SongState, CreateSongParams } from './types';
 import { useErrorStore } from '../errorStore';
 
@@ -90,13 +90,13 @@ export const createSongActions = (set: SetState, get: GetState) => ({
     const { name, mood, theme, userInput, tempo, isInstrumental, voice, songType, preset_type } = params;
     console.log('[Action] createSong triggered with params:', params);
 
-    let tempSongId = `temp_${crypto.randomUUID()}`; // Temporary ID for optimistic update
+    // Destructure error store methods *before* try block
+    const { setError, clearError } = useErrorStore.getState();
 
     try {
       const user = useAuthStore.getState().user;
       const profile = useAuthStore.getState().profile;
-      const { clearError } = useErrorStore.getState();
-      clearError(); // Clear previous errors
+      clearError(); // Clear previous errors here
 
       if (!user || !profile) {
         throw new Error('User must be logged in');
@@ -104,95 +104,101 @@ export const createSongActions = (set: SetState, get: GetState) => ({
       if (!profile.babyName) {
         throw new Error('Baby name is required');
       }
-
-      // Optimistic UI Update: Add a placeholder song
-      // Note: Details like task_id will be updated later by subscription or function response
-      const optimisticSong: Partial<Song> & { id: string } = {
-        id: tempSongId,
-        name: name,
-        mood: mood,
-        theme: theme,
-        voice: voice,
-        audio_url: undefined,
-        createdAt: new Date(), // Use current date
-        userId: user.id,
-        retryable: false,
-        variations: [],
-        error: undefined,
-        task_id: undefined, // Will be set later
-        song_type: songType,
-        preset_type: preset_type,
-        // Mark as temporary/optimistic if needed
-      };
       
-      // Add optimistic song to state immediately (Simplified set call)
-      const currentSongs = get().songs;
-      set({ songs: [optimisticSong as Song, ...currentSongs] });
-      console.log(`[Action] Optimistically added temp song ${tempSongId}`);
-
-      // Prepare payload for the Edge Function
-      const functionPayload = {
-        name: name,
-        babyName: profile.babyName,
-        theme: theme,
-        mood: mood,
-        userInput: userInput,
-        tempo: tempo,
-        isInstrumental: isInstrumental,
-        voice: voice,
-        songType: songType,
-        preset_type: preset_type,
-        ageGroup: profile.ageGroup, // Pass from profile
-        gender: profile.gender,     // Pass from profile
-      };
-
-      console.log(`[Action] Invoking initiate-song-creation function...`);
-      const { data: functionData, error: functionError } = await supabase.functions.invoke(
-        'initiate-song-creation',
-        { body: functionPayload }
+      // --- Call Check Function FIRST --- 
+      console.log(`[Action] Invoking check-generation-allowance function...`);
+      const { data: checkData, error: checkError } = await supabase.functions.invoke(
+        'check-generation-allowance'
+        // No body needed, function uses user context
       );
 
-      if (functionError) {
-        console.error('[Action] Edge function invocation error:', functionError);
-        throw new Error(functionError.message); // Throw error to be caught below
+      if (checkError) {
+         console.error('[Action] check-generation-allowance invocation error:', checkError);
+         throw new Error(`Server check failed: ${checkError.message}`);
       }
 
-      // Handle potential errors returned IN the function data
-      if (functionData && functionData.error) {
-        console.error('[Action] Edge function returned error:', functionData.error);
-        throw new Error(functionData.error); 
+      if (!checkData?.allowed) {
+         console.log('[Action] Generation not allowed by backend:', checkData?.reason);
+         const reason = checkData?.reason;
+         if (reason === 'limit_reached') {
+            throw new Error('Generation limit reached. Upgrade to Premium.'); // Specific error for UI
+         } else {
+            throw new Error(checkData?.error || 'Generation not allowed by server.');
+         }
       }
       
-      if (!functionData || !functionData.id || !functionData.task_id) {
-        console.error('[Action] Edge function returned invalid data:', functionData);
-        throw new Error('Failed to initiate song creation: Invalid response from server.');
+      console.log('[Action] Generation allowed by backend. Proceeding with client-side creation...');
+      
+      // --- Proceed with EXISTING Client-Side Logic --- 
+      // Note: SongService methods might need slight adjustments if they also interact with profile counts
+      // For now, assume they primarily handle DB inserts and PIAPI calls.
+
+      // The logic for handling preset updates vs. new custom songs needs to be here too.
+      const currentPresetType: PresetType | null = preset_type || null; // Need PresetType import back
+      let createdOrUpdatedSong: Song | undefined;
+      
+      if (currentPresetType && songType === 'preset') {
+          console.log('Processing PRESET update via client-side logic after check:', currentPresetType);
+          // Find existing preset song
+          const existingSongs = get().songs.filter(s => 
+            s.song_type === 'preset' && s.preset_type === currentPresetType
+          );
+          const isGenerating = existingSongs.some(song => SongStateService.isGenerating(song));
+          if (isGenerating) throw new Error(`${currentPresetType} song is already being generated`);
+
+          if (existingSongs.length > 0) {
+             const existingSong = existingSongs.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())[0];
+             console.log(`Updating existing preset song ${existingSong.id}`);
+             
+             // Use SongService to handle the preset regeneration steps
+             // This assumes SongService methods don't redo the count checks/increments
+             const customFields = { name: name || existingSong.name, theme: theme || existingSong.theme, mood: mood || existingSong.mood };
+             const resetSong = await SongService.prepareForRegeneration(existingSong.id, customFields);
+             const dbSongForGeneration = { ...resetSong, tempo: tempo || (resetSong as any).tempo, is_instrumental: isInstrumental !== undefined ? isInstrumental : (resetSong as any).is_instrumental, voice_type: voice || (resetSong as any).voice_type, user_lyric_input: userInput || (resetSong as any).user_lyric_input };
+             const taskId = await SongService.startSongGeneration(dbSongForGeneration as any, profile.babyName, profile.ageGroup, profile.gender); // Pass profile details
+             await SongService.updateSongWithTaskId(existingSong.id, taskId);
+             createdOrUpdatedSong = { ...mapDatabaseSongToSong(resetSong), task_id: taskId }; // Need mapDatabaseSongToSong import back
+             
+             // Update UI state for the updated song
+             set({ songs: get().songs.map(s => s.id === existingSong.id ? createdOrUpdatedSong : s) });
+          } else {
+             // This case (preset type requested but no existing song) shouldn't happen with current flow?
+             // If it can, we might need to create it here using SongService.createSong
+             console.warn(`Preset song requested (${currentPresetType}) but no existing one found. Creating new.`);
+             // Fall through to standard creation below? Or handle differently?
+              createdOrUpdatedSong = await SongService.createSong({
+                 userId: user.id, name, babyName: profile.babyName,
+                 songParams: { theme, mood, tempo, isInstrumental, songType, voice, userInput, preset_type: currentPresetType }
+              });
+              set({ songs: [createdOrUpdatedSong, ...get().songs] });
+          }
+      } else {
+          // Create a new non-preset song using SongService
+          console.log(`Proceeding to create NEW non-preset song via client-side logic`);
+          createdOrUpdatedSong = await SongService.createSong({
+             userId: user.id, name, babyName: profile.babyName,
+             songParams: { theme, mood, tempo, isInstrumental, songType, voice, userInput, preset_type: undefined }, // Ensure preset_type is not passed
+             ageGroup: profile.ageGroup,
+             gender: profile.gender
+          });
+          if (!createdOrUpdatedSong) throw new Error('Failed to create song record via service');
+          // Update UI state
+          set({ songs: [createdOrUpdatedSong, ...get().songs] });
+      }
+      
+      if (!createdOrUpdatedSong) {
+         throw new Error('Song creation/update process failed');
       }
 
-      console.log(`[Action] initiate-song-creation successful:`, functionData);
-
-      // Update the optimistic song with real data (Simplified set call)
-      const updatedSongs = get().songs.map(s => 
-        s.id === tempSongId ? { ...s, ...functionData, id: functionData.id } : s
-      );
-      set({ songs: updatedSongs });
-      console.log(`[Action] Updated song ${functionData.id} with data from function`);
-
-      // Return the created song data (or a mapped version if necessary)
-      // Assuming functionData directly matches the needed Song structure for now
-      return functionData as Song;
+      console.log('Client-side song creation/update successful:', createdOrUpdatedSong.id);
+      return createdOrUpdatedSong;
 
     } catch (error) {
       console.error('[Action] Error in createSong action:', error);
       const message = error instanceof Error ? error.message : 'Failed to create song';
-      useErrorStore.getState().setError(message); // Set global error
-      
-      // Remove the optimistic song entry on failure (Simplified set call)
-      const songsWithoutOptimistic = get().songs.filter(s => s.id !== tempSongId);
-      set({ songs: songsWithoutOptimistic });
-      console.log(`[Action] Removed optimistic temp song ${tempSongId} due to error`);
-      
-      // Re-throw error so the calling component knows it failed
-      throw error;
+      setError(message); // Now setError should be in scope
+      // No optimistic song to remove in this version
+      throw error; // Re-throw error
     }
   },
 

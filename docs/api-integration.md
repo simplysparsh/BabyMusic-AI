@@ -8,28 +8,33 @@ PIAPI.ai is a music generation API that creates unique, personalized songs based
 
 The integration with PIAPI.ai works as follows:
 
-1. When a user requests a new song, the frontend sends a request to the `/api/songs` endpoint with the desired song parameters.
-2. The backend API endpoint forwards the request to the PIAPI.ai API, including the necessary authentication headers and request payload.
+1. When a user requests a new custom song, the frontend first calls the `check-generation-allowance` backend function to verify limits.
+2. If allowed, the **frontend client** (using logic in `src/lib/piapi.ts` likely called via `src/services/songService.ts`) directly sends the generation request to the PIAPI.ai API, including the API key (stored client-side as `VITE_PIAPI_KEY`).
 3. PIAPI.ai processes the request and generates the song asynchronously.
-4. When the song generation is complete, PIAPI.ai sends a webhook notification to the designated webhook endpoint in the Baby Music AI backend.
-5. The webhook endpoint receives the notification, extracts the song data (audio URL, metadata, etc.), and updates the corresponding song record in the database.
-6. The frontend periodically polls the `/api/songs` endpoint to check the status of the song generation and retrieves the song data when it's available.
+4. When the song generation is complete, PIAPI.ai sends a webhook notification to the `/api/piapi-webhook` endpoint in the Baby Music AI backend (a Supabase Edge Function).
+5. The webhook endpoint (`supabase/functions/piapi-webhook`) receives the notification, extracts the song data (audio URL, metadata, etc.), and updates the corresponding song record in the database.
+6. The frontend updates reactively via Supabase Realtime subscriptions listening to changes in the `songs` table.
 
-The PIAPI.ai integration is implemented in the `src/lib/piapi.ts` file, which exports functions for initiating song generation requests and handling webhook notifications.
+Key files for PIAPI integration:
+-   `src/lib/piapi.ts`: Contains the client-side function (`createMusicGenerationTask`) to call the PIAPI.ai API.
+-   `supabase/functions/piapi-webhook`: Handles the incoming webhook from PIAPI.ai.
+-   `src/store/song/actions.ts`: Orchestrates calling the check function and then the client-side service.
+
+**(Security Note):** Currently, the `VITE_PIAPI_KEY` is exposed in the frontend bundle. Future improvements may involve moving the PIAPI call to a dedicated backend function to protect this key.
 
 ## Anthropic Claude Integration
 
 Anthropic Claude is an AI-powered API for generating human-like text based on given prompts. Baby Music AI uses Anthropic Claude to generate personalized song lyrics based on user-specified themes, moods, and preferences.
 
-The integration with Anthropic Claude works as follows:
+The integration with Anthropic Claude likely works similarly:
 
-1. When a user requests a new song with custom lyrics, the frontend sends a request to the `/api/songs` endpoint with the desired lyric parameters (theme, mood, etc.).
-2. The backend API endpoint constructs a prompt for Anthropic Claude based on the user's parameters and sends a request to the Anthropic Claude API.
-3. Anthropic Claude processes the request and generates the song lyrics.
-4. The backend API endpoint receives the generated lyrics and includes them in the request payload sent to PIAPI.ai for song generation.
-5. The song generation process continues as described in the PIAPI.ai integration section.
+1. If custom lyrics are needed, the **frontend client** (likely using `src/lib/claude.ts` called via `songService.ts`) constructs a prompt and calls the Claude API directly, using the `VITE_CLAUDE_API_KEY`.
+2. The generated lyrics are then included in the parameters sent to the PIAPI.ai API (via the client-side call).
 
-The Anthropic Claude integration is implemented in the `src/lib/claude.ts` file, which exports functions for generating song lyrics based on user-specified parameters.
+Key files for Claude integration:
+-   `src/lib/claude.ts`: Contains client-side logic to call the Claude API.
+
+**(Security Note):** The `VITE_CLAUDE_API_KEY` is also exposed client-side.
 
 ## Error Handling and Rate Limiting
 

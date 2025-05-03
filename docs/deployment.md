@@ -94,7 +94,7 @@ For functions that should only be called by authenticated users, use:
 supabase functions deploy function-name
 supabase functions deploy toggle-favorite
 supabase functions deploy increment-play-count
-supabase functions deploy initiate-song-creation
+supabase functions deploy check-generation-allowance
 ```
 
 The default behavior will require valid JWT tokens.
@@ -102,9 +102,9 @@ The default behavior will require valid JWT tokens.
 ### Environment Variables and Database
 
 4. Set the required environment variables for your Edge Functions using `supabase secrets set`:
-   - `PIAPI_KEY`: Your PIAPI.ai API key
-   - `CLAUDE_API_KEY`: Your Anthropic Claude API key
-   - `WEBHOOK_SECRET`: Your webhook secret for handling PIAPI.ai callbacks
+   - `WEBHOOK_SECRET`: Your webhook secret for handling PIAPI.ai callbacks (Needed by `piapi-webhook`)
+   - `SUPABASE_SERVICE_ROLE_KEY`: Your project's service role key (Needed by functions modifying DB, e.g., `increment-play-count`, `check-generation-allowance`)
+   - Note: `SUPABASE_URL` and `SUPABASE_ANON_KEY` are typically available by default.
 5. Push the database schema and migrations using `supabase db push`.
 
 Your backend Edge Functions and database schema will now be deployed and ready to handle requests from the frontend.

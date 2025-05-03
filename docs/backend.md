@@ -103,24 +103,19 @@ Edge Functions provide serverless compute capabilities close to the user.
     4. Updates `monthly_plays_count` (either reset to 1 or incremented) and `play_count_reset_at` (if reset) and `last_active_date`.
     5. Returns success status.
 
-### `initiate-song-creation` (New - Partially Implemented)
+### `check-generation-allowance` (New)
 
--   **Purpose:** Securely handle song creation requests, enforce generation limits, and orchestrate the generation process.
--   **Location:** `supabase/functions/initiate-song-creation`
+-   **Purpose:** Securely check if a user is allowed to generate a new custom song based on their subscription status and generation count limit. Increments the count if allowed.
+-   **Location:** `supabase/functions/check-generation-allowance`
 -   **Trigger:** HTTP POST request.
--   **Input:** JSON body containing song parameters (`RequestBody` interface defined in function).
+-   **Input:** None (uses authenticated user context).
 -   **Auth:** Requires Supabase JWT in Authorization header.
--   **Logic (Current):**
+-   **Logic:**
     1. Authenticates user.
     2. Fetches user profile (`is_premium`, `generation_count`) using Admin client.
-    3. Checks if free user has reached generation limit (rejects with 403 if so).
-    4. Increments `generation_count` for free users if limit not reached.
-    5. Returns placeholder success response.
--   **Logic (TODO):**
-    1. Adapt logic from client-side `songService.ts` (e.g., `determineMood`, `createSongRecord`, `startSongGeneration`).
-    2. Create the initial song record in DB.
-    3. Call external generation API (`createMusicGenerationTask`).
-    4. Update song record with `task_id`.
-    5. Return actual created song details.
+    3. Checks if free user has reached generation limit.
+    4. If allowed and user is free, increments `generation_count`.
+    5. Returns `{ allowed: boolean, reason?: string }`.
+-   **Note:** This function *only* checks allowance and increments the count. The actual song record creation and external API calls are handled client-side after receiving `{ allowed: true }`.
 
 By leveraging Supabase's backend services, Baby Music AI can focus on delivering a seamless user experience while benefiting from a scalable, secure, and feature-rich backend infrastructure.

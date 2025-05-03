@@ -53,12 +53,13 @@ Users can experience core functionality for free, but require a premium subscrip
 
 ### 5.2 Server-Side Logic (Supabase Functions / Backend)
 
--   **Generation Check:** Supabase Edge Function `initiate-song-creation` (Partially Implemented & Deployed):
-    -   Location: `supabase/functions/initiate-song-creation`
+-   **Generation Check:** Supabase Edge Function `check-generation-allowance` (Implemented & Deployed):
+    -   Location: `supabase/functions/check-generation-allowance`
     -   Handles authentication and generation limit check.
     -   Increments `generation_count` for free users if allowed.
-    -   **TODO:** Implement actual song record creation and external API call logic within this function, adapting from `songService.ts`.
-    -   Called securely from client instead of client-side service.
+    -   Returns `{ allowed: boolean }` response.
+    -   **Note:** Does *not* perform song creation or external API calls.
+-   **Client-Side Logic:** The frontend (`src/store/song/actions.ts`) calls `check-generation-allowance`. If allowed, it proceeds to use the client-side `SongService` (which uses `src/lib/piapi.ts`) to create the DB record and initiate the external PIAPI call. This maintains API key exposure on the client but simplifies backend implementation.
 -   **Play Count:** Supabase Edge Function `increment-play-count` (Implemented & Deployed):
     -   Location: `supabase/functions/increment-play-count`
     -   Trigger: HTTP POST request.
@@ -88,12 +89,13 @@ Users can experience core functionality for free, but require a premium subscrip
 
 ## 6. Pending Work
 
--   **Backend Implementation:** Implement all server-side logic described above.
--   **Connect Frontend<>Backend:** Replace TODOs in frontend stores/components to call the new backend functions.
--   **Fetch Favorites:** Update song loading logic to fetch the `is_favorite` status and initialize `SongItem` state.
--   **Stripe Checkout UI:** Implement the frontend part of initiating the Stripe checkout flow from the `/premium` page buttons.
--   **Tooltips:** Consider adding a proper Tooltip component for better UX on disabled buttons.
--   **Error Handling:** Refine display of limit errors to provide clearer calls to action (e.g., link/button to `/premium`).
+-   **Backend Implementation:** Implement Stripe webhook handler.
+-   **Connect Frontend<>Backend:** Replace TODOs for calling `incrementPlayCount` and `toggleFavoriteSong` backend functions (already partially done).
+-   **Fetch Favorites:** Update song loading logic to fetch `is_favorite` status.
+-   **Stripe Checkout UI:** Implement frontend Stripe checkout initiation.
+-   **Tooltips:** Consider adding Tooltip component.
+-   **Error Handling:** Refine limit error display.
+-   **(Security Note):** Re-evaluate moving PIAPI call to backend in the future to protect API key.
 
 ## 7. Required Backend Implementation
 

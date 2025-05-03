@@ -10,8 +10,7 @@ import LyricsInput from './music-generator/LyricsInput';
 import GenerationProgress from './music-generator/GenerationProgress';
 import { SongPromptService } from '../services/songPromptService';
 import { useSongGenerationTimer } from '../hooks/useSongGenerationTimer';
-
-const GENERATION_LIMIT = 2;
+import { GENERATION_LIMIT } from '../config/limits';
 
 type TabType = 'themes' | 'fromScratch';
 

@@ -232,32 +232,61 @@ export const createSongActions = (set: SetState, get: GetState) => ({
   },
 
   retrySong: async (songId: string) => {
-    const { user } = useAuthStore.getState();
+    const { user, profile } = useAuthStore.getState(); // Get profile too
+    const { setError, clearError } = useErrorStore.getState(); // Get error handlers
+    clearError(); // Clear previous errors
     
-    if (!user) {
-      console.error('User not authenticated');
+    if (!user || !profile) { // Check profile
+      console.error('User not authenticated or profile missing');
+      setError('Authentication error. Please log in again.');
       return;
     }
     
     const userId = user.id;
-    const profile = useAuthStore.getState().profile;
-    const babyName = profile?.babyName || 'Baby';
+    const babyName = profile.babyName || 'Baby'; // Use profile directly
     
     try {
-      set({ error: null });
+      // --- Add Check Function Call --- 
+      console.log(`[Action] Invoking check-generation-allowance before retrying song ${songId}...`);
+      const { data: checkData, error: checkError } = await supabase.functions.invoke(
+        'check-generation-allowance'
+      );
+      
+      if (checkError) {
+         console.error('[Action] check-generation-allowance invocation error on retry:', checkError);
+         throw new Error(`Server check failed: ${checkError.message}`);
+      }
+
+      if (!checkData?.allowed) {
+         console.log('[Action] Generation not allowed for retry by backend:', checkData?.reason);
+         const reason = checkData?.reason;
+         if (reason === 'limit_reached') {
+            throw new Error('Generation limit reached. Upgrade to Premium to retry songs.');
+         } else {
+            throw new Error(checkData?.error || 'Retry not allowed by server.');
+         }
+      }
+      // --- End Check Function Call --- 
+      
+      console.log(`[Action] Generation allowed for retry. Proceeding with retry for song ${songId}`);
+      set({ error: null }); // Clear any previous errors shown
       
       // Mark the song as retrying
       const songStore = get();
       songStore.setRetrying(songId, true);
       
       // Call the SongService to retry the song generation
+      // This now happens *only* if the check passed (and count was incremented if needed)
       await SongService.retrySongGeneration(songId, userId, babyName);
       
       // The song update will be handled by the subscription handler
+      // setRetrying(false) might happen via subscription or should it be here?
+      // Keeping it in catch block for now.
+      
     } catch (error) {
       console.error('Failed to retry song generation:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to retry song generation';
-      set({ error: errorMessage });
+      setError(errorMessage);
       
       // Clear the retrying state
       const songStore = get();

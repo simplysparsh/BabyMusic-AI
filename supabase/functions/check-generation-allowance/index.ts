@@ -19,6 +19,8 @@ interface ProfileLimitData {
   generation_count: number | null;
 }
 
+// Assuming limits are defined in a shared location accessible to functions
+// OR define them here if not shared easily
 const GENERATION_LIMIT = 2;
 
 console.log(`Function 'check-generation-allowance' up and running!`);

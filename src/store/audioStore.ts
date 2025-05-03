@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import { useAuthStore } from './authStore';
 import { useErrorStore } from './errorStore';
-
-const MONTHLY_PLAY_LIMIT = 25;
+import { MONTHLY_PLAY_LIMIT } from '../config/limits';
 
 interface AudioState {
   currentAudio: HTMLAudioElement | null;

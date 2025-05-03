@@ -26,7 +26,7 @@ export default function SongItem({
   onPlayClick,
 }: SongItemProps) {
   const [expandedVariations, setExpandedVariations] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(song.isFavorite ?? false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const { retryingSongs, setRetrying } = useSongStore();
   const { user, profile } = useAuthStore((state) => ({ 

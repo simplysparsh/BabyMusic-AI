@@ -35,6 +35,8 @@ type DatabaseSong = {
   task_id?: string | null;
   variations?: DatabaseSongVariation[];
   status?: string;
+  is_favorite?: boolean;
+  updated_at: string;
 };
 
 // Define a type for database song variations
@@ -81,7 +83,9 @@ export function mapDatabaseSongToSong(dbSong: any): Song {
     error: dbSong.error || undefined,
     task_id: dbSong.task_id || undefined,
     song_type: dbSong.song_type,
-    preset_type: dbSong.preset_type || undefined
+    preset_type: dbSong.preset_type || undefined,
+    isFavorite: dbSong.is_favorite ?? false,
+    updated_at: dbSong.updated_at ? new Date(dbSong.updated_at) : undefined
   };
 }
 
@@ -232,7 +236,22 @@ export class SongService {
         .from('songs')
         .select(
           `
-          *,
+          id,
+          name,
+          mood,
+          theme,
+          voice_type,
+          lyrics,
+          audio_url,
+          created_at,
+          user_id,
+          retryable,
+          error,
+          task_id,
+          song_type,
+          preset_type,
+          is_favorite, 
+          updated_at,
           variations:song_variations(*)
         `
         )

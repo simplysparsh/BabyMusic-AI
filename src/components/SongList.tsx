@@ -64,12 +64,28 @@ export default function SongList() {
     }
   });
 
+  // Sort filtered songs: Favorites first, then by creation date
+  const sortedSongs = [...filteredSongs].sort((a, b) => {
+    const aIsFav = a.isFavorite ?? false;
+    const bIsFav = b.isFavorite ?? false;
+
+    // If favorite statuses differ, sort by favorite (true comes first)
+    if (aIsFav !== bIsFav) {
+      return aIsFav ? -1 : 1;
+    }
+
+    // If favorite statuses are the same, sort by creation date (newest first)
+    const dateA = a.createdAt?.getTime() || 0;
+    const dateB = b.createdAt?.getTime() || 0;
+    return dateB - dateA;
+  });
+
   // Determine if there are any songs at all (before filtering)
   const hasAnySongs = songs.length > 0;
-  // Determine if there are songs for the current tab
-  const hasSongsForCurrentTab = filteredSongs.length > 0;
-  // Check if all *filtered* songs have errors
-  const allFilteredSongsHaveErrors = hasSongsForCurrentTab && filteredSongs.every(song => !!song.error);
+  // Determine if there are songs for the current tab (use sorted list length)
+  const hasSongsForCurrentTab = sortedSongs.length > 0;
+  // Check if all *sorted* songs have errors
+  const allFilteredSongsHaveErrors = hasSongsForCurrentTab && sortedSongs.every(song => !!song.error);
 
   // Loading state
   if (isLoading && !initialLoadComplete) {
@@ -200,7 +216,7 @@ export default function SongList() {
             )}
             
             <div className="space-y-4">
-              {filteredSongs.map(song => (
+              {sortedSongs.map(song => (
                 <SongItem
                   key={song.id}
                   song={song}

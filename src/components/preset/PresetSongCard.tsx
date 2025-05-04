@@ -4,7 +4,6 @@ import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
 import SongGenerationTimer from '../common/SongGenerationTimer';
 import { useErrorStore } from '../../store/errorStore';
-import { useAuthStore } from '../../store/authStore';
 
 // Define the specific error message for play limit
 const PLAY_LIMIT_ERROR_MSG = 'Monthly play limit reached. Upgrade to Premium for unlimited listening!';
@@ -173,7 +172,6 @@ export default function PresetSongCard({
   
   const globalError = useErrorStore((state) => state.error);
   const isPlayLimitReached = globalError === PLAY_LIMIT_ERROR_MSG;
-  const isPremium = useAuthStore((state) => state.profile?.isPremium) ?? false;
   
   // Handle card click
   const handleCardClick = useCallback(() => {

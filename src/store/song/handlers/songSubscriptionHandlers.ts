@@ -133,7 +133,9 @@ export async function handleSongUpdate(
         task_id: newSong.task_id,
         audio_url: newSong.audio_url,
         error: newSong.error,
-        retryable: newSong.retryable
+        retryable: newSong.retryable,
+        // Add isFavorite from the payload, falling back to existing state or false
+        isFavorite: newSong.is_favorite ?? existingSong.isFavorite ?? false
       };
     } else {
       // If we couldn't find the song, fetch it as a fallback

@@ -67,8 +67,14 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         newTaskIds: newProcessingTaskIds.size
       });
       
+      // Removing debug logs
+      // console.log('[loadSongs] Raw data fetched from Supabase:', songsData); 
+      
+      const songsToSet = (songsData || []).map(dbSong => mapDatabaseSongToSong(dbSong));
+      // console.log('[loadSongs] Mapped songs before setting state:', songsToSet);
+      
       set({ 
-        songs: songsData as Song[] || [],
+        songs: songsToSet, // Use the mapped data
         processingTaskIds: newProcessingTaskIds,
         queuedTaskIds: newQueuedTaskIds
       });

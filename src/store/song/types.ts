@@ -31,6 +31,7 @@ export interface SongPayload {
   instrument?: string | null;
   voice_type?: string | null;
   lyrics?: string | null;
+  is_favorite?: boolean;
 }
 
 /**

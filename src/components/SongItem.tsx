@@ -26,7 +26,6 @@ export default function SongItem({
   onPlayClick,
 }: SongItemProps) {
   const [expandedVariations, setExpandedVariations] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(song.isFavorite ?? false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const { retryingSongs, setRetrying } = useSongStore();
   const { user, profile } = useAuthStore((state) => ({ 
@@ -102,39 +101,43 @@ export default function SongItem({
     }
   };
 
-  // Handle Toggle Favorite Click - Updated to call Supabase function
+  // Handle Toggle Favorite Click
   const handleToggleFavorite = async () => {
-    if (!isPremium || !isPlayable || isTogglingFavorite) return;
-    
+    if (!isPremium || !isPlayable || isTogglingFavorite) {
+        return;
+    }
+
     setIsTogglingFavorite(true);
     clearGlobalError(); // Clear previous errors
-    const originalFavoriteStatus = isFavorited; // Store original status for rollback
+    let response: { data: any; error: any; } | null = null;
 
     try {
-      console.log(`Invoking toggle-favorite for song ${song.id}`);
-      const { data, error } = await supabase.functions.invoke('toggle-favorite', {
+      response = await supabase.functions.invoke('toggle-favorite', {
         body: { song_id: song.id },
       });
 
-      if (error) {
-        throw new Error(`Failed to toggle favorite: ${error.message}`);
+      // Defensive checks
+      if (!response) {
+        throw new Error("Invocation returned null or undefined response.");
+      }
+      const invokeData = response.data;
+      const invokeError = response.error;
+
+      if (invokeError) {
+        const message = typeof invokeError === 'object' && invokeError !== null && invokeError.message ? invokeError.message : 'Unknown invocation error';
+        throw new Error(`Failed to toggle favorite: ${message}`);
       }
 
-      if (data && data.success) {
-        // Update local state based on the actual result from the function
-        setIsFavorited(data.is_favorite);
-        console.log(`Successfully toggled favorite for song ${song.id} to ${data.is_favorite}`);
-        // TODO: Optionally, trigger a refresh/refetch of song list if needed elsewhere
-      } else {
-        // Handle unexpected response from function
-        throw new Error(data?.error || 'Unexpected response from toggle function.');
+      // Check data structure more carefully
+      if (!(typeof invokeData === 'object' && invokeData !== null && invokeData.success !== undefined)) {
+        const message = typeof invokeData === 'object' && invokeData !== null && invokeData.error ? invokeData.error : 'Unexpected response structure from toggle function.';
+        throw new Error(message);
       }
+      // Success: UI update relies on subscription
 
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-      setGlobalError(error instanceof Error ? error.message : 'Could not update favorite status.');
-      // Rollback optimistic UI update on error
-      setIsFavorited(originalFavoriteStatus);
+    } catch (caughtError) {
+      const errorMessage = caughtError instanceof Error ? caughtError.message : 'Could not update favorite status.';
+      setGlobalError(errorMessage);
     } finally {
       setIsTogglingFavorite(false);
     }
@@ -176,17 +179,17 @@ export default function SongItem({
                 <button
                   onClick={handleToggleFavorite}
                   disabled={!isPremium || isTogglingFavorite}
-                  aria-label={!isPremium ? "Favorite song (Premium only)" : (isFavorited ? "Remove from favorites" : "Add to favorites")}
-                  title={!isPremium ? "Favorite song (Premium only)" : (isFavorited ? "Remove from favorites" : "Add to favorites")}
+                  aria-label={!isPremium ? "Favorite song (Premium only)" : (song.isFavorite ? "Remove from favorites" : "Add to favorites")}
+                  title={!isPremium ? "Favorite song (Premium only)" : (song.isFavorite ? "Remove from favorites" : "Add to favorites")}
                   className={`transition-all duration-300 group flex items-center justify-center p-1 sm:p-1.5 rounded-full relative 
                            ${!isPremium 
                              ? 'text-white/30 cursor-not-allowed bg-black/20' 
-                             : (isFavorited 
+                             : (song.isFavorite 
                                ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20' 
                                : 'text-white/60 hover:text-red-400 bg-white/10 hover:bg-white/20')} 
                            ${isTogglingFavorite ? 'opacity-50 cursor-wait' : ''}`}
                 >
-                  <Heart className={`w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors ${isPremium && isFavorited ? 'fill-current' : 'fill-none'} ${!isPremium ? 'text-white/30' : ''}`} />
+                  <Heart className={`w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors ${isPremium && song.isFavorite ? 'fill-current' : 'fill-none'} ${!isPremium ? 'text-white/30' : ''}`} />
                   {isTogglingFavorite && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
                       <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>

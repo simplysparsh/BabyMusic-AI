@@ -1,6 +1,6 @@
 import React from 'react';
 // import { Link } from 'react-router-dom'; // Removed Link import
-import { CheckCircle, Zap, Star, Play, Download, Heart, Sparkles, LifeBuoy } from 'lucide-react'; // Example icons
+import { CheckCircle, Zap, Star, Play, Download, Heart } from 'lucide-react'; // Example icons
 
 const PremiumPage: React.FC = () => {
   // TODO: Fetch actual prices from configuration/backend

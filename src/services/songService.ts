@@ -256,6 +256,7 @@ export class SongService {
         `
         )
         .eq('user_id', userId)
+        .order('is_favorite', { ascending: false })
         .order('created_at', { ascending: false })
     );
 

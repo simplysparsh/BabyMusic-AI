@@ -25,6 +25,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         .from('songs')
         .select('*, variations:song_variations(*)')
         .eq('user_id', useAuthStore.getState().user?.id)
+        .order('is_favorite', { ascending: false })
         .order('created_at', { ascending: false });
       
       if (error) throw error;

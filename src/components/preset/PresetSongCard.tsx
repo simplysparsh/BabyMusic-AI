@@ -1,5 +1,5 @@
 import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight, LockKeyhole, Download } from 'lucide-react';
+import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight, LockKeyhole } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
 import SongGenerationTimer from '../common/SongGenerationTimer';
@@ -175,20 +175,6 @@ export default function PresetSongCard({
   const isPlayLimitReached = globalError === PLAY_LIMIT_ERROR_MSG;
   const isPremium = useAuthStore((state) => state.profile?.isPremium) ?? false;
   
-  // Handle Download Click
-  const handleDownload = useCallback((e: MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation(); // Prevent card click event
-    if (!isPremium || !isReady || !urlOfCurrentVersion) return;
-    
-    const link = document.createElement('a');
-    link.href = urlOfCurrentVersion;
-    const filename = `${currentSong?.name || 'preset-song'}_v${currentVariationIndex + 1}.mp3`;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [isPremium, isReady, urlOfCurrentVersion, currentSong?.name, currentVariationIndex]);
-
   // Handle card click
   const handleCardClick = useCallback(() => {
     // Ignore if generating or if play limit is reached for a READY song
@@ -412,22 +398,6 @@ export default function PresetSongCard({
             </div>
           )}
           {!(hasVariations && songState !== SongState.GENERATING && currentSong) && <div className="flex-grow"></div>}
-          
-          {/* Download Button (Premium Only) */} 
-          {isReady && (
-             <button
-               onClick={handleDownload}
-               disabled={!isPremium}
-               aria-label={!isPremium ? "Download song (Premium only)" : "Download song"} 
-               title={!isPremium ? "Download song (Premium only)" : "Download MP3"} 
-               className={`transition-all duration-300 group flex items-center justify-center p-1.5 sm:p-2 rounded-full 
-                        ${!isPremium 
-                          ? 'text-white/30 cursor-not-allowed bg-black/20'
-                          : 'text-white/60 hover:text-primary bg-white/10 hover:bg-white/20'}`}
-            >
-              <Download className={`w-3 h-3 sm:w-4 sm:h-4 ${isPremium ? 'transition-transform group-hover:scale-110' : ''}`} />
-             </button>
-          )}
         </div>
       </div>
       <div className="absolute bottom-0 right-0 w-24 h-24 

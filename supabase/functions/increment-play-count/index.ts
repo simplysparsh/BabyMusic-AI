@@ -7,12 +7,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4' // Pinned version
-
-// Define CORS headers directly
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders, handleCorsPreflight } from '../_shared/cors.ts' // Import shared CORS helpers
 
 console.log(`Function 'increment-play-count' up and running!`);
 
@@ -31,8 +26,9 @@ function isMonthPassed(resetDate: string | null): boolean {
 }
 
 serve(async (req: Request) => {
+  // Handle CORS preflight requests using the shared helper
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return handleCorsPreflight();
   }
 
   try {

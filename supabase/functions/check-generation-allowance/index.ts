@@ -7,12 +7,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
+import { corsHeaders, handleCorsPreflight } from '../_shared/cors.ts' // Import shared CORS helpers
 
-// Define CORS headers directly
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*', // Or specific origin
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
 
 interface ProfileLimitData {
   is_premium: boolean | null;
@@ -72,8 +68,9 @@ async function incrementGenerationCount(supabaseAdmin: SupabaseClient, userId: s
 }
 
 serve(async (req: Request) => {
+  // Handle CORS preflight requests using the shared helper
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return handleCorsPreflight();
   }
 
   let supabaseAdmin: SupabaseClient | null = null;
@@ -110,7 +107,7 @@ serve(async (req: Request) => {
     
     if (!allowed) {
        return new Response(JSON.stringify({ allowed: false, reason: 'limit_reached' }), {
-          status: 200, // Return 200 OK, but indicate not allowed in body
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
        });
     }
@@ -131,8 +128,6 @@ serve(async (req: Request) => {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return new Response(JSON.stringify({ allowed: false, reason: 'server_error', error: errorMessage }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      // Still return 200, let client decide how to handle based on error message?
-      // Or return 500 for internal errors? Let's use 500 for true errors.
       status: 500, 
     });
   }

@@ -8,21 +8,15 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 // Pin specific Supabase client version
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
-// import { corsHeaders } from '../_shared/cors.ts' // Removed import
-
-// Define CORS headers directly
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*', // Or specific origin
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders, handleCorsPreflight } from '../_shared/cors.ts' // Import shared CORS helpers
 
 console.log(`Function 'toggle-favorite' up and running!`);
 
 // Add Request type for req
 serve(async (req: Request) => {
-  // Handle CORS preflight requests
+  // Handle CORS preflight requests using the shared helper
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return handleCorsPreflight();
   }
 
   try {
@@ -49,8 +43,8 @@ serve(async (req: Request) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       console.error('User auth error:', userError);
-      return new Response(JSON.stringify({ error: 'User not authenticated' }), { 
-        status: 401, 
+      return new Response(JSON.stringify({ error: 'User not authenticated' }), {
+        status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }

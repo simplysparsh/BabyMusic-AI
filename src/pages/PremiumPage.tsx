@@ -69,20 +69,20 @@ const PremiumPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white py-12 sm:py-20 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white pt-16 sm:pt-24 pb-12 sm:pb-16 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12 sm:mb-16">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-4 bg-gradient-to-r from-primary to-secondary text-transparent bg-clip-text">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold mb-4 bg-gradient-to-r from-primary to-secondary text-transparent bg-clip-text">
             Unlock BabyMusic Premium
           </h1>
-          <p className="text-lg sm:text-xl text-white/70 max-w-2xl mx-auto">
+          <p className="text-base sm:text-xl text-white/70 max-w-2xl mx-auto">
             Get unlimited access to all features and create endless musical moments for your little one.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
-          {/* Free Tier Card (for comparison) */}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 flex flex-col">
+        <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-stretch">
+          {/* Free Tier Card (Added md:order-last) */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 flex flex-col md:order-last">
             <h2 className="text-2xl font-semibold mb-4 text-white/80">Free Plan</h2>
             <p className="text-4xl font-bold mb-1">$0<span className="text-lg font-medium text-white/60">/month</span></p>
             <p className="text-sm text-white/50 mb-6 min-h-[2.5rem]">Get started and try basic features.</p>
@@ -96,8 +96,8 @@ const PremiumPage: React.FC = () => {
             {/* Maybe add a disabled button or link back to dashboard */}
           </div>
 
-          {/* Premium Tier Card */}
-          <div className="bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/50 rounded-2xl p-6 sm:p-8 ring-2 ring-primary/70 shadow-2xl shadow-primary/20 relative flex flex-col">
+          {/* Premium Tier Card (Added order-first) */}
+          <div className="order-first bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/50 rounded-2xl p-6 sm:p-8 ring-2 ring-primary/70 shadow-2xl shadow-primary/20 relative flex flex-col">
              <div className="absolute top-0 right-0 bg-gradient-to-r from-primary to-secondary text-black text-xs font-bold px-4 py-1 rounded-bl-lg rounded-tr-xl">
                MOST POPULAR
              </div>

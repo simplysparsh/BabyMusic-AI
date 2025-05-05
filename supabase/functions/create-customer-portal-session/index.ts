@@ -46,7 +46,7 @@ serve(async (req) => {
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('stripe_customer_id')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .single()
 
     if (profileError) {

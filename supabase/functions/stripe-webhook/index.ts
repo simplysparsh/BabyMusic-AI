@@ -90,7 +90,7 @@ serve(async (req) => {
                 is_premium: true, 
                 stripe_customer_id: stripeCustomerId 
               })
-              .eq('user_id', userId)
+              .eq('id', userId)
             
             if (updateError) {
               console.error(`Failed to update profile for user ${userId} after checkout:`, updateError)
@@ -129,12 +129,12 @@ serve(async (req) => {
           if (typeof customerId === 'string') {
              const { data: profile, error } = await supabaseAdmin
                .from('profiles')
-               .select('user_id')
+               .select('id')
                // @ts-ignore: Linter struggles with type guard inference for .eq()
                .eq('stripe_customer_id', customerId)
                .single()
              if (error) console.error('Error fetching profile by stripe customer id:', error)
-             if (profile) userId = profile.user_id;
+             if (profile) userId = profile.id;
           } else {
              console.warn('Could not determine user ID from subscription update event: Customer ID not found or not a string.')
           } 
@@ -151,12 +151,12 @@ serve(async (req) => {
           if (typeof customerId === 'string') {
              const { data: profile, error } = await supabaseAdmin
                .from('profiles')
-               .select('user_id')
+               .select('id')
                // @ts-ignore: Linter struggles with type guard inference for .eq()
                .eq('stripe_customer_id', customerId)
                .single()
              if (error) console.error('Error fetching profile by stripe customer id:', error)
-             if (profile) userId = profile.user_id;
+             if (profile) userId = profile.id;
           } else {
              console.warn('Could not determine user ID from subscription delete event: Customer ID not found or not a string.')
           } 
@@ -174,7 +174,7 @@ serve(async (req) => {
         const { error: updateError } = await supabaseAdmin
           .from('profiles')
           .update({ is_premium: isPremiumStatus })
-          .eq('user_id', userId)
+          .eq('id', userId)
 
         if (updateError) {
           console.error(`Failed to update profile for user ${userId}:`, updateError)

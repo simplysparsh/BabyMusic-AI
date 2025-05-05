@@ -26,6 +26,7 @@ export default function MusicGenerator() {
   const [userInput, setUserInput] = useState('');
   const [error, setError] = useState<ReactNode | null>(null);
   const [songType, setSongType] = useState<'preset' | 'theme' | 'theme-with-input' | 'from-scratch'>('theme');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { createSong, songs } = useSongStore();
   const { user, profile } = useAuthStore((state) => ({ 
@@ -68,6 +69,9 @@ export default function MusicGenerator() {
     
     return false; // Otherwise, enable
   };
+
+  // Combine all disabling conditions
+  const isButtonActuallyDisabled = isSubmitting || isCreateButtonDisabled();
 
   // Use the centralized timer hook, only activating it when a non-preset song is generating
   const { timeLeft, totalTime, formattedTime, progress } = useSongGenerationTimer(
@@ -147,6 +151,7 @@ export default function MusicGenerator() {
     });
 
     setError(null);
+    setIsSubmitting(true);
 
     try {
       const baseParams = {
@@ -195,6 +200,8 @@ export default function MusicGenerator() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate music');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -280,13 +287,13 @@ export default function MusicGenerator() {
         <div className="flex justify-center pt-4">
           <button
             onClick={handleGenerate}
-            disabled={isCreateButtonDisabled()}
+            disabled={isButtonActuallyDisabled}
             className="flex items-center space-x-3 min-h-[48px] bg-gradient-to-r from-primary to-secondary
                      text-black font-medium px-8 py-4 rounded-xl hover:opacity-90 transition-all duration-300
                      disabled:opacity-50 shadow-lg shadow-primary/25 group active:scale-95 active:shadow-md"
           >
             <Wand2 className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
-            <span>{isNonPresetGenerating ? 'Generating...' : 'Create Music'}</span>
+            <span>{isSubmitting || isNonPresetGenerating ? 'Generating...' : 'Create Music'}</span>
           </button>
         </div>
         

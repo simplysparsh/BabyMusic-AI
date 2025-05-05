@@ -5,8 +5,8 @@ import { supabase } from '../lib/supabase'; // <-- Import Supabase client
 import { useErrorStore } from '../store/errorStore'; // <-- Import error store for feedback
 
 // IMPORTANT: Replace with your actual Stripe Price IDs from your Stripe dashboard
-const STRIPE_MONTHLY_PRICE_ID = 'prod_SFiJ0fPlT38ieb'; 
-const STRIPE_YEARLY_PRICE_ID = 'prod_SFiK5pq8iUvnEN';
+const STRIPE_MONTHLY_PRICE_ID = 'price_1RLCswD7u6T4OuZr4EwTg7Km'; 
+const STRIPE_YEARLY_PRICE_ID = 'price_1RLCtYD7u6T4OuZrQ71AUgq9';
 
 const PremiumPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);

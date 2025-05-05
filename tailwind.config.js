@@ -3,6 +3,10 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['ui-sans-serif', 'system-ui', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'], // Keep default sans stack
+        nunito: ['"Nunito"', 'sans-serif'] // Add Nunito
+      },
       colors: {
         primary: '#FFB5E8',    // Soft pink
         secondary: '#B5DEFF',  // Baby blue

@@ -96,14 +96,13 @@ export default function Hero({ onOpenAuth }: HeroProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center">
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold text-white mb-4 sm:mb-6 tracking-tight">
-            Musical Adventures for Your
+            The Sound of You Doing
             <span className="block bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Little One
+              Everything Right
             </span>
           </h1>
           <p className="text-base sm:text-xl text-white/80 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-2">
-            Create personalized melodies that inspire learning, creativity, and development
-            through the magic of AI-powered music.
+            From playtime to bedtime, personalized melodies that build brains — and bonds. Rooted in neuroscience.
           </p>
           
           {isSignupDisabled ? (

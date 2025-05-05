@@ -1,9 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 // import { Link } from 'react-router-dom'; // Removed Link import
 import { CheckCircle, Zap, Star, Play, Download, Heart } from 'lucide-react'; // Example icons
+import { supabase } from '../lib/supabase'; // <-- Import Supabase client
+import { useErrorStore } from '../store/errorStore'; // <-- Import error store for feedback
+
+// IMPORTANT: Replace with your actual Stripe Price IDs from your Stripe dashboard
+const STRIPE_MONTHLY_PRICE_ID = 'prod_SFiJ0fPlT38ieb'; 
+const STRIPE_YEARLY_PRICE_ID = 'prod_SFiK5pq8iUvnEN';
 
 const PremiumPage: React.FC = () => {
-  // TODO: Fetch actual prices from configuration/backend
+  const [isLoading, setIsLoading] = useState(false);
+  const { setError, clearError } = useErrorStore(); // <-- Use error store
+  
+  // TODO: Fetch actual prices from configuration/backend if dynamic
   const monthlyPrice = 9;
   const yearlyPrice = 90;
   const yearlyMonthlyPrice = (yearlyPrice / 12).toFixed(2);
@@ -19,11 +28,44 @@ const PremiumPage: React.FC = () => {
     // { name: 'Priority Support', icon: LifeBuoy },
   ];
 
-  const handleUpgradeClick = (plan: 'monthly' | 'yearly') => {
+  const handleUpgradeClick = async (plan: 'monthly' | 'yearly') => {
+    clearError(); // Clear previous errors
+    setIsLoading(true);
     console.log(`Initiating upgrade to ${plan} plan...`);
-    // TODO: Implement Stripe Checkout initiation here
-    // This will likely involve calling a backend function
-    // that creates a Stripe Checkout session and redirects the user.
+
+    const priceId = plan === 'monthly' ? STRIPE_MONTHLY_PRICE_ID : STRIPE_YEARLY_PRICE_ID;
+
+    if (!priceId || priceId.includes('YOUR_')) {
+      console.error('Stripe Price ID not configured.');
+      setError('Upgrade configuration error. Please contact support.'); // Show user error
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
+        body: { priceId },
+      });
+
+      if (error) {
+        console.error('Error invoking create-stripe-checkout:', error);
+        throw new Error(error.message || 'Could not initiate checkout.');
+      }
+
+      if (data?.url) {
+        console.log('Redirecting to Stripe Checkout...');
+        window.location.href = data.url; // Redirect user to Stripe
+      } else {
+         throw new Error('Invalid response from checkout function.');
+      }
+      // No need to set isLoading(false) here as we are redirecting
+
+    } catch (err) {
+      console.error('Stripe checkout initiation failed:', err);
+      const message = err instanceof Error ? err.message : 'An unknown error occurred.';
+      setError(`Failed to start upgrade: ${message}`); // Show user error
+      setIsLoading(false); 
+    }
   };
 
   return (
@@ -73,16 +115,18 @@ const PremiumPage: React.FC = () => {
             </ul>
             <button
               onClick={() => handleUpgradeClick('yearly')}
-              className="w-full bg-gradient-to-r from-primary to-secondary text-black font-bold py-3 px-6 rounded-xl hover:opacity-90 transition-opacity duration-300 shadow-lg shadow-primary/30 active:scale-95"
+              disabled={isLoading} // <-- Disable button while loading
+              className={`w-full bg-gradient-to-r from-primary to-secondary text-black font-bold py-3 px-6 rounded-xl hover:opacity-90 transition-opacity duration-300 shadow-lg shadow-primary/30 active:scale-95 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              Go Premium (Yearly)
+              {isLoading ? 'Processing...' : 'Go Premium (Yearly)'}
             </button>
              {/* Optional: Add Monthly Button */}
              <button
                onClick={() => handleUpgradeClick('monthly')}
-               className="w-full mt-3 bg-white/10 text-white font-medium py-3 px-6 rounded-xl hover:bg-white/20 transition-colors duration-300"
+               disabled={isLoading} // <-- Disable button while loading
+               className={`w-full mt-3 bg-white/10 text-white font-medium py-3 px-6 rounded-xl hover:bg-white/20 transition-colors duration-300 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
              >
-               Go Premium (Monthly - ${monthlyPrice})
+               {isLoading ? 'Processing...' : `Go Premium (Monthly - $${monthlyPrice})`}
              </button>
           </div>
         </div>

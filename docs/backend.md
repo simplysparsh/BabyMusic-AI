@@ -118,4 +118,33 @@ Edge Functions provide serverless compute capabilities close to the user.
     5. Returns `{ allowed: boolean, reason?: string }`.
 -   **Note:** This function *only* checks allowance and increments the count. The actual song record creation and external API calls are handled client-side after receiving `{ allowed: true }`.
 
+### `create-stripe-checkout` (New - Monetization)
+
+-   **Purpose:** Creates a Stripe Checkout session for a user to purchase a premium subscription.
+-   **Location:** `supabase/functions/create-stripe-checkout`
+-   **Trigger:** HTTP POST request.
+-   **Input:** JSON body containing `{ "priceId": "price_..." }`.
+-   **Auth:** Requires Supabase JWT in Authorization header.
+-   **Logic:**
+    1. Authenticates the user.
+    2. Uses the Stripe library and `STRIPE_SECRET_KEY` secret to create a Checkout session.
+    3. Sets `client_reference_id` to the user's Supabase ID.
+    4. Configures `success_url` and `cancel_url` using `SITE_URL` secret.
+    5. Returns the Stripe session URL for frontend redirection.
+
+### `stripe-webhook` (New - Monetization)
+
+-   **Purpose:** Handles incoming webhooks from Stripe to update user subscription status.
+-   **Location:** `supabase/functions/stripe-webhook`
+-   **Trigger:** HTTP POST request from Stripe.
+-   **Input:** Stripe Event object in request body.
+-   **Auth:** Verifies Stripe signature using `STRIPE_WEBHOOK_SIGNING_SECRET`. **JWT verification MUST be disabled for this function.**
+-   **Logic:**
+    1. Verifies the webhook signature.
+    2. Processes relevant events (`checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`).
+    3. On `checkout.session.completed` with `payment_status: 'paid'`: updates the user's profile (identified via `client_reference_id`) to set `is_premium = true` and stores the `stripe_customer_id` (`cus_...`).
+    4. On subscription updates/deletions: looks up user via `stripe_customer_id` and updates `is_premium` accordingly.
+    5. Uses Admin client (`SUPABASE_SERVICE_ROLE_KEY`) for database updates.
+    6. Returns 200 OK to Stripe to acknowledge receipt.
+
 By leveraging Supabase's backend services, Baby Music AI can focus on delivering a seamless user experience while benefiting from a scalable, secure, and feature-rich backend infrastructure.

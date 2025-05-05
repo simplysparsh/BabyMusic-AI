@@ -73,10 +73,11 @@ To deploy the backend:
 
 ### ⚠️ CRITICAL: Webhook Function Deployment
 
-When deploying webhook functions (e.g., `piapi-webhook`), you **MUST** disable JWT verification:
+When deploying webhook functions (e.g., `piapi-webhook`, `stripe-webhook`), you **MUST** disable JWT verification:
 
 ```bash
 supabase functions deploy piapi-webhook --no-verify-jwt
+supabase functions deploy stripe-webhook --no-verify-jwt
 ```
 
 **Reason:** External services calling webhooks don't have Supabase JWT tokens. Without this flag, the webhook will reject all external calls with 401 Unauthorized errors.
@@ -91,10 +92,10 @@ supabase functions deploy piapi-webhook --no-verify-jwt
 For functions that should only be called by authenticated users, use:
 
 ```bash
-supabase functions deploy function-name
 supabase functions deploy toggle-favorite
 supabase functions deploy increment-play-count
 supabase functions deploy check-generation-allowance
+supabase functions deploy create-stripe-checkout
 ```
 
 The default behavior will require valid JWT tokens.
@@ -102,12 +103,26 @@ The default behavior will require valid JWT tokens.
 ### Environment Variables and Database
 
 4. Set the required environment variables for your Edge Functions using `supabase secrets set`:
-   - `WEBHOOK_SECRET`: Your webhook secret for handling PIAPI.ai callbacks (Needed by `piapi-webhook`)
-   - `SUPABASE_SERVICE_ROLE_KEY`: Your project's service role key (Needed by functions modifying DB, e.g., `increment-play-count`, `check-generation-allowance`)
-   - Note: `SUPABASE_URL` and `SUPABASE_ANON_KEY` are typically available by default.
+   - `WEBHOOK_SECRET`: Your webhook secret for handling PIAPI.ai callbacks (Needed by `piapi-webhook`).
+   - `SUPABASE_SERVICE_ROLE_KEY`: Your project's service role key (Needed by functions modifying DB, e.g., `increment-play-count`, `check-generation-allowance`, `stripe-webhook`).
+   - `STRIPE_SECRET_KEY`: Your Stripe **Secret Key** (`sk_test_...` or `sk_live_...`). Must match the mode (Test/Live) of your Stripe account configuration. Used by `create-stripe-checkout`.
+   - `STRIPE_WEBHOOK_SIGNING_SECRET`: The webhook signing secret (`whsec_...`) provided by Stripe when creating the webhook endpoint. Used by `stripe-webhook` to verify incoming requests.
+   - `SITE_URL`: The base URL of your deployed frontend application (e.g., `https://your-app.netlify.app` or `http://localhost:5173`). Used by `create-stripe-checkout` for redirect URLs.
+   - Note: `SUPABASE_URL` and `SUPABASE_ANON_KEY` are typically available by default to Edge Functions.
 5. Push the database schema and migrations using `supabase db push`.
+   - Ensure migrations include the `stripe_customer_id` column in the `profiles` table.
 
 Your backend Edge Functions and database schema will now be deployed and ready to handle requests from the frontend.
+
+### Stripe Configuration (Manual Steps)
+
+Before deploying functions that interact with Stripe (`create-stripe-checkout`, `stripe-webhook`), ensure the following are configured in your Stripe Dashboard:
+
+1.  **Products & Prices:** Create "Premium Monthly" and "Premium Yearly" (or similar) products and corresponding recurring prices. Note the Price IDs (`price_...`).
+2.  **Price IDs in Frontend:** Update the placeholder Price IDs in `src/pages/PremiumPage.tsx` with the actual IDs created above.
+3.  **Webhook Endpoint:** Create a webhook endpoint pointing to your deployed `stripe-webhook` function (`https://<your-project-ref>.supabase.co/functions/v1/stripe-webhook`).
+    - Listen for events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`.
+    - Obtain the **Signing Secret** (`whsec_...`) during creation and add it to Supabase secrets as `STRIPE_WEBHOOK_SIGNING_SECRET`.
 
 ## Troubleshooting Webhooks
 

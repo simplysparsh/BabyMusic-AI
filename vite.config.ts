@@ -16,11 +16,7 @@ export default defineConfig({
         }
       }
     },
-    minify: 'terser',
-    terserOptions: {
-      format: {
-        comments: false
-      }
-    }
+    minify: 'esbuild',
+    cssMinify: 'esbuild'
   }
 });

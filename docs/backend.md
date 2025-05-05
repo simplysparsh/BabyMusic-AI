@@ -147,4 +147,18 @@ Edge Functions provide serverless compute capabilities close to the user.
     5. Uses Admin client (`SUPABASE_SERVICE_ROLE_KEY`) for database updates.
     6. Returns 200 OK to Stripe to acknowledge receipt.
 
+### `create-customer-portal-session` (New - Monetization)
+
+-   **Purpose:** Creates a Stripe Billing Portal session for an authenticated user to manage their subscription.
+-   **Location:** `supabase/functions/create-customer-portal-session`
+-   **Trigger:** HTTP POST request.
+-   **Input:** None (uses authenticated user context).
+-   **Auth:** Requires Supabase JWT in Authorization header.
+-   **Logic:**
+    1. Authenticates the user.
+    2. Retrieves the user's `stripe_customer_id` from their `profiles` record using an Admin client.
+    3. Uses the Stripe library and `STRIPE_SECRET_KEY` to create a Billing Portal session linked to that customer ID.
+    4. Sets the `return_url` using the `SITE_URL` secret.
+    5. Returns the Stripe Billing Portal session URL for frontend redirection.
+
 By leveraging Supabase's backend services, Baby Music AI can focus on delivering a seamless user experience while benefiting from a scalable, secure, and feature-rich backend infrastructure.

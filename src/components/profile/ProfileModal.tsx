@@ -1,7 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { X, Star } from 'lucide-react';
+import { X, Star, Settings } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useErrorStore } from '../../store/errorStore';
+import { supabase } from '../../lib/supabase';
 import { Language, DEFAULT_LANGUAGE } from '../../types';
 import { CURRENT_YEAR, CURRENT_MONTH, AGE_OPTIONS } from './utils/dateUtils';
 
@@ -12,7 +13,7 @@ interface ProfileModalProps {
 
 export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { profile, updateProfile } = useAuthStore();
-  const { error: globalError, clearError } = useErrorStore();
+  const { error: globalError, setError: setGlobalError, clearError } = useErrorStore();
   const [formState, setFormState] = useState({
     babyName: '',
     gender: '',
@@ -20,13 +21,14 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     birthYear: CURRENT_YEAR,
     preferredLanguage: DEFAULT_LANGUAGE,
   });
-  const [error, setError] = useState<{
+  const [localError, setLocalError] = useState<{
     global?: string;
     babyName?: string;
     gender?: string;
     birthDate?: string;
   }>({});
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isPortalLoading, setIsPortalLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen && profile) {
@@ -37,8 +39,9 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         birthYear: profile.birthYear || CURRENT_YEAR,
         preferredLanguage: profile.preferredLanguage || DEFAULT_LANGUAGE,
       });
-      setError({});
+      setLocalError({});
       setShowSuccess(false);
+      setIsPortalLoading(false);
       clearError();
     }
   }, [isOpen, profile, clearError]);
@@ -58,23 +61,23 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError({});
+    setLocalError({});
     clearError();
 
     const trimmedName = formState.babyName.trim();
     if (!trimmedName) {
-      setError({ babyName: "Please enter your baby's name" });
+      setLocalError({ babyName: "Please enter your baby's name" });
       return;
     }
 
     if (!formState.gender) {
-      setError({ gender: "Please select your baby's gender" });
+      setLocalError({ gender: "Please select your baby's gender" });
       return;
     }
     
     const selectedDate = new Date(formState.birthYear, formState.birthMonth - 1);
     if (selectedDate > new Date()) {
-      setError({ birthDate: "Birth date cannot be in the future" });
+      setLocalError({ birthDate: "Birth date cannot be in the future" });
       return;
     }
     
@@ -90,8 +93,36 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to update profile";
       if (!errorMessage.includes('preset') && !errorMessage.includes('songs')) {
-        setError({ global: errorMessage });
+         setGlobalError(errorMessage);
       }
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setLocalError({});
+    clearError();
+    setIsPortalLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('create-customer-portal-session');
+
+      if (error) {
+        console.error('Error invoking create-customer-portal-session:', error);
+        throw new Error(error.message || 'Could not open management portal.');
+      }
+
+      if (data?.url) {
+        console.log('Redirecting to Stripe Customer Portal...');
+        window.location.href = data.url;
+      } else {
+         throw new Error('Invalid response from portal function.');
+      }
+
+    } catch (err) {
+      console.error('Stripe portal initiation failed:', err);
+      const message = err instanceof Error ? err.message : 'An unknown error occurred.';
+      setGlobalError(`Failed to manage subscription: ${message}`);
+      setIsPortalLoading(false); 
     }
   };
 
@@ -124,9 +155,24 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         <div className="mb-6 p-4 rounded-lg bg-white/5 border border-white/10">
           <h3 className="text-sm font-medium text-white/60 mb-2">Subscription Status</h3>
           {profile?.isPremium ? (
-            <p className="flex items-center gap-2 font-semibold text-green-400">
-              <Star className="w-4 h-4 fill-current text-yellow-400" /> Premium
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-2 font-semibold text-green-400">
+                <Star className="w-4 h-4 fill-current text-yellow-400" /> Premium
+              </p>
+              <button
+                onClick={handleManageSubscription}
+                disabled={isPortalLoading}
+                className={`px-3 py-1 rounded-md bg-white/10 text-xs text-white/80 font-medium hover:bg-white/20 transition-colors duration-300 flex items-center gap-1.5 ${isPortalLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {isPortalLoading ? (
+                  'Loading...'
+                ) : (
+                  <>
+                    <Settings className="w-3 h-3" /> Manage
+                  </>
+                )}
+              </button>
+            </div>
           ) : (
             <div className="flex items-center justify-between gap-2">
               <p className="font-semibold text-white/80">Free Plan</p>
@@ -151,11 +197,11 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               type="text"
               value={formState.babyName}
               onChange={(e) => setFormState((prev) => ({ ...prev, babyName: e.target.value }))}
-              className={`input w-full ${error.babyName ? 'border-red-400' : ''}`}
+              className={`input w-full ${localError.babyName ? 'border-red-400' : ''}`}
               placeholder="Enter your baby's name"
               required
             />
-            {error.babyName && <p className="text-red-400 text-sm mt-1">{error.babyName}</p>}
+            {localError.babyName && <p className="text-red-400 text-sm mt-1">{localError.babyName}</p>}
           </div>
 
           <div>
@@ -166,7 +212,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <select
               value={formState.gender}
               onChange={(e) => setFormState((prev) => ({ ...prev, gender: e.target.value }))}
-              className={`input w-full ${error.gender ? 'border-red-400' : ''}`}
+              className={`input w-full ${localError.gender ? 'border-red-400' : ''}`}
               required
             >
               <option value="">Select gender</option>
@@ -174,7 +220,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               <option value="girl">Girl</option>
               <option value="other">Other</option>
             </select>
-            {error.gender && <p className="text-red-400 text-sm mt-1">{error.gender}</p>}
+            {localError.gender && <p className="text-red-400 text-sm mt-1">{localError.gender}</p>}
           </div>
 
           <div>
@@ -186,7 +232,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 <select
                   value={formState.birthMonth}
                   onChange={(e) => setFormState((prev) => ({ ...prev, birthMonth: parseInt(e.target.value) }))}
-                  className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${error.birthDate ? 'border-red-400' : ''}`}
+                  className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${localError.birthDate ? 'border-red-400' : ''}`}
                 >
                   {Array.from({ length: 12 }, (_, i) => (
                     <option key={i + 1} value={i + 1}>
@@ -199,7 +245,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 <select
                   value={formState.birthYear}
                   onChange={(e) => setFormState((prev) => ({ ...prev, birthYear: parseInt(e.target.value) }))}
-                  className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${error.birthDate ? 'border-red-400' : ''}`}
+                  className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${localError.birthDate ? 'border-red-400' : ''}`}
                 >
                   {AGE_OPTIONS.map(({ value, label }) => (
                     <option key={value} value={value}>{label}</option>
@@ -207,7 +253,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 </select>
               </div>
             </div>
-            {error.birthDate && <p className="text-red-400 text-sm mt-1">{error.birthDate}</p>}
+            {localError.birthDate && <p className="text-red-400 text-sm mt-1">{localError.birthDate}</p>}
           </div>
 
           <div>
@@ -224,8 +270,8 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             </select>
           </div>
 
-          {(error.global || globalError) && (
-            <p className="text-red-400 text-sm mt-1">{error.global || globalError}</p>
+          {(localError.global || globalError) && (
+            <p className="text-red-400 text-sm mt-1">{localError.global || globalError}</p>
           )}
 
           <div className="flex justify-end gap-3">

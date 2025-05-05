@@ -96,6 +96,7 @@ supabase functions deploy toggle-favorite
 supabase functions deploy increment-play-count
 supabase functions deploy check-generation-allowance
 supabase functions deploy create-stripe-checkout
+supabase functions deploy create-customer-portal-session
 ```
 
 The default behavior will require valid JWT tokens.

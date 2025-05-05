@@ -38,7 +38,7 @@ export default function Header() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 bg-background-dark/80 backdrop-blur-xl border-b border-white/[0.05] z-[100]">
-        {authError && !authError.includes("Generation limit reached") && (
+        {authError && (
           <div className="absolute top-full left-0 right-0 bg-red-500/90 text-white text-sm py-2 px-4 text-center">
             {authError}
             <button

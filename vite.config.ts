@@ -15,6 +15,12 @@ export default defineConfig({
           ui: ['lucide-react', 'zustand']
         }
       }
+    },
+    minify: 'terser',
+    terserOptions: {
+      format: {
+        comments: false
+      }
     }
   }
 });

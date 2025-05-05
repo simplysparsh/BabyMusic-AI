@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { Wand2 } from 'lucide-react';
 import type { ThemeType, VoiceType, Tempo, MusicMood } from '../types';
 import { useSongStore } from '../store/songStore';
@@ -24,7 +24,7 @@ export default function MusicGenerator() {
     voice: 'softFemale' as VoiceType
   });
   const [userInput, setUserInput] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ReactNode | null>(null);
   const [songType, setSongType] = useState<'preset' | 'theme' | 'theme-with-input' | 'from-scratch'>('theme');
   
   const { createSong, songs } = useSongStore();
@@ -47,13 +47,14 @@ export default function MusicGenerator() {
   const isNonPresetGenerating = !!generatingNonPresetSong;
 
   // Determine if the create button should be disabled
+  const isLimitReached = profile && !profile.isPremium && profile.generationCount >= GENERATION_LIMIT;
+  const isTryingToGenerateNonPreset = songType === 'theme' || songType === 'theme-with-input' || songType === 'from-scratch';
+
   const isCreateButtonDisabled = () => {
     // Always allow generating presets
     if (songType === 'preset') {
       return false; 
     }
-    
-    const isTryingToGenerateNonPreset = songType === 'theme' || songType === 'theme-with-input' || songType === 'from-scratch';
     
     // Check if already generating a non-preset song
     if (isTryingToGenerateNonPreset && isNonPresetGenerating) {
@@ -61,7 +62,7 @@ export default function MusicGenerator() {
     }
     
     // Check free user generation limit for non-preset songs
-    if (isTryingToGenerateNonPreset && profile && !profile.isPremium && profile.generationCount >= GENERATION_LIMIT) {
+    if (isTryingToGenerateNonPreset && isLimitReached) {
       return true; // Disable if free user is at limit
     }
     
@@ -95,7 +96,15 @@ export default function MusicGenerator() {
 
     // Check generation limit for free users before validating inputs
     if (isNonPresetAttempt && !profile.isPremium && profile.generationCount >= GENERATION_LIMIT) {
-      setError('Free generation limit reached (2 songs). Please upgrade to Premium for unlimited creations!');
+      setError(
+        <>
+          Free generation limit reached ({GENERATION_LIMIT}/{GENERATION_LIMIT}).{' '}
+          <a href="/premium" className="underline text-primary hover:text-secondary font-medium">
+            Upgrade to Premium
+          </a>{' '}
+          for unlimited creations!
+        </>
+      );
       return;
     }
     
@@ -281,6 +290,18 @@ export default function MusicGenerator() {
           </button>
         </div>
         
+        {/* Show persistent limit reached message */}
+        {isTryingToGenerateNonPreset && isLimitReached && (
+          <p className="text-yellow-400 text-sm text-center mt-4 fade-in">
+            Free generation limit reached ({GENERATION_LIMIT}/{GENERATION_LIMIT}).{' '}
+            <a href="/premium" className="underline text-primary hover:text-secondary font-medium">
+              Upgrade to Premium
+            </a>{' '}
+            for unlimited creations!
+          </p>
+        )}
+
+        {/* Show other errors (e.g., validation errors) */}
         {error && (
           <p className="text-red-400 text-sm text-center mt-4 fade-in">{error}</p>
         )}

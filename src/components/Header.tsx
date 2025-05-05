@@ -17,7 +17,7 @@ export default function Header() {
   
   // Check for 'true' or 'TRUE' case-insensitively
   const isSignupDisabled = import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true';
-  
+
   // Force open the email signup form for testing
   useEffect(() => {
     if (isSignupDisabled && !user) {
@@ -51,12 +51,12 @@ export default function Header() {
         )}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
-            <div className="flex items-center space-x-2 relative">
+            <a href="/" className="flex items-center space-x-2 relative hover:opacity-80 transition-opacity">
               <Music2 className="w-6 h-6 sm:w-8 sm:h-8 text-primary animate-float" />
               <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 BabyMusic AI
               </span>
-            </div>
+            </a>
             <nav className="flex items-center space-x-4 relative">
               {user ? (
                 <>
@@ -75,6 +75,8 @@ export default function Header() {
                     onClick={async () => {
                       try {
                         await signOut();
+                        // Force redirect to root after sign out to ensure landing page shows
+                        window.location.href = '/'; 
                       } catch (error) {
                         console.error('Sign out failed:', error);
                         window.location.reload();

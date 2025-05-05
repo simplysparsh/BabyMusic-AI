@@ -75,11 +75,7 @@ export default function Dashboard() {
 
   return (
     <main className="scroll-container">
-      {error && (
-        <div className="fixed top-16 left-0 right-0 z-50 p-4 bg-red-500/90 backdrop-blur-sm text-white text-center">
-          {error}
-        </div>
-      )}
+      {/* Error banner removed - we'll use the Header banner for all errors */}
       
       <section className="pt-20 pb-16 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-background-dark via-background-dark to-black opacity-50"></div>

@@ -79,49 +79,39 @@ Users can experience core functionality for free, but require a premium subscrip
     -   Verifies user owns the song.
     -   Updates `is_favorite` on the specific song record WHERE `user_id` matches.
     -   Called from client (`SongItem.handleToggleFavorite` placeholder).
--   **Stripe Integration:**
-    -   Requires Stripe setup (products, prices).
-    -   Frontend initiates checkout (likely via call to a backend function).
-    -   Need a secure webhook handler Function (`/api/stripe-webhook`?):
-        -   Listens for relevant Stripe events (`checkout.session.completed`, subscription updates).
-        -   Verifies webhook signature.
-        -   Updates `is_premium` flag in the `profiles` table.
 
-## 6. Pending Work
+### 5.3 Stripe Integration (Implemented)
 
--   **Backend Implementation:** Implement Stripe webhook handler.
--   **Connect Frontend<>Backend:** Replace TODOs for calling `incrementPlayCount` and `toggleFavoriteSong` backend functions (already partially done).
--   **Fetch Favorites:** Update song loading logic to fetch `is_favorite` status.
--   **Stripe Checkout UI:** Implement frontend Stripe checkout initiation.
--   **Tooltips:** Consider adding Tooltip component.
--   **Error Handling:** Refine limit error display.
--   **(Security Note):** Re-evaluate moving PIAPI call to backend in the future to protect API key.
-
-## 7. Required Backend Implementation
+Stripe is used to handle premium subscriptions.
 
 -   **Database (`profiles` table):**
-    -   Add `is_premium BOOLEAN DEFAULT false`.
-    -   Add `generation_count INTEGER DEFAULT 0`.
-    -   Add `monthly_plays_count INTEGER DEFAULT 0`.
-    -   Add `play_count_reset_at TIMESTAMPTZ`.
--   **Database (Favorites):**
-    -   Add `is_favorite BOOLEAN DEFAULT false` to `songs` table OR create a separate `user_favorite_songs` join table (`user_id`, `song_id`).
--   **Supabase Function (`incrementPlayCount`):**
-    -   Accepts `user_id`.
-    -   Atomically increments `monthly_plays_count`.
-    -   Checks `play_count_reset_at` and resets count/updates timestamp if a new month has started.
-    -   Called by client `authStore.incrementPlayCount`.
--   **Supabase Function (`toggleFavoriteSong`):**
-    -   Accepts `user_id`, `song_id`.
-    -   Updates the favorite status in the database.
-    -   Called by client `SongItem.handleToggleFavorite`.
--   **Server-Side Generation Check:**
-    -   Modify the existing function that handles song creation requests.
-    -   Fetch user's `is_premium` and `generation_count`.
-    -   If free user is at limit, return error.
-    -   If proceeding, increment `generation_count` *after* successfully queuing the task with external APIs.
--   **Stripe Integration:**
-    -   Set up Stripe account, products (monthly/annual plans), prices.
-    -   Implement Stripe Checkout on the frontend Upgrade UI.
-    -   Create a Supabase Function webhook handler (`/api/stripe-webhook`?) to listen for Stripe events (e.g., `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`).
-    -   Webhook handler updates `is_premium` flag in the `profiles` table based on subscription status. Securely verify webhook signatures. 
+    -   Added `stripe_customer_id TEXT UNIQUE` to store the mapping between Supabase users and Stripe customers (migration required).
+-   **Supabase Function (`create-stripe-checkout`):**
+    -   Location: `supabase/functions/create-stripe-checkout`
+    -   Trigger: HTTP POST request from the frontend (`PremiumPage.tsx`).
+    -   Auth: Requires Supabase JWT.
+    -   Logic: Creates a Stripe Checkout session for a given Price ID, associating it with the Supabase user ID (`client_reference_id`), and returns the session URL for redirection.
+-   **Supabase Function (`stripe-webhook`):**
+    -   Location: `supabase/functions/stripe-webhook`
+    -   Trigger: Events from Stripe (configured in Stripe dashboard).
+    -   Auth: **No JWT verification** (uses Stripe signature verification via `STRIPE_WEBHOOK_SIGNING_SECRET`).
+    -   Logic: Handles `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` events. Updates the user's `is_premium` status and stores/updates `stripe_customer_id` in the `profiles` table.
+-   **Supabase Function (`create-customer-portal-session`):**
+    -   Location: `supabase/functions/create-customer-portal-session`
+    -   Trigger: HTTP POST request from the frontend (`ProfileModal.tsx`).
+    -   Auth: Requires Supabase JWT.
+    -   Logic: Retrieves the user's `stripe_customer_id` from `profiles`, creates a Stripe Billing Portal session, and returns the session URL for redirection, allowing users to manage their subscription.
+
+## 6. Manual Work
+
+-   **Manual Stripe Configuration:**
+    -   Set up Products and Prices in the Stripe Dashboard (Test and Live modes).
+    -   Configure and save the Customer Portal settings in the Stripe Dashboard.
+    -   Create the Webhook Endpoint in Stripe, pointing to the deployed `stripe-webhook` function, listening for required events (`checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`), and obtain the Signing Secret.
+-   **Supabase Secrets:** Ensure `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SIGNING_SECRET`, and `SITE_URL` are correctly set in Supabase project settings for the relevant environment (Test/Live).
+-   **End-to-End Testing:** Thoroughly test the entire flow in Stripe Test Mode: sign up, upgrade via checkout, verify webhook updates `is_premium` and `stripe_customer_id`, access customer portal, manage subscription (e.g., cancel), verify webhook updates status again.
+-   **Connect Frontend<>Backend (Non-Stripe):** Replace remaining TODOs for calling `incrementPlayCount` and `toggleFavoriteSong` backend functions if not already done.
+-   **Fetch Favorites:** Update song loading logic to fetch `is_favorite` status if not already done.
+-   **Tooltips:** Consider adding Tooltip component for UI clarity.
+-   **Error Handling:** Refine limit error display.
+-   **(Security Note):** Re-evaluate moving PIAPI call to backend in the future to protect API key. 

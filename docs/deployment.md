@@ -121,9 +121,21 @@ Before deploying functions that interact with Stripe (`create-stripe-checkout`, 
 
 1.  **Products & Prices:** Create "Premium Monthly" and "Premium Yearly" (or similar) products and corresponding recurring prices. Note the Price IDs (`price_...`).
 2.  **Price IDs in Frontend:** Update the placeholder Price IDs in `src/pages/PremiumPage.tsx` with the actual IDs created above.
-3.  **Webhook Endpoint:** Create a webhook endpoint pointing to your deployed `stripe-webhook` function (`https://<your-project-ref>.supabase.co/functions/v1/stripe-webhook`).
-    - Listen for events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`.
-    - Obtain the **Signing Secret** (`whsec_...`) during creation and add it to Supabase secrets as `STRIPE_WEBHOOK_SIGNING_SECRET`.
+3.  **Webhook Endpoint:**
+    *   Go to Developers -> Webhooks in your Stripe Dashboard (ensure you are in the correct mode - Test or Live).
+    *   Click "Add endpoint".
+    *   For the "Endpoint URL", use the URL of your deployed `stripe-webhook` function (e.g., `https://<your-project-ref>.supabase.co/functions/v1/stripe-webhook`). You MUST deploy this function with `--no-verify-jwt`.
+    *   Click "+ Select events". Select **only** the following events:
+        *   `checkout.session.completed`
+        *   `customer.subscription.updated`
+        *   `customer.subscription.deleted`
+    *   Click "Add events", then "Add endpoint".
+    *   **Important:** After creating the endpoint, reveal the **Signing secret** (e.g., `whsec_...`) and set it as the `STRIPE_WEBHOOK_SIGNING_SECRET` Supabase secret for the corresponding environment.
+
+4.  **Customer Portal:**
+    *   Go to Settings -> Customer Portal in your Stripe Dashboard (ensure you are in the correct mode - Test or Live).
+    *   Configure the portal according to your needs (e.g., enable subscription cancellation, payment method updates).
+    *   **Crucially, you must click "Save changes" on this configuration page.** While the generic portal link Stripe shows you here isn't directly used in our application code (we generate unique session links via the API), this saved configuration *is required* for the API calls made by the `create-customer-portal-session` function (triggered by the "Manage Subscription" button) to succeed.
 
 ## Troubleshooting Webhooks
 

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-// import { Link } from 'react-router-dom'; // Removed Link import
 import { CheckCircle, Zap, Star, Play, Download, Heart } from 'lucide-react'; // Example icons
 import { supabase } from '../lib/supabase'; // <-- Import Supabase client
 import { useErrorStore } from '../store/errorStore'; // <-- Import error store for feedback
+import { useAuthStore } from '../store/authStore'; // <-- Import auth store
 
 // IMPORTANT: Replace with your actual Stripe Price IDs from your Stripe dashboard
 const STRIPE_MONTHLY_PRICE_ID = 'price_1RLCswD7u6T4OuZr4EwTg7Km'; 
@@ -11,6 +11,7 @@ const STRIPE_YEARLY_PRICE_ID = 'price_1RLCtYD7u6T4OuZrQ71AUgq9';
 const PremiumPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { setError, clearError } = useErrorStore(); // <-- Use error store
+  const user = useAuthStore((state) => state.user); // <-- Get user from auth store
   
   // TODO: Fetch actual prices from configuration/backend if dynamic
   const monthlyPrice = 9;
@@ -30,6 +31,14 @@ const PremiumPage: React.FC = () => {
 
   const handleUpgradeClick = async (plan: 'monthly' | 'yearly') => {
     clearError(); // Clear previous errors
+
+    // --- Check if user is logged in --- 
+    if (!user) {
+      setError('Please sign in or create an account to upgrade.');
+      return;
+    }
+    // --- End Check --- 
+
     setIsLoading(true);
     console.log(`Initiating upgrade to ${plan} plan...`);
 

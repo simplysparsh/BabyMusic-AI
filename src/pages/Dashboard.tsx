@@ -81,8 +81,8 @@ export default function Dashboard() {
     <main className="scroll-container">
       {/* Service Temporarily Unavailable Banner */}
       {showUnavailableBannerEnv && !isBannerClosed && (
-        <div className="bg-yellow-500 text-yellow-900 p-4 text-center sticky top-0 z-[101] flex justify-between items-center">
-          <div>
+        <div className="bg-yellow-500 text-yellow-900 p-4 sticky top-0 z-[101] flex justify-between items-center">
+          <div className="flex-grow text-center">
             <p className="font-semibold">Service Temporarily Unavailable</p>
             <p>We are currently performing maintenance. Please check back later.</p>
           </div>

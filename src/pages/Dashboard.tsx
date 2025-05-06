@@ -8,7 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import MiniStreak from '../components/dashboard/MiniStreak';
 import DetailedStreak from '../components/dashboard/DetailedStreak';
 import { useStreakStore } from '../store/streakStore';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StreakService } from '../services/streakService';
 import { useSongStore } from '../store/songStore';
 
@@ -19,6 +19,7 @@ export default function Dashboard() {
   const { songs } = useSongStore();
   const hasSongs = songs.length > 0;
   const wasHidden = useRef(false);
+  const [isBannerClosed, setIsBannerClosed] = useState(false);
   
   useRealtime();
 
@@ -66,7 +67,7 @@ export default function Dashboard() {
   const songsToday = 2;
 
   // Check if the service unavailable banner should be shown
-  const showUnavailableBanner = import.meta.env.VITE_SHOW_UNAVAILABLE_BANNER?.toLowerCase() === 'true';
+  const showUnavailableBannerEnv = import.meta.env.VITE_SHOW_UNAVAILABLE_BANNER?.toLowerCase() === 'true';
 
   if (!initialized) {
     return (
@@ -79,10 +80,19 @@ export default function Dashboard() {
   return (
     <main className="scroll-container">
       {/* Service Temporarily Unavailable Banner */}
-      {showUnavailableBanner && (
-        <div className="bg-yellow-500 text-yellow-900 p-4 text-center">
-          <p className="font-semibold">Service Temporarily Unavailable</p>
-          <p>We are currently performing maintenance. Please check back later.</p>
+      {showUnavailableBannerEnv && !isBannerClosed && (
+        <div className="bg-yellow-500 text-yellow-900 p-4 text-center sticky top-0 z-[101] flex justify-between items-center">
+          <div>
+            <p className="font-semibold">Service Temporarily Unavailable</p>
+            <p>We are currently performing maintenance. Please check back later.</p>
+          </div>
+          <button 
+            onClick={() => setIsBannerClosed(true)} 
+            className="text-yellow-900 hover:text-yellow-700 ml-4 p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-700"
+            aria-label="Close banner"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
         </div>
       )}
       {/* Error banner removed - we'll use the Header banner for all errors */}

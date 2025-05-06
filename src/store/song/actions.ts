@@ -4,7 +4,7 @@
 // - Related: src/store/song/types.ts (types)
 // - Related: src/lib/supabase.ts (database)
 
-import { supabase } from '../../lib/supabase';
+import { supabase, supabaseWithRetry, forceTokenRefresh } from '../../lib/supabase';
 import { useAuthStore } from '../authStore';
 import { SongService, mapDatabaseSongToSong } from '../../services/songService';
 import { SongStateService } from '../../services/songStateService';
@@ -112,29 +112,46 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         throw new Error('Baby name is required');
       }
       
-      // --- Call Check Function FIRST --- 
-      console.log(`[Action] Invoking check-generation-allowance function...`);
-      const { data: checkData, error: checkError } = await supabase.functions.invoke(
-        'check-generation-allowance'
-        // No body needed, function uses user context
-      );
-
-      if (checkError) {
-         console.error('[Action] check-generation-allowance invocation error:', checkError);
-         throw new Error(`Server check failed: ${checkError.message}`);
-      }
-
-      if (!checkData?.allowed) {
-         console.log('[Action] Generation not allowed by backend:', checkData?.reason);
-         const reason = checkData?.reason;
-         if (reason === 'limit_reached') {
-            throw new Error('Generation limit reached. Upgrade to Premium.'); // Specific error for UI
-         } else {
-            throw new Error(checkData?.error || 'Generation not allowed by server.');
-         }
-      }
+      // Force token refresh before critical operations
+      await forceTokenRefresh();
       
-      console.log('[Action] Generation allowed by backend. Proceeding with client-side creation...');
+      // --- Call Check Function using enhanced client with auto-retry --- 
+      console.log(`[Action] Invoking check-generation-allowance function...`);
+      
+      try {
+        // Use the enhanced client that handles token refreshing and retries automatically
+        const { data: checkData, error: checkError } = await supabaseWithRetry.functions.invoke('check-generation-allowance');
+        
+        if (checkError) {
+           console.error('[Action] check-generation-allowance invocation error:', checkError);
+           throw new Error(`Server check failed: ${checkError.message}`);
+        }
+
+        if (!checkData?.allowed) {
+           console.log('[Action] Generation not allowed by backend:', checkData?.reason);
+           const reason = checkData?.reason;
+           if (reason === 'limit_reached') {
+              throw new Error('Generation limit reached. Upgrade to Premium.'); // Specific error for UI
+           } else {
+              throw new Error(checkData?.error || 'Generation not allowed by server.');
+           }
+        }
+        
+        console.log('[Action] Generation allowed by backend. Proceeding with client-side creation...');
+      } catch (error) {
+        // If error contains a specific message about limits, still throw it
+        if (error.message && (
+          error.message.includes('limit') || 
+          error.message.includes('Premium') ||
+          error.message.includes('upgrade')
+        )) {
+          throw error;
+        }
+        
+        // For other errors, allow fallback to proceed with creation
+        console.error('[Action] Error checking generation allowance:', error);
+        console.warn('[Action] Proceeding with song creation despite error as fallback');
+      }
       
       // --- Proceed with EXISTING Client-Side Logic --- 
       // Note: SongService methods might need slight adjustments if they also interact with profile counts
@@ -253,9 +270,12 @@ export const createSongActions = (set: SetState, get: GetState) => ({
     const babyName = profile.babyName || 'Baby'; // Use profile directly
     
     try {
-      // --- Add Check Function Call --- 
+      // Force token refresh before retrying
+      await forceTokenRefresh();
+      
+      // --- Add Check Function Call using enhanced client --- 
       console.log(`[Action] Invoking check-generation-allowance before retrying song ${songId}...`);
-      const { data: checkData, error: checkError } = await supabase.functions.invoke(
+      const { data: checkData, error: checkError } = await supabaseWithRetry.functions.invoke(
         'check-generation-allowance'
       );
       

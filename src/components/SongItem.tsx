@@ -6,7 +6,7 @@ import { useSongStore } from '../store/songStore';
 import { useAuthStore } from '../store/authStore';
 import { useErrorStore } from '../store/errorStore';
 import SongGenerationTimer from './common/SongGenerationTimer';
-import { supabase } from '../lib/supabase';
+import { supabaseWithRetry, forceTokenRefresh } from '../lib/supabase';
 import { SongService } from '../services/songService';
 
 // Define the specific error message for play limit
@@ -103,16 +103,16 @@ export default function SongItem({
 
   // Handle Toggle Favorite Click
   const handleToggleFavorite = async () => {
-    if (!isPremium || !isPlayable || isTogglingFavorite) {
-        return;
-    }
-
+    if (!isPremium) return;
     setIsTogglingFavorite(true);
     clearGlobalError(); // Clear previous errors
     let response: { data: any; error: any; } | null = null;
 
     try {
-      response = await supabase.functions.invoke('toggle-favorite', {
+      // Refresh token before toggling favorite status
+      await forceTokenRefresh();
+      
+      response = await supabaseWithRetry.functions.invoke('toggle-favorite', {
         body: { song_id: song.id },
       });
 

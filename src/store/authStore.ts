@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseWithRetry } from '../lib/supabase';
 import { useSongStore } from './songStore';
 import { useErrorStore } from './errorStore';
 import { ProfileService } from '../services/profileService';
@@ -485,47 +485,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   
   // Updated function to call backend
-  incrementPlayCount: async () => { // Made async
-    const profile = get().profile;
-    const user = get().user;
-
-    // Only increment for logged-in, non-premium users
-    if (profile && user && !profile.isPremium) {
-      const currentCount = profile.monthlyPlaysCount || 0;
-      
-      // Optimistically update UI first
-      // TODO: Consider if optimistic update is desired, or wait for function result?
-      set(state => ({
-        profile: state.profile ? { ...state.profile, monthlyPlaysCount: currentCount + 1 } : null
-      }));
-      
-      try {
-        console.log(`Invoking increment-play-count for user ${user.id}`);
-        const { data, error } = await supabase.functions.invoke('increment-play-count');
-
-        if (error) {
-          throw new Error(`increment-play-count failed: ${error.message}`);
-        }
-
-        if (!data || !data.success) {
-           throw new Error(data?.error || 'Increment play count function returned failure.');
-        }
-        
-        console.log(`Backend confirmed play count incremented. New count (from backend): ${data.newPlayCount}`);
-        // Optionally update state again with confirmed count from backend if needed
-        // set(state => ({
-        //   profile: state.profile ? { ...state.profile, monthlyPlaysCount: data.newPlayCount } : null
-        // }));
-
-      } catch (error) {
-        console.error('Error invoking increment-play-count:', error);
-        // Rollback optimistic update on error
-        set(state => ({
-          profile: state.profile ? { ...state.profile, monthlyPlaysCount: currentCount } : null
-        }));
-        // Optionally surface error via useErrorStore
-        // useErrorStore.getState().setError('Failed to record play count.');
+  incrementPlayCount: async (): Promise<void> => {
+    try {
+      if (!get().user) {
+        console.log('User not logged in, cannot increment play count');
+        return;
       }
+
+      const { data, error } = await supabaseWithRetry.functions.invoke('increment-play-count');
+      
+      if (error) {
+        console.error('Error incrementing play count:', error);
+      } else {
+        console.log('Play count incremented successfully:', data);
+      }
+    } catch (error) {
+      console.error('Error incrementing play count:', error);
     }
   }
 }));

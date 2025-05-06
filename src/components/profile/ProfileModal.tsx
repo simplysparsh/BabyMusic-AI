@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { X, Star, Settings } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useErrorStore } from '../../store/errorStore';
-import { supabase } from '../../lib/supabase';
+import { supabaseWithRetry, forceTokenRefresh } from '../../lib/supabase';
 import { Language, DEFAULT_LANGUAGE } from '../../types';
 import { CURRENT_YEAR, CURRENT_MONTH, AGE_OPTIONS } from './utils/dateUtils';
 
@@ -104,7 +104,10 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setIsPortalLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('create-customer-portal-session');
+      // Refresh token before creating portal session
+      await forceTokenRefresh();
+      
+      const { data, error } = await supabaseWithRetry.functions.invoke('create-customer-portal-session');
 
       if (error) {
         console.error('Error invoking create-customer-portal-session:', error);

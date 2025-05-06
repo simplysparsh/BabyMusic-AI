@@ -69,6 +69,18 @@ The webhook endpoint is implemented as an Edge Function that listens for incomin
 
 Edge Functions provide serverless compute capabilities close to the user.
 
+### Edge Function Token Management and Error Handling
+
+Supabase Edge Functions use JWT tokens for authentication, which can be subject to early drops if tokens become stale. The application implements several strategies to prevent disruptions:
+
+- **Token Freshness**: The client automatically refreshes authentication tokens every 10 minutes, well before the default 1-hour expiration
+- **Pre-call Refresh**: Critical operations force a token refresh before invoking Edge Functions
+- **Error Recovery**: Failed calls due to authentication issues trigger automatic token refresh and retry
+- **Timeout Detection**: A timeout system prevents the UI from blocking indefinitely on stuck requests
+- **Graceful Degradation**: Fallback paths allow non-critical operations to proceed even if Edge Functions are temporarily unavailable
+
+These mechanisms ensure reliable communication with Edge Functions, particularly important for long user sessions involving music playback.
+
 ### `piapi-webhook`
 
 -   **Purpose:** Handles incoming webhooks from the PIAPI.ai service after song generation is complete.

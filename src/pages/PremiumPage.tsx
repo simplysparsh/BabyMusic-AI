@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle, Zap, Star, Play, Download, Heart } from 'lucide-react'; // Example icons
-import { supabase } from '../lib/supabase'; // <-- Import Supabase client
+import { supabaseWithRetry, forceTokenRefresh } from '../lib/supabase'; // <-- Import Supabase client
 import { useErrorStore } from '../store/errorStore'; // <-- Import error store for feedback
 import { useAuthStore } from '../store/authStore'; // <-- Import auth store
 
@@ -52,7 +52,10 @@ const PremiumPage: React.FC = () => {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
+      // Refresh token before critical checkout operation
+      await forceTokenRefresh();
+      
+      const { data, error } = await supabaseWithRetry.functions.invoke('create-stripe-checkout', {
         body: { priceId },
       });
 

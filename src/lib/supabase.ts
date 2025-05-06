@@ -67,19 +67,46 @@ export function stopTokenRefresh() {
 // Function to force an immediate refresh
 export async function forceTokenRefresh() {
   try {
-    console.log('Forcing token refresh');
+    // Attempt to refresh the session
     const { error } = await supabase.auth.refreshSession();
     
+    // If there's an error, handle it gracefully
     if (error) {
-      console.error('Forced token refresh failed:', error.message);
-      return false;
+      console.warn('Session refresh failed:', error.message);
+      
+      // If this is an invalid refresh token error, we should redirect to login
+      if (error.message.includes('Invalid Refresh Token') || 
+          error.message.includes('Token expired') ||
+          error.message.includes('Not Found')) {
+        
+        // Log the user out cleanly instead of leaving in a broken state
+        await supabase.auth.signOut();
+        
+        // If we have a useAuthStore, reset the state there too
+        try {
+          const { useAuthStore } = await import('../store/authStore');
+          useAuthStore.getState().signOut();
+        } catch (importError) {
+          console.error('Could not import authStore:', importError);
+        }
+        
+        // If in browser environment, you might want to redirect
+        if (typeof window !== 'undefined') {
+          // Notify the user
+          alert('Your session has expired. Please log in again.');
+          
+          // Redirect to login (adjust path as needed)
+          window.location.href = '/login';
+        }
+        
+        return { error };
+      }
     }
     
-    console.log('Forced token refresh successful');
-    return true;
+    return { error: null };
   } catch (err) {
-    console.error('Error during forced token refresh:', err);
-    return false;
+    console.error('Unexpected error refreshing session:', err);
+    return { error: err };
   }
 }
 
@@ -101,10 +128,13 @@ export const supabaseWithRetry = {
           console.log(`Function call to ${functionName} failed, attempting token refresh and retry`);
           const refreshed = await forceTokenRefresh();
           
-          if (refreshed) {
-            // Retry the function call after token refresh
-            return await supabase.functions.invoke(functionName, options);
+          if (refreshed.error) {
+            console.error(`Retry failed for function ${functionName}:`, refreshed.error);
+            return { data: null, error: refreshed.error };
           }
+          
+          // Retry the function call after token refresh
+          return await supabase.functions.invoke(functionName, options);
         }
         
         return result;
@@ -113,7 +143,11 @@ export const supabaseWithRetry = {
         console.error(`Error calling function ${functionName}:`, error);
         
         try {
-          await forceTokenRefresh();
+          const refreshed = await forceTokenRefresh();
+          if (refreshed.error) {
+            console.error(`Retry failed for function ${functionName}:`, refreshed.error);
+            return { data: null, error: refreshed.error };
+          }
           return await supabase.functions.invoke(functionName, options);
         } catch (retryError) {
           console.error(`Retry failed for function ${functionName}:`, retryError);

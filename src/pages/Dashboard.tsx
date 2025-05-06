@@ -65,6 +65,9 @@ export default function Dashboard() {
   const dailyGoal = 3;
   const songsToday = 2;
 
+  // Check if the service unavailable banner should be shown
+  const showUnavailableBanner = import.meta.env.VITE_SHOW_UNAVAILABLE_BANNER?.toLowerCase() === 'true';
+
   if (!initialized) {
     return (
       <div className="min-h-screen bg-background-dark flex items-center justify-center">
@@ -75,6 +78,13 @@ export default function Dashboard() {
 
   return (
     <main className="scroll-container">
+      {/* Service Temporarily Unavailable Banner */}
+      {showUnavailableBanner && (
+        <div className="bg-yellow-500 text-yellow-900 p-4 text-center">
+          <p className="font-semibold">Service Temporarily Unavailable</p>
+          <p>We are currently performing maintenance. Please check back later.</p>
+        </div>
+      )}
       {/* Error banner removed - we'll use the Header banner for all errors */}
       
       <section className="pt-20 pb-16 px-4 relative">

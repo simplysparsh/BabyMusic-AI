@@ -367,35 +367,36 @@ export default function PresetSongCard({
             </span>
           ) : description}
         </p>
-        <div className="flex items-center justify-between mt-3">
+        <div className="flex items-center justify-start mt-3">
           {hasVariations && songState !== SongState.GENERATING && currentSong && (
             <div className="flex items-center gap-1 text-white/60">
               <div
                 role="button"
                 tabIndex={totalVersions > 1 ? 0 : -1}
+                aria-label="Previous Variation"
                 aria-disabled={totalVersions <= 1}
                 onClick={(e: MouseEvent<HTMLDivElement>) => { e.stopPropagation(); totalVersions > 1 && onVariationChange(e, type, 'prev'); }}
                 onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => { if(e.key === 'Enter') {e.stopPropagation(); totalVersions > 1 && onVariationChange(e as unknown as MouseEvent<HTMLDivElement>, type, 'prev');} }}
-                className={`p-1 rounded-full transition-colors ${totalVersions > 1 ? 'hover:bg-white/10' : 'opacity-50 cursor-default'}`}
+                className={`p-2 rounded-full transition-all ${totalVersions > 1 ? 'hover:bg-white/20 active:bg-white/30 hover:scale-110 cursor-pointer' : 'opacity-50 cursor-default'}`}
               >
-                <ChevronLeft className="w-3 h-3" />
+                <ChevronLeft className="w-4 h-4" />
               </div>
-              <span className="text-xs">
-                {currentVariationIndex + 1}/{totalVersions} 
+              <span className="text-sm">
+                Variation {currentVariationIndex + 1} of {totalVersions}
               </span>
               <div
                 role="button"
                 tabIndex={totalVersions > 1 ? 0 : -1}
+                aria-label="Next Variation"
                 aria-disabled={totalVersions <= 1}
                 onClick={(e: MouseEvent<HTMLDivElement>) => { e.stopPropagation(); totalVersions > 1 && onVariationChange(e, type, 'next'); }}
                 onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => { if(e.key === 'Enter') {e.stopPropagation(); totalVersions > 1 && onVariationChange(e as unknown as MouseEvent<HTMLDivElement>, type, 'next'); }}}
-                className={`p-1 rounded-full transition-colors ${totalVersions > 1 ? 'hover:bg-white/10' : 'opacity-50 cursor-default'}`}
+                className={`p-2 rounded-full transition-all ${totalVersions > 1 ? 'hover:bg-white/20 active:bg-white/30 hover:scale-110 cursor-pointer' : 'opacity-50 cursor-default'}`}
               >
-                <ChevronRight className="w-3 h-3" />
+                <ChevronRight className="w-4 h-4" />
               </div>
             </div>
           )}
-          {!(hasVariations && songState !== SongState.GENERATING && currentSong) && <div className="flex-grow"></div>}
         </div>
       </div>
       <div className="absolute bottom-0 right-0 w-24 h-24 

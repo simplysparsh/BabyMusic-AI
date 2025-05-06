@@ -30,6 +30,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // Set up periodic token refresh to prevent stale tokens during long sessions
 let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
+// Auth callback registration to avoid circular dependencies
+type AuthSessionExpiredCallback = () => Promise<void>;
+let sessionExpiredCallback: AuthSessionExpiredCallback | null = null;
+
+// Function to register the callback
+export function registerSessionExpiredCallback(callback: AuthSessionExpiredCallback): void {
+  sessionExpiredCallback = callback;
+  console.log('Session expired callback registered');
+}
+
 // Function to start token refresh
 export function startTokenRefresh() {
   // Clear any existing interval
@@ -82,12 +92,11 @@ export async function forceTokenRefresh() {
         // Log the user out cleanly instead of leaving in a broken state
         await supabase.auth.signOut();
         
-        // If we have a useAuthStore, reset the state there too
-        try {
-          const { useAuthStore } = await import('../store/authStore');
-          useAuthStore.getState().signOut();
-        } catch (importError) {
-          console.error('Could not import authStore:', importError);
+        // Use the registered callback instead of dynamic import
+        if (sessionExpiredCallback) {
+          await sessionExpiredCallback();
+        } else {
+          console.warn('No session expired callback registered');
         }
         
         // If in browser environment, you might want to redirect

@@ -6,11 +6,11 @@ import PremiumPage from './pages/PremiumPage';
 import { useEffect, useState, Suspense } from 'react';
 import { useAuthStore } from './store/authStore'; 
 import { useSongStore } from './store/songStore';
-import { startTokenRefresh, stopTokenRefresh } from './lib/supabase';
+import { startTokenRefresh, stopTokenRefresh, registerSessionExpiredCallback } from './lib/supabase';
 import OnboardingModal from './components/auth/OnboardingModal';
 
 function App() {
-  const { user, initialized, profile, showPostSignupOnboarding, hidePostSignupOnboarding } = useAuthStore();
+  const { user, initialized, profile, showPostSignupOnboarding, hidePostSignupOnboarding, signOut } = useAuthStore();
   const loadSongs = useSongStore(state => state.loadSongs);
   const setupSubscription = useSongStore(state => state.setupSubscription);
   const [path, setPath] = useState(window.location.pathname);
@@ -31,29 +31,25 @@ function App() {
     return () => document.removeEventListener('click', handleClick);
   }, []);
 
-  // Set up song subscription and load songs when user is authenticated
+  // Handle authentication state changes
   useEffect(() => {
-    if (user) {
-      // Start token refresh mechanism when user is logged in
-      startTokenRefresh();
-      
-      if (typeof setupSubscription === 'function') {
-        const unsubscribe = setupSubscription(user.id);
-        loadSongs().catch(error => {
-          console.error('Failed to load songs:', error);
-        });
+    if (initialized) {
+      if (user) {
+        // Start token refresh when user is authenticated
+        startTokenRefresh();
         
-        // Return cleanup function that stops token refresh and unsubscribes
-        return () => {
-          stopTokenRefresh();
-          if (unsubscribe) unsubscribe();
-        };
+        // Register the session expired callback
+        registerSessionExpiredCallback(signOut);
+        
+        // Load songs and set up realtime
+        loadSongs();
+        setupSubscription(user.id);
       } else {
-        console.error('setupSubscription is not a function in songStore state!', setupSubscription);
-        return () => stopTokenRefresh();
+        // Stop token refresh when user is not authenticated
+        stopTokenRefresh();
       }
     }
-  }, [user, setupSubscription, loadSongs]);
+  }, [initialized, user, loadSongs, setupSubscription, signOut]);
 
   // When component unmounts or user logs out, ensure token refresh is stopped
   useEffect(() => {

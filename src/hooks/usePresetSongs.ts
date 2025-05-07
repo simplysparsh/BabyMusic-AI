@@ -86,7 +86,8 @@ export default function usePresetSongs() {
       songType: 'preset',
       preset_type: type,
       lyrics: PRESET_CONFIGS[type].fallbackLyrics(profile.babyName),
-      gender: profile.gender
+      gender: profile.gender,
+      ageGroup: profile.ageGroup
     });
   }, [songs, createSong, playAudio, user, profile, songNames]);
 

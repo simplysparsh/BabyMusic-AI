@@ -95,7 +95,7 @@ export const useAppStore = create<AppState>((
         babyName
       });
 
-      await SongService.regeneratePresetSongs(data.user!.id, babyName);
+      await SongService.regeneratePresetSongs(data.user!.id, babyName, profile.gender || '');
 
       set({ 
         user: data.user,
@@ -157,7 +157,7 @@ export const useAppStore = create<AppState>((
     }
 
     try {
-      const song = await SongService.createSong({
+      const song = await SongService.generateSong({
         userId: user.id,
         name,
         babyName: profile.babyName,

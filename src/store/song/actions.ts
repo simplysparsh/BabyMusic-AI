@@ -186,20 +186,21 @@ export const createSongActions = (set: SetState, get: GetState) => ({
              // Update UI state for the updated song
              set({ songs: get().songs.map(s => s.id === existingSong.id ? createdOrUpdatedSong : s) });
           } else {
-             // This case (preset type requested but no existing song) shouldn't happen with current flow?
-             // If it can, we might need to create it here using SongService.createSong
+             // If it can, we might need to create it here using SongService.generateSong
              console.warn(`Preset song requested (${currentPresetType}) but no existing one found. Creating new.`);
              // Fall through to standard creation below? Or handle differently?
-              createdOrUpdatedSong = await SongService.createSong({
-                 userId: user.id, name, babyName: profile.babyName,
-                 songParams: { theme, mood, tempo, isInstrumental, songType, voice, userInput, preset_type: currentPresetType }
-              });
-              set({ songs: [createdOrUpdatedSong, ...get().songs] });
+             createdOrUpdatedSong = await SongService.generateSong({
+                userId: user.id, name, babyName: profile.babyName,
+                songParams: { theme, mood, tempo, isInstrumental, songType, voice, userInput, preset_type: currentPresetType },
+                ageGroup: profile.ageGroup,
+                gender: profile.gender
+             });
+             set({ songs: [createdOrUpdatedSong, ...get().songs] });
           }
       } else {
           // Create a new non-preset song using SongService
           console.log(`Proceeding to create NEW non-preset song via client-side logic`);
-          createdOrUpdatedSong = await SongService.createSong({
+          createdOrUpdatedSong = await SongService.generateSong({
              userId: user.id, name, babyName: profile.babyName,
              songParams: { theme, mood, tempo, isInstrumental, songType, voice, userInput, preset_type: undefined }, // Ensure preset_type is not passed
              ageGroup: profile.ageGroup,

@@ -319,22 +319,23 @@ export class SongService {
         throw new Error('Failed to fetch song details');
       }
 
-      // 1. Reset the song state and clear variations
-      const resetSong = await this.prepareForRegeneration(songId);
-      
-      // 2. Start song generation
-      const taskId = await this.startSongGeneration(resetSong as DatabaseSong, babyName);
-      
-      // 3. Update the song with the new task ID
-      await this.updateSongWithTaskId(songId, taskId);
-      
-      // 4. Return updated song object
-      return {
-        ...mapDatabaseSongToSong(resetSong),
-        task_id: taskId,
-        error: undefined,
-        retryable: false
-      };
+      // Use the unified method with the existing song ID
+      return this.generateSong({
+        userId,
+        name: dbSong.name,
+        babyName,
+        songParams: {
+          theme: dbSong.theme,
+          mood: dbSong.mood,
+          tempo: dbSong.tempo,
+          isInstrumental: !!dbSong.is_instrumental,
+          voice: dbSong.voice_type,
+          userInput: dbSong.user_lyric_input,
+          songType: dbSong.song_type || 'preset',
+          preset_type: dbSong.preset_type
+        },
+        existingSongId: songId // Pass the existing song ID
+      });
     } catch (error) {
       console.error('Error retrying song generation:', error);
       
@@ -432,121 +433,6 @@ export class SongService {
     }
   }
 
-  static async createSong(params: {
-    userId: string;
-    name: string;
-    babyName: string;
-    songParams: {
-      tempo?: Tempo;
-      voice?: VoiceType;
-      theme?: ThemeType;
-      mood?: MusicMood;
-      userInput?: string;
-      isInstrumental?: boolean;
-      songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
-      preset_type?: PresetType;
-    };
-    ageGroup?: AgeGroup;
-    gender?: string;
-  }): Promise<Song> {
-    const { userId, name, babyName, songParams, ageGroup, gender } = params;
-    const { theme, mood, userInput, tempo, songType, isInstrumental, voice, preset_type: presetTypeParam } = songParams;
-
-    console.log('Creating song with params:', {
-      userId,
-      name,
-      songParams: {
-        theme,
-        mood,
-        userInput: userInput ? `"${userInput}"` : 'not provided',
-        tempo,
-        isInstrumental,
-        voice,
-        songType,
-        preset_type: presetTypeParam
-      },
-    });
-
-    if (!userId || !name) {
-      throw new Error('User ID and name are required');
-    }
-
-    // Get preset type if applicable
-    const presetType = songType === 'preset' ? (presetTypeParam || getPresetType(name)) : undefined;
-
-    console.log('Preset detection:', {
-      name,
-      songType,
-      presetType,
-      hasConfig: presetType ? !!PRESET_CONFIGS[presetType] : false,
-    });
-
-    // For non-preset/non-theme songs, require mood
-    if (songType === 'from-scratch' && !mood) {
-      throw new Error('Either theme or mood is required');
-    }
-
-    // Determine the appropriate mood
-    const determinedMood = this.determineMood({
-      songType,
-      presetType,
-      mood
-    });
-
-    console.log('Creating song record:', {
-      name,
-      theme,
-      mood: determinedMood,
-      voice_type: isInstrumental ? null : voice,
-      tempo,
-      song_type: songType,
-      preset_type: presetType || null,
-      is_instrumental: isInstrumental || false,
-      user_lyric_input: userInput || null,
-      userInput_raw: userInput,
-    });
-
-    // Create initial song record
-    const dbSong = await this.createSongRecord({
-      name,
-      theme,
-      mood: determinedMood || undefined,
-      voice_type: isInstrumental ? null : voice,
-      tempo,
-      song_type: songType,
-      lyrics: undefined,
-      user_lyric_input: userInput || undefined,
-      preset_type: presetType || undefined,
-      is_instrumental: isInstrumental || false,
-      user_id: userId,
-      retryable: false, // Only set to true when an error occurs
-    });
-
-    console.log('Created song record:', {
-      id: dbSong.id,
-      name: dbSong.name,
-      songType,
-      hasUserInput: !!userInput
-    });
-
-    // Start generation
-    let taskId;
-    try {
-      taskId = await this.startSongGeneration(dbSong as DatabaseSong, babyName, ageGroup, gender);
-    } catch (error) {
-      console.error('Failed to start song generation:', error);
-      throw error;
-    }
-
-    // Convert database song to Song interface
-    const song = mapDatabaseSongToSong(dbSong as DatabaseSong);
-    
-    return {
-      ...song,
-      task_id: taskId
-    };
-  }
-
   static async regeneratePresetSongs(userId: string, babyName: string, gender: string, isSignUp: boolean = false) {
     const logPrefix = isSignUp ? 'Sign-up' : 'Profile update';
     console.log(`${logPrefix}: Starting preset song regeneration:`, { userId, babyName, gender });
@@ -569,43 +455,27 @@ export class SongService {
       }
       console.log(`${logPrefix}: Existing preset songs deleted successfully.`);
 
-      // --- Add profile fetch --- 
-      let profileData: { age_group?: AgeGroup, gender?: string } | null = null;
-      try {
-        const result = await withRetry(() =>
-          supabase
-            .from('profiles')
-            .select('age_group, gender')
-            .eq('id', userId)
-            .single()
-        );
-        if (result.error) throw result.error; // Let withRetry handle logging/throwing final error
-        profileData = result.data;
-      } catch (error) {
-        console.error(`${logPrefix}: Failed to fetch profile data for song generation:`, error);
-        throw new Error('Failed to fetch profile data, cannot regenerate songs.'); // Stop regeneration if profile fetch fails
-      }
-      // --- End profile fetch ---
-
+      // Fetch profile data once
+      const profileData = await this.fetchProfileData(userId);
+      const ageGroup = profileData.ageGroup;
+      
       // Create new preset songs sequentially
       console.log(`${logPrefix}: Creating new preset songs sequentially...`);
       let failedCount = 0;
       for (const [type, config] of Object.entries(PRESET_CONFIGS)) {
         console.log(`${logPrefix}: Starting creation for preset type: ${type}`);
         try {
-          await this.createSong({
+          await this.generateSong({
             userId,
             name: config.title(babyName),
-            babyName, // Pass babyName here
+            babyName,
             songParams: {
               mood: config.mood,
               songType: 'preset',
               preset_type: type as PresetType
-              // Gender will be fetched within startSongGeneration from profile
             },
-            // Pass fetched profile data
-            ageGroup: profileData?.age_group,
-            gender: profileData?.gender
+            ageGroup,
+            gender
           });
           console.log(`${logPrefix}: Successfully initiated creation for preset type: ${type}`);
         } catch (songError) {
@@ -788,6 +658,287 @@ export class SongService {
     } catch (error) {
       console.error(`Error in updateSongWithTaskId for song ${songId}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Fetches profile data (age group and gender) for a user
+   * This centralizes profile data access for song generation
+   * @param userId The user ID to fetch profile data for
+   * @returns The age group and gender from the profile
+   */
+  static async fetchProfileData(userId: string): Promise<{ ageGroup?: AgeGroup, gender?: string }> {
+    // Validate input
+    if (!userId || typeof userId !== 'string') {
+      console.error('Invalid user ID provided to fetchProfileData:', userId);
+      throw new Error('Valid user ID is required to fetch profile data');
+    }
+    
+    console.log(`Fetching profile data for user ${userId}`);
+    
+    try {
+      const result = await withRetry(() =>
+        supabase
+          .from('profiles')
+          .select('age_group, gender')
+          .eq('id', userId)
+          .single()
+      );
+        
+      if (result.error) {
+        console.error(`Error fetching profile data for user ${userId}:`, result.error);
+        throw result.error;
+      }
+      
+      return {
+        ageGroup: result.data?.age_group,
+        gender: result.data?.gender
+      };
+    } catch (error) {
+      console.error(`Failed to fetch profile data for user ${userId}:`, error);
+      // Return empty object rather than throwing to allow generation to proceed with defaults
+      return {};
+    }
+  }
+
+  /**
+   * Validates input parameters for song generation
+   * @param params Parameters to validate
+   * @throws Error if validation fails
+   */
+  private static validateSongGenerationParams(params: {
+    userId: string;
+    name: string;
+    babyName: string;
+    songParams: {
+      songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
+      mood?: MusicMood;
+      theme?: ThemeType;
+    };
+  }): void {
+    const { userId, name, babyName, songParams } = params;
+    
+    if (!userId) throw new Error('User ID is required');
+    if (!name) throw new Error('Song name is required');
+    if (!babyName) throw new Error('Baby name is required');
+    if (!songParams.songType) throw new Error('Song type is required');
+    
+    // Specific validations based on song type
+    if (songParams.songType === 'from-scratch' && !songParams.mood) {
+      throw new Error('Mood is required for custom songs');
+    }
+    
+    if ((songParams.songType === 'theme' || songParams.songType === 'theme-with-input') && !songParams.theme) {
+      throw new Error('Theme is required for theme-based songs');
+    }
+  }
+  
+  /**
+   * Handles the regeneration of an existing song
+   * @param params All parameters needed for song regeneration
+   * @returns The regenerated song
+   */
+  private static async handleExistingSong(params: {
+    existingSongId: string;
+    name: string;
+    babyName: string;
+    songParams: {
+      tempo?: Tempo;
+      voice?: VoiceType;
+      theme?: ThemeType;
+      mood?: MusicMood;
+      userInput?: string;
+      isInstrumental?: boolean;
+    };
+    ageGroup?: AgeGroup;
+    gender?: string;
+  }): Promise<Song> {
+    const { existingSongId, name, babyName, songParams, ageGroup, gender } = params;
+    
+    console.log(`Regenerating existing song ${existingSongId}`);
+    
+    // Reset the song state and clear variations
+    const customFields = { 
+      name, 
+      theme: songParams.theme,
+      mood: songParams.mood
+    };
+    
+    const resetSong = await this.prepareForRegeneration(existingSongId, customFields);
+    
+    // Prepare database song with all parameters
+    const dbSongForGeneration = { 
+      ...resetSong, 
+      tempo: songParams.tempo || (resetSong as any).tempo, 
+      is_instrumental: songParams.isInstrumental !== undefined ? songParams.isInstrumental : (resetSong as any).is_instrumental, 
+      voice_type: songParams.voice || (resetSong as any).voice_type, 
+      user_lyric_input: songParams.userInput || (resetSong as any).user_lyric_input 
+    };
+    
+    // Start song generation with complete profile data
+    const taskId = await this.startSongGeneration(
+      dbSongForGeneration as DatabaseSong, 
+      babyName, 
+      ageGroup, 
+      gender
+    );
+    
+    // Update the song with the new task ID
+    await this.updateSongWithTaskId(existingSongId, taskId);
+    
+    // Return updated song object
+    return {
+      ...mapDatabaseSongToSong(resetSong),
+      task_id: taskId,
+      error: undefined,
+      retryable: false
+    };
+  }
+  
+  /**
+   * Handles the creation of a new song
+   * @param params All parameters needed for song creation
+   * @returns The newly created song
+   */
+  private static async handleNewSong(params: {
+    userId: string;
+    name: string;
+    babyName: string;
+    songParams: {
+      tempo?: Tempo;
+      voice?: VoiceType;
+      theme?: ThemeType;
+      mood?: MusicMood;
+      userInput?: string;
+      isInstrumental?: boolean;
+      songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
+      preset_type?: PresetType;
+    };
+    ageGroup?: AgeGroup;
+    gender?: string;
+  }): Promise<Song> {
+    const { userId, name, babyName, songParams, ageGroup, gender } = params;
+    
+    // Get preset type if applicable
+    const presetType = songParams.songType === 'preset' 
+      ? (songParams.preset_type || getPresetType(name)) 
+      : undefined;
+    
+    // Determine the appropriate mood
+    const determinedMood = this.determineMood({
+      songType: songParams.songType,
+      presetType,
+      mood: songParams.mood
+    });
+    
+    // Create initial song record
+    const dbSong = await this.createSongRecord({
+      name,
+      theme: songParams.theme,
+      mood: determinedMood || undefined,
+      voice_type: songParams.isInstrumental ? null : songParams.voice,
+      tempo: songParams.tempo,
+      song_type: songParams.songType,
+      lyrics: undefined,
+      user_lyric_input: songParams.userInput || undefined,
+      preset_type: presetType || undefined,
+      is_instrumental: songParams.isInstrumental || false,
+      user_id: userId,
+      retryable: false,
+    });
+    
+    // Start generation with complete profile data
+    const taskId = await this.startSongGeneration(
+      dbSong as DatabaseSong, 
+      babyName, 
+      ageGroup, 
+      gender
+    );
+    
+    // Convert database song to Song interface and add task ID
+    return {
+      ...mapDatabaseSongToSong(dbSong as DatabaseSong),
+      task_id: taskId
+    };
+  }
+
+  /**
+   * Unified method to generate a song with complete profile data
+   * This serves as the central point for song generation logic
+   * @param params All parameters needed for song generation
+   * @returns The generated song
+   */
+  static async generateSong(params: {
+    userId: string;
+    name: string;
+    babyName: string;
+    songParams: {
+      tempo?: Tempo;
+      voice?: VoiceType;
+      theme?: ThemeType;
+      mood?: MusicMood;
+      userInput?: string;
+      isInstrumental?: boolean;
+      songType: 'preset' | 'theme' | 'theme-with-input' | 'from-scratch';
+      preset_type?: PresetType;
+    };
+    ageGroup?: AgeGroup;
+    gender?: string;
+    existingSongId?: string; // If provided, this will update an existing song instead of creating a new one
+  }): Promise<Song> {
+    const { userId, name, babyName, songParams, ageGroup: providedAgeGroup, gender: providedGender, existingSongId } = params;
+    
+    // Validate required parameters
+    this.validateSongGenerationParams({
+      userId,
+      name,
+      babyName,
+      songParams
+    });
+    
+    console.log('Unified song generation with params:', {
+      userId,
+      name,
+      babyName,
+      songParams: {
+        ...songParams,
+        userInput: songParams.userInput ? 'provided' : 'not provided'
+      },
+      providedAgeGroup,
+      providedGender,
+      existingSongId: existingSongId || 'none'
+    });
+
+    // If age group or gender are missing, fetch them from profile
+    let ageGroup = providedAgeGroup;
+    let gender = providedGender;
+    
+    if (!ageGroup || !gender) {
+      console.log('Missing profile data, fetching from database');
+      const profileData = await this.fetchProfileData(userId);
+      ageGroup = ageGroup || profileData.ageGroup;
+      gender = gender || profileData.gender;
+    }
+    
+    // Handle song generation based on whether we're updating an existing song or creating a new one
+    if (existingSongId) {
+      return this.handleExistingSong({
+        existingSongId,
+        name,
+        babyName,
+        songParams,
+        ageGroup,
+        gender
+      });
+    } else {
+      return this.handleNewSong({
+        userId,
+        name,
+        babyName,
+        songParams,
+        ageGroup,
+        gender
+      });
     }
   }
 }

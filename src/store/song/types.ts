@@ -102,4 +102,5 @@ export interface CreateSongParams {
   preset_type?: PresetType; // Type of preset song when songType is 'preset'
   lyrics?: string; // The lyrics to use for the song
   gender?: string; // Baby's gender for personalized lyrics
+  ageGroup?: string; // Baby's age group for generation customization
 } 

@@ -148,13 +148,34 @@ export async function forceTokenRefresh() {
   } catch (err) {
     console.error('[DEBUG] [Supabase] Unexpected error refreshing session:', err);
     
-    // Handle timeout specifically
+    // Handle timeout as a fatal error requiring re-authentication
     if (err instanceof Error && err.message.includes('timed out')) {
-      console.warn('[DEBUG] [Supabase] Token refresh timed out. Continuing with existing token.');
+      console.error('[DEBUG] [Supabase] Token refresh timed out. Treating as authentication failure.');
       
-      // Return a specific error that calling code can identify but no need
-      // for the calling code to handle it specially
-      return { error: { message: 'TOKEN_REFRESH_TIMEOUT', originalError: err } };
+      try {
+        // Log the user out cleanly
+        await supabase.auth.signOut();
+        
+        // Call the session expired callback
+        if (sessionExpiredCallback) {
+          await sessionExpiredCallback();
+        } else {
+          console.warn('[DEBUG] [Supabase] No session expired callback registered');
+        }
+        
+        // If in browser environment, redirect to login
+        if (typeof window !== 'undefined') {
+          // Notify the user
+          alert('Session refresh timed out. Please log in again.');
+          
+          // Redirect to login
+          window.location.href = '/login';
+        }
+      } catch (signOutErr) {
+        console.error('[DEBUG] [Supabase] Error during sign out after timeout:', signOutErr);
+        // Fallback to manual storage clearing
+        clearSupabaseStorage();
+      }
     }
     
     return { error: err };

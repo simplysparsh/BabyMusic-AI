@@ -27,10 +27,6 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
     }
     
     console.log(`Setting up subscriptions for user: ${userId}`);
-    supabase.getChannels().forEach(channel => {
-      console.log(`Unsubscribing from existing channel: ${channel.topic}`);
-      channel.unsubscribe();
-    });
     
     // Subscribe to both songs and variations changes
     const songsSubscription = supabase

@@ -23,7 +23,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    // @ts-expect-error TypeScript type definition for AuthOptions might be outdated in this environment
+    syncTabs: true
   }
 });
 
@@ -54,6 +56,23 @@ export function startTokenRefresh() {
       const { error } = await supabase.auth.refreshSession();
       if (error) {
         console.warn('Token refresh failed:', error.message);
+
+        // If the refresh token itself is invalid we must clear local session immediately
+        if (error.message.includes('Invalid Refresh Token') || error.message.includes('Not Found')) {
+          console.warn('[Supabase] Detected invalid refresh token during periodic refresh. Forcing sign-out.');
+
+          try {
+            await supabase.auth.signOut();
+          } catch (signOutErr) {
+            console.warn('[Supabase] signOut after periodic refresh failure produced an error – clearing storage manually.', signOutErr);
+            clearSupabaseStorage();
+          }
+
+          if (sessionExpiredCallback) {
+            await sessionExpiredCallback();
+          }
+          return; // Exit early so we don't log misleading success message below
+        }
       } else {
         console.log('Auth token refreshed successfully');
       }
@@ -228,6 +247,27 @@ export const checkUserExists = async (email: string) => {
     return { exists: false, error };
   }
 };
+
+// After the supabase client is created and before exporting helper functions, register a global auth listener to catch refresh failures
+supabase.auth.onAuthStateChange(async (event, _session) => {
+  if ((event as string) === 'TOKEN_REFRESH_FAILED') {
+    console.warn('[Supabase] Token refresh failed – logging user out to clear invalid tokens.');
+
+    try {
+      // Attempt to sign the user out cleanly
+      await supabase.auth.signOut();
+    } catch (signOutErr) {
+      // If sign-out fails (can happen if refresh token already invalid), fall back to clearing storage manually
+      console.warn('[Supabase] signOut after refresh failure produced an error – clearing storage manually.', signOutErr);
+      clearSupabaseStorage();
+    }
+
+    // Invoke the consumer-registered callback so app-level stores reset themselves
+    if (sessionExpiredCallback) {
+      await sessionExpiredCallback();
+    }
+  }
+});
 
 // Make the functions available globally for debugging
 if (typeof window !== 'undefined') {

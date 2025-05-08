@@ -105,9 +105,9 @@ export const createMusicGenerationTask = async ({
     title: title // Add the generated title here
   };
 
-  // Only add lyrics as prompt for non-instrumental songs
+  // Only add lyrics for non-instrumental songs
   if (!isInstrumental) {
-    inputPayload.prompt = truncateToLimit(promptWithLyrics, PIAPI_LIMITS.PROMPT_MAX_LENGTH);
+    inputPayload.lyrics = truncateToLimit(promptWithLyrics, PIAPI_LIMITS.PROMPT_MAX_LENGTH);
   }
 
   const requestBody = {
@@ -135,7 +135,7 @@ export const createMusicGenerationTask = async ({
   console.log('Base Description (gpt_description_prompt):', inputPayload.gpt_description_prompt);
   console.log('Title (Sent to API):', title);
   if (!isInstrumental) {
-    console.log('Prompt (Lyrics):', (inputPayload.prompt as string).substring(0, 200) + ((inputPayload.prompt as string).length > 200 ? '...' : ''));
+    console.log('Lyrics (Sent to API):', (inputPayload.lyrics as string).substring(0, 200) + ((inputPayload.lyrics as string).length > 200 ? '...' : ''));
   }
   console.log('Lyrics Type:', inputPayload.lyrics_type);
   console.log('Negative Tags:', inputPayload.negative_tags);

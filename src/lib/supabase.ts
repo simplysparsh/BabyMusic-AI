@@ -95,13 +95,26 @@ export function stopTokenRefresh() {
 
 // Function to force an immediate refresh
 export async function forceTokenRefresh() {
+  console.log('[DEBUG] [Supabase] Attempting token refresh');
   try {
-    // Attempt to refresh the session
-    const { error } = await supabase.auth.refreshSession();
+    // Create a timeout promise that rejects after 10 seconds
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Token refresh timed out after 10 seconds'));
+      }, 10000);
+    });
+    
+    // Race between the refresh operation and the timeout
+    const { error } = await Promise.race([
+      supabase.auth.refreshSession(),
+      timeoutPromise
+    ]) as { error: any };
+    
+    console.log('[DEBUG] [Supabase] Token refresh completed');
     
     // If there's an error, handle it gracefully
     if (error) {
-      console.warn('Session refresh failed:', error.message);
+      console.warn('[DEBUG] [Supabase] Session refresh failed:', error.message);
       
       // If this is an invalid refresh token error, we should redirect to login
       if (error.message.includes('Invalid Refresh Token') || 
@@ -115,7 +128,7 @@ export async function forceTokenRefresh() {
         if (sessionExpiredCallback) {
           await sessionExpiredCallback();
         } else {
-          console.warn('No session expired callback registered');
+          console.warn('[DEBUG] [Supabase] No session expired callback registered');
         }
         
         // If in browser environment, you might want to redirect
@@ -133,7 +146,17 @@ export async function forceTokenRefresh() {
     
     return { error: null };
   } catch (err) {
-    console.error('Unexpected error refreshing session:', err);
+    console.error('[DEBUG] [Supabase] Unexpected error refreshing session:', err);
+    
+    // Handle timeout specifically
+    if (err instanceof Error && err.message.includes('timed out')) {
+      console.warn('[DEBUG] [Supabase] Token refresh timed out. Continuing with existing token.');
+      
+      // Return a specific error that calling code can identify but no need
+      // for the calling code to handle it specially
+      return { error: { message: 'TOKEN_REFRESH_TIMEOUT', originalError: err } };
+    }
+    
     return { error: err };
   }
 }

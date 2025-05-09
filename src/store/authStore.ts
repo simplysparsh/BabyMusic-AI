@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase, supabaseWithRetry } from '../lib/supabase';
+import { supabase, supabaseWithRetry, stopTokenRefresh } from '../lib/supabase';
 import { useSongStore } from './songStore';
 import { useErrorStore } from './errorStore';
 import { ProfileService } from '../services/profileService';
@@ -46,20 +46,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   showPostSignupOnboarding: false,
   loadProfile: async () => {
     const user = get().user;
+    console.log('[AuthStore] loadProfile: Called. User from store:', user ? { id: user.id, email: user.email } : null);
     if (!user) return;
 
     set({ isLoading: true });
 
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session) {
-        console.error('Session error or no session during profile load, signing out.');
-        await supabase.auth.signOut();
-        set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false }); 
-        return;
-      }
-
       const MAX_RETRIES = 3;
       const RETRY_DELAY = 2000;
       let retryCount = 0;
@@ -70,16 +62,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retryCount));
           }
 
-          if (retryCount > 0) {
-            const { data: { session: refreshedSession } } = await supabase.auth.getSession();
-            if (!refreshedSession) {
-              console.error('Session expired during profile load retry loop, signing out.');
-              await supabase.auth.signOut();
-              set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false });
-              return;
-            }
-          }
-
+          console.log('[AuthStore] loadProfile: Attempting to fetch profile for user ID:', user.id);
           const { data: profileData, error } = await supabase
             .from('profiles')
             .select(`
@@ -296,7 +279,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       
       set({ user: data.user });
-      
+      console.log('[AuthStore] signIn: User set in store. Calling loadProfile. User:', data.user ? { id: data.user.id, email: data.user.email } : null);
       await get().loadProfile(); 
     } finally {
     }
@@ -385,14 +368,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   signOut: async () => {
+    console.log('[AuthStore] signOut: Attempting to sign out.');
+    stopTokenRefresh();
+    console.log('[AuthStore] signOut: Called stopTokenRefresh.');
     set({ initialized: false });
     try {
       const { error } = await supabase.auth.signOut();
       
       if (error) {
+        console.error('[AuthStore] signOut: Supabase signOut error:', error);
         throw error;
       }
   
+      console.log('[AuthStore] signOut: Supabase signOut successful. Clearing user state.');
       set({ 
         user: null, 
         profile: null,
@@ -408,13 +396,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       useErrorStore.getState().clearError();
   
     } catch (error) {
+      console.error('[AuthStore] signOut: Error during sign out process:', error);
       set({ 
         user: null, 
         profile: null,
         initialized: true,
         showPostSignupOnboarding: false
       });
-      throw error;
     }
   },
   loadUser: async () => {
@@ -437,19 +425,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user });
       
       if (user) {
+        console.log('[AuthStore] loadUser: Existing session found. Calling loadProfile. User:', user ? { id: user.id, email: user.email } : null);
         await get().loadProfile();
         StreakService.updateStreak(user.id);
       }
       set({ initialized: true });
       
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        
+        console.log(`[AuthStore] loadUser (onAuthStateChange): Event: ${event}`, session ? { user: session.user?.id } : 'No session');
         if (event === 'SIGNED_OUT') {
+          console.log('[AuthStore] loadUser (onAuthStateChange): SIGNED_OUT event received. Clearing user state.');
           set({ user: null, profile: null });
           return;
         }
 
         if (!session) {
+          console.log('[AuthStore] loadUser (onAuthStateChange): No session provided with event. Clearing user state.');
           set({ user: null, profile: null });
           return;
         }
@@ -459,6 +450,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         if (newUser) {
           try {
+            console.log('[AuthStore] loadUser (onAuthStateChange): User state updated. Calling loadProfile. User:', newUser ? { id: newUser.id, email: newUser.email } : null);
             await get().loadProfile();
             StreakService.updateStreak(newUser.id);
           } catch {

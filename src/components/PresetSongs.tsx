@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { useAudioStore } from '../store/audioStore';
 import PresetSongCard from './preset/PresetSongCard';
 import type { PresetType } from '../types';
+import { SongState } from '../services/songStateService';
 
 const PRESETS: {
   type: PresetType;
@@ -47,7 +48,8 @@ const PresetSongs: FC = () => {
     handlePresetClick,
     handlePlay,
     handleVariationChange,
-    currentVariationIndices
+    currentVariationIndices,
+    generatingIntent
   } = usePresetSongs();
 
   // Show component only when we have a logged-in user
@@ -105,6 +107,7 @@ const PresetSongs: FC = () => {
               onGenerateClick={handlePresetClick}
               onVariationChange={handleVariationChange}
               currentVariationIndex={currentVariationIndices[type] ?? 0}
+              initialOptimisticState={generatingIntent[type] ? SongState.GENERATING : null}
             />
           );
         })}

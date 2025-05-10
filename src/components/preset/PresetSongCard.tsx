@@ -37,9 +37,10 @@ interface PresetCardProps {
   isPlaying: boolean;
   currentPlayingUrl: string | null;
   onPlayClick: (audioUrl: string, type: PresetType) => void;
-  onGenerateClick: (type: PresetType) => void;
+  onGenerateClick: (type: PresetType) => Promise<void>;
   onVariationChange: (e: MouseEvent<HTMLDivElement>, type: PresetType, direction: 'next' | 'prev') => void;
   currentVariationIndex: number;
+  initialOptimisticState?: SongState | null;
 }
 
 export default function PresetSongCard({
@@ -53,11 +54,12 @@ export default function PresetSongCard({
   onPlayClick,
   onGenerateClick,
   onVariationChange,
-  currentVariationIndex
+  currentVariationIndex,
+  initialOptimisticState = null
 }: PresetCardProps) {
   // Store the previous song ID to detect when it changes
   const prevSongIdRef = useRef<string | undefined>(undefined);
-  const [optimisticSongState, setOptimisticSongState] = useState<SongState | null>(null);
+  const [optimisticSongState, setOptimisticSongState] = useState<SongState | null>(initialOptimisticState);
   
   // Get the current song for this preset type
   const currentSong = useMemo(() => 
@@ -194,14 +196,33 @@ export default function PresetSongCard({
   const globalError = useErrorStore((state) => state.error);
   const isPlayLimitReached = globalError === PLAY_LIMIT_ERROR_MSG;
   
+  // Effect to sync with initialOptimisticState prop if it changes after mount
+  // This ensures that if the parent's intent is cleared while this card is already mounted
+  // and optimistically generating, the local optimistic state can be reset too.
+  useEffect(() => {
+    if (initialOptimisticState === null && optimisticSongState === SongState.GENERATING) {
+      // If parent intent is cleared, and we were optimistically generating, clear local optimistic state too.
+      // This helps if the clearing logic in usePresetSongs (based on actual song state) is faster
+      // or if the component didn't remount but the intent was cleared.
+      setOptimisticSongState(null);
+    }
+    // If the initial prop is GENERATING and we are not (e.g. after a quick failure and revert), re-align.
+    // This case should be rare if initialization is correct.
+    if (initialOptimisticState === SongState.GENERATING && optimisticSongState !== SongState.GENERATING) {
+        setOptimisticSongState(SongState.GENERATING);
+    }
+  }, [initialOptimisticState]);
+  
   // Effect to clear optimistic state when actual state catches up or diverges
   useEffect(() => {
+    // Only clear local optimistic state if it was set (i.e., this card was showing optimistic UI)
     if (optimisticSongState === SongState.GENERATING) {
       if (
-        songState === SongState.GENERATING ||
-        songState === SongState.READY ||
-        songState === SongState.FAILED
+        songState === SongState.GENERATING || // Actual state is now generating (task_id received)
+        songState === SongState.READY ||    // Actual state is ready
+        songState === SongState.FAILED       // Actual state is failed
       ) {
+        // The actual state has caught up or resolved, so we don't need the local optimistic override anymore.
         setOptimisticSongState(null);
       }
     }

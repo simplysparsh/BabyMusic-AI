@@ -9,7 +9,8 @@ import { PRESET_CONFIGS } from '../data/lyrics';
 export default function usePresetSongs() {
   const { user, profile } = useAuthStore();
   const { songs, createSong } = useSongStore();
-  const { isPlaying: _isPlaying, playAudio } = useAudioStore();
+  const { playAudio } = useAudioStore();
+  const [generatingIntent, setGeneratingIntent] = useState<Record<PresetType, boolean>>({} as Record<PresetType, boolean>);
   
   // Filter only preset songs
   const [presetSongs, setPresetSongs] = useState<Song[]>([]);
@@ -44,52 +45,71 @@ export default function usePresetSongs() {
     setPresetSongs(filteredPresetSongs);
   }, [songs]);
 
-  // Handle preset card click
-  const handlePresetClick = useCallback((type: PresetType) => {
-    // If user or profile is missing, we can't proceed
+  // Effect to clear generatingIntent when actual song state catches up
+  useEffect(() => {
+    let intentsChanged = false;
+    const newIntents = { ...generatingIntent };
+
+    (Object.keys(newIntents) as PresetType[]).forEach(type => {
+      if (newIntents[type]) { // If there was an intent for this type
+        const songForType = SongStateService.getSongForPresetType(songs, type); // `songs` from useSongStore
+        const actualState = SongStateService.getSongState(songForType);
+
+        if (actualState === SongState.GENERATING || actualState === SongState.READY || actualState === SongState.FAILED) {
+          newIntents[type] = false;
+          intentsChanged = true;
+        }
+      }
+    });
+
+    if (intentsChanged) {
+      setGeneratingIntent(newIntents);
+    }
+  }, [songs, generatingIntent]);
+
+  // Handle preset card click (this is what PresetSongCard calls onGenerateClick)
+  const handlePresetClick = useCallback(async (type: PresetType) => {
     if (!user?.id || !profile?.babyName) {
-      console.error('User or profile not loaded');
+      console.error('User or profile not loaded for preset click');
+      return; // Or throw new Error to be caught by PresetSongCard
+    }
+
+    const currentSongForType = SongStateService.getSongForPresetType(songs, type);
+    const actualState = currentSongForType ? SongStateService.getSongState(currentSongForType) : SongState.INITIAL;
+
+    // Prevent multiple generation initiations
+    if ((actualState === SongState.GENERATING && currentSongForType?.task_id) || generatingIntent[type]) {
+      console.log(`Preset ${type} generation already in progress (actual: ${actualState}, intent: ${generatingIntent[type]})`);
       return;
     }
 
-    const currentSong = SongStateService.getSongForPresetType(songs, type);
-    const songState = currentSong ? SongStateService.getSongState(currentSong) : SongState.INITIAL;
-    const isGenerating = songState === SongState.GENERATING;
-    const hasFailed = songState === SongState.FAILED;
-    
-    // If the song is already generating, do nothing
-    if (isGenerating) {
+    if (actualState === SongState.READY && currentSongForType?.audio_url) {
+      playAudio(currentSongForType.audio_url);
       return;
     }
-    
-    // If the song is ready (has audio URL), play it
-    if (currentSong && currentSong.audio_url) {
-      playAudio(currentSong.audio_url);
-      return;
+
+    // Set intent just before the async call
+    setGeneratingIntent(prev => ({ ...prev, [type]: true }));
+
+    try {
+      await createSong({
+        name: songNames[type as keyof typeof songNames] || `${type} song`,
+        mood: PRESET_CONFIGS[type].mood,
+        songType: 'preset',
+        preset_type: type,
+        lyrics: PRESET_CONFIGS[type].fallbackLyrics(profile.babyName),
+        gender: profile.gender,
+        ageGroup: profile.ageGroup
+      });
+      // If createSong succeeds, the useEffect watching `songs` will eventually clear the intent.
+    } catch (error) {
+      console.error(`Error in usePresetSongs.handlePresetClick (createSong) for ${type}:`, error);
+      setGeneratingIntent(prev => ({ ...prev, [type]: false })); // Clear intent on failure to initiate
+      // Re-throw the error so PresetSongCard's catch block can also react if needed (e.g. for local optimistic state).
+      // However, the primary mechanism for clearing local optimistic state should be its own useEffect watching actual songState.
+      throw error;
     }
-    
-    // Log the action being taken
-    console.log(`Handling click for ${type} preset:`, {
-      currentSong: currentSong ? {
-        id: currentSong.id,
-        name: currentSong.name,
-        hasFailed,
-        hasAudio: !!currentSong.audio_url
-      } : 'none',
-      action: hasFailed ? 'retrying' : 'generating new'
-    });
-    
-    // Generate a new song
-    createSong({
-      name: songNames[type as keyof typeof songNames],
-      mood: PRESET_CONFIGS[type].mood,
-      songType: 'preset',
-      preset_type: type,
-      lyrics: PRESET_CONFIGS[type].fallbackLyrics(profile.babyName),
-      gender: profile.gender,
-      ageGroup: profile.ageGroup
-    });
-  }, [songs, createSong, playAudio, user, profile, songNames]);
+  }, [songs, createSong, playAudio, user, profile, songNames, generatingIntent, setGeneratingIntent]);
 
   const handlePlay = useCallback((audioUrl: string) => {
     playAudio(audioUrl);
@@ -149,6 +169,7 @@ export default function usePresetSongs() {
     handlePresetClick,
     handlePlay,
     handleVariationChange,
-    currentVariationIndices: variationIndices
+    currentVariationIndices: variationIndices,
+    generatingIntent
   };
 }

@@ -1,9 +1,29 @@
-import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useMemo, useRef } from 'react';
+import { ComponentType, KeyboardEvent, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Play, Pause, RefreshCw, Wand2, ChevronLeft, ChevronRight, LockKeyhole } from 'lucide-react';
 import type { PresetType, Song } from '../../types';
 import { SongStateService, SongState } from '../../services/songStateService';
 import SongGenerationTimer from '../common/SongGenerationTimer';
 import { useErrorStore } from '../../store/errorStore';
+
+/**
+ * Optimistic UI Pattern Implementation
+ * 
+ * This component implements the "optimistic UI" pattern for better perceived performance:
+ * 
+ * - When a user clicks "Generate" or "Retry", we immediately show the "Generating..." state
+ *   in the UI before waiting for the backend API call to complete.
+ * - We use a local state (optimisticSongState) to temporarily override the actual song state
+ *   from the store until the backend confirms the action (or reports failure).
+ * - This approach improves the perceived responsiveness of the app as users get immediate 
+ *   visual feedback when they trigger an action, even if the actual backend operation 
+ *   takes a second or two to initiate.
+ * - If the initial API call fails (before a task_id is assigned), we revert the optimistic 
+ *   state and show the original state again.
+ * - Once the backend confirms the state transition (by assigning a task_id), the component 
+ *   switches from optimistic to actual state.
+ * 
+ * See also: docs/frontend.md for more on UI patterns in the application.
+ */
 
 // Define the specific error message for play limit
 const PLAY_LIMIT_ERROR_MSG = 'Monthly play limit reached. Upgrade to Premium for unlimited listening!';
@@ -37,6 +57,7 @@ export default function PresetSongCard({
 }: PresetCardProps) {
   // Store the previous song ID to detect when it changes
   const prevSongIdRef = useRef<string | undefined>(undefined);
+  const [optimisticSongState, setOptimisticSongState] = useState<SongState | null>(null);
   
   // Get the current song for this preset type
   const currentSong = useMemo(() => 
@@ -173,23 +194,39 @@ export default function PresetSongCard({
   const globalError = useErrorStore((state) => state.error);
   const isPlayLimitReached = globalError === PLAY_LIMIT_ERROR_MSG;
   
+  // Effect to clear optimistic state when actual state catches up or diverges
+  useEffect(() => {
+    if (optimisticSongState === SongState.GENERATING) {
+      if (
+        songState === SongState.GENERATING ||
+        songState === SongState.READY ||
+        songState === SongState.FAILED
+      ) {
+        setOptimisticSongState(null);
+      }
+    }
+  }, [songState, optimisticSongState]);
+  
   // Handle card click
-  const handleCardClick = useCallback(() => {
+  const handleCardClick = useCallback(async () => {
     // Ignore if generating or if play limit is reached for a READY song
-    if ((songState === SongState.GENERATING && !currentSong?.audio_url) || 
+    const currentDisplayState = optimisticSongState || songState;
+
+    if ((currentDisplayState === SongState.GENERATING && !currentSong?.audio_url) ||
         (songState === SongState.READY && isPlayLimitReached)) {
-      console.log(`Card click ignored: ${type} preset - State: ${songState}, PlayLimitReached: ${isPlayLimitReached}`);
+      console.log(`Card click ignored: ${type} preset - DisplayState: ${currentDisplayState}, ActualState: ${songState}, PlayLimitReached: ${isPlayLimitReached}`);
       return;
     }
-    
+
     // Log the current state for debugging
     console.log(`Card click for ${type} preset:`, {
+      optimisticSongState,
       songState,
       isReady,
       selectedVersionUrl: urlOfCurrentVersion || 'none',
       songId: currentSong?.id || 'none'
     });
-    
+
     switch (songState) {
       case SongState.READY:
         // Play the currently selected version if it's ready, has a URL, and limit NOT reached
@@ -201,16 +238,46 @@ export default function PresetSongCard({
       case SongState.FAILED:
         // Handle retry if the song has failed and can be retried
         if (canRetry) {
-          onGenerateClick(type);
+          setOptimisticSongState(SongState.GENERATING);
+          try {
+            await onGenerateClick(type);
+            // If onGenerateClick resolves without error, optimistic state will be cleared by useEffect
+          } catch (error) {
+            console.error(`[PresetSongCard] Error during onGenerateClick (retry) for type ${type}:`, error);
+            // Error store should be updated by onGenerateClick's source (createSong action)
+            // Revert optimistic state if the initiation itself failed
+            setOptimisticSongState(null);
+          }
         }
         break;
         
       default:
-        // For initial state or any other state, generate a new song
-        onGenerateClick(type);
+        // For SongState.INITIAL or any other state
+        setOptimisticSongState(SongState.GENERATING);
+        try {
+          await onGenerateClick(type);
+          // If onGenerateClick resolves without error, optimistic state will be cleared by useEffect
+        } catch (error) {
+          console.error(`[PresetSongCard] Error during onGenerateClick (initial generate) for type ${type}:`, error);
+          // Error store should be updated by onGenerateClick's source (createSong action)
+          // Revert optimistic state if the initiation itself failed
+          setOptimisticSongState(null);
+        }
         break;
     }
-  }, [songState, urlOfCurrentVersion, type, onPlayClick, onGenerateClick, canRetry, isReady, currentSong?.id, currentSong?.audio_url, isPlayLimitReached]);
+  }, [
+    songState,
+    optimisticSongState,
+    urlOfCurrentVersion,
+    type,
+    onPlayClick,
+    onGenerateClick,
+    canRetry,
+    isReady,
+    currentSong?.id,
+    currentSong?.audio_url,
+    isPlayLimitReached
+  ]);
 
   // Get color scheme based on preset type
   const getColorScheme = () => {
@@ -255,12 +322,13 @@ export default function PresetSongCard({
   // Render the status indicator based on song state
   const renderStatusIndicator = () => {
     // Create a unique key for the status indicator based on song state and task_id
-    const statusKey = `${type}-status-${songState}-${currentSong?.task_id || currentSong?.id || 'none'}`;
+    const displayState = optimisticSongState || songState;
+    const statusKey = `${type}-status-${displayState}-${currentSong?.task_id || currentSong?.id || 'none'}-${optimisticSongState ? 'optimistic' : 'actual'}`;
     
     // Determine if the *currently selected* version is the one playing
     const isThisVersionPlaying = isPlaying && currentPlayingUrl === urlOfCurrentVersion;
 
-    // Show Lock icon if READY but limit reached
+    // Show Lock icon if READY but limit reached (based on actual songState)
     if (songState === SongState.READY && isPlayLimitReached) {
       return (
         <span key={statusKey + '-limit'} className="inline-flex items-center text-xs bg-yellow-500/20 text-yellow-300
@@ -272,7 +340,7 @@ export default function PresetSongCard({
       );
     }
 
-    if (songState === SongState.GENERATING) {
+    if (displayState === SongState.GENERATING) {
       return (
         <span key={statusKey} className="inline-flex items-center text-xs bg-primary/20 text-white
                        px-3 py-1.5 rounded-full ml-2 border border-primary/20
@@ -288,7 +356,7 @@ export default function PresetSongCard({
       );
     }
     
-    if (songState === SongState.FAILED) {
+    if (displayState === SongState.FAILED) {
       return (
         <span key={statusKey} className="inline-flex items-center text-xs bg-red-500/20 text-white
                        px-3 py-1.5 rounded-full ml-2 border border-red-500/20
@@ -299,7 +367,7 @@ export default function PresetSongCard({
       );
     }
     
-    if (songState === SongState.READY) {
+    if (displayState === SongState.READY) {
       return (
         <span key={statusKey} className="inline-flex items-center text-xs bg-gradient-to-br from-black/80 to-black/90 text-green-400
                        px-3 py-1.5 rounded-full ml-2 border border-green-500/30
@@ -339,6 +407,7 @@ export default function PresetSongCard({
       aria-disabled={isCardDisabled}
       data-preset-type={type}
       data-song-state={songState}
+      data-optimistic-song-state={optimisticSongState || 'null'}
       data-play-limit-reached={isPlayLimitReached}
       className={`relative overflow-hidden rounded-2xl p-5 sm:p-7 text-left min-h-[100px] 
                  ${isCardDisabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer active:scale-95'}
@@ -361,14 +430,14 @@ export default function PresetSongCard({
           {renderStatusIndicator()}
         </div>
         <p className="text-xs text-white/60 transition-colors pr-10">
-          {songState === SongState.GENERATING ? (
+          {(optimisticSongState === SongState.GENERATING || songState === SongState.GENERATING) ? (
             <span className="text-primary animate-pulse inline-block">
               Creating your special song...
             </span>
           ) : description}
         </p>
         <div className="flex items-center justify-start mt-3">
-          {hasVariations && songState !== SongState.GENERATING && currentSong && (
+          {hasVariations && (optimisticSongState !== SongState.GENERATING && songState !== SongState.GENERATING) && currentSong && (
             <div className="flex items-center gap-1 text-white/60">
               <div
                 role="button"

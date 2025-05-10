@@ -13,6 +13,34 @@ Baby Music AI is an innovative web application that creates personalized lullabi
 - 🔄 **Multiple Variations** - Get different versions of each song.
 - 🎯 **Easy Management** - Organize and play your collection of melodies.
 
+## 🚀 Getting Started / Running Locally
+
+To get a local copy up and running, follow these simple steps:
+
+1.  **Clone the repository:**
+    ```sh
+    git clone <repository-url-here>
+    cd babymusic-ai
+    ```
+
+2.  **Install NPM packages:**
+    ```sh
+    npm install
+    ```
+
+3.  **Set up environment variables:**
+    Run the interactive setup script. This will guide you through creating a `.env.local` file with the necessary API keys and configuration for the frontend.
+    ```sh
+    npx tsx scripts/setup-env.ts
+    ```
+    For backend Supabase function variables, refer to the [Deployment Documentation](./docs/deployment.md#environment-variables-and-database).
+
+4.  **Run the development server:**
+    ```sh
+    npm run dev
+    ```
+    This will start the Vite development server, typically at `http://localhost:5173`.
+
 ## 🚀 Tech Stack
 
 - **Frontend**: React + TypeScript + Vite

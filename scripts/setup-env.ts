@@ -8,8 +8,16 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-// Required environment variables
-const requiredEnvVars = [
+// Define the structure for environment variable prompts
+interface EnvVarPrompt {
+  name: string;
+  description: string;
+  isBoolean?: boolean;
+  defaultValue?: string;
+}
+
+// Environment variables to prompt for
+const envVarPrompts: EnvVarPrompt[] = [
   {
     name: 'VITE_SUPABASE_URL',
     description: 'Your Supabase URL (e.g., https://your-project.supabase.co)'
@@ -28,7 +36,25 @@ const requiredEnvVars = [
   },
   {
     name: 'VITE_WEBHOOK_SECRET',
-    description: 'Your webhook secret key (can be any random string)'
+    description: 'Your webhook secret key for local testing (can be any random string)'
+  },
+  {
+    name: 'VITE_DISABLE_SIGNUP',
+    description: 'Disable new user signups?',
+    isBoolean: true,
+    defaultValue: 'false'
+  },
+  {
+    name: 'VITE_FEATURE_STREAK_ENABLED',
+    description: 'Enable feature streak?',
+    isBoolean: true,
+    defaultValue: 'false'
+  },
+  {
+    name: 'VITE_SHOW_UNAVAILABLE_BANNER',
+    description: 'Show unavailable banner?',
+    isBoolean: true,
+    defaultValue: 'false'
   }
 ];
 
@@ -36,13 +62,29 @@ const requiredEnvVars = [
 async function promptForEnvVars(): Promise<Record<string, string>> {
   const envVars: Record<string, string> = {};
 
-  for (const envVar of requiredEnvVars) {
+  for (const envVar of envVarPrompts) {
+    let promptMessage: string;
+    if (envVar.isBoolean) {
+      promptMessage = `Enable ${envVar.name} (${envVar.description})? (y/n) [default: ${envVar.defaultValue === 'true' ? 'y' : 'n'}]: `;
+    } else {
+      promptMessage = `Enter ${envVar.name} (${envVar.description}): `;
+    }
+
     const value = await new Promise<string>(resolve => {
-      rl.question(`Enter ${envVar.name} (${envVar.description}): `, answer => {
-        resolve(answer.trim());
+      rl.question(promptMessage, answer => {
+        let finalValue = answer.trim();
+        if (envVar.isBoolean) {
+          if (finalValue.toLowerCase() === 'y') {
+            finalValue = 'true';
+          } else if (finalValue.toLowerCase() === 'n') {
+            finalValue = 'false';
+          } else {
+            finalValue = envVar.defaultValue || 'false'; // Default to 'false' if invalid or empty
+          }
+        }
+        resolve(finalValue);
       });
     });
-
     envVars[envVar.name] = value;
   }
 
@@ -92,7 +134,9 @@ async function main() {
 
   console.log('');
   console.log('Setup complete! Your .env.local file has been created with the provided environment variables.');
+  console.log('Ensure any Supabase backend functions are configured separately if needed (see docs/deployment.md).');
   console.log('You can now run the application with:');
+  console.log('  npm install (if you haven\'t already)');
   console.log('  npm run dev');
 
   rl.close();

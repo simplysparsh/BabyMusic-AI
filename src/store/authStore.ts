@@ -373,22 +373,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     console.log('[AuthStore] signOut: Called stopTokenRefresh.');
     set({ initialized: false });
     try {
-      const signOutPromise = supabase.auth.signOut();
-      // Fallback timeout in case Supabase signOut hangs (network issues or concurrent refresh)
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('SIGN_OUT_TIMEOUT')), 15000);
+      // 1. Clear client-side session immediately so UI can update
+      await supabase.auth.signOut({ scope: 'local' } as any);
+
+      // 2. Fire-and-forget server sign-out (revoke refresh token). We don't
+      //    await it; a slow network must not block the UI.
+      supabase.auth.signOut().catch(err => {
+        console.warn('[AuthStore] Background global signOut error (ignored):', err);
       });
 
-      const { error } = await Promise.race([
-        signOutPromise,
-        timeoutPromise
-      ]) as { error: any };
-      
-      if (error) {
-        console.error('[AuthStore] signOut: Supabase signOut error:', error);
-        throw error;
-      }
-  
+      // The rest of the clean-up proceeds instantly.
+
       console.log('[AuthStore] signOut: Supabase signOut successful. Clearing user state.');
       set({ 
         user: null, 

@@ -6,7 +6,7 @@ import PremiumPage from './pages/PremiumPage';
 import { useEffect, useState, Suspense } from 'react';
 import { useAuthStore } from './store/authStore'; 
 import { useSongStore } from './store/songStore';
-import { startTokenRefresh, stopTokenRefresh, registerSessionExpiredCallback } from './lib/supabase';
+import { forceTokenRefresh, getLastSuccessfulRefresh, registerSessionExpiredCallback } from './lib/supabase';
 import OnboardingModal from './components/auth/OnboardingModal';
 
 function App() {
@@ -31,39 +31,24 @@ function App() {
     return () => document.removeEventListener('click', handleClick);
   }, []);
 
-  // Handle authentication state changes
+  // Handle authentication state changes (without manual interval)
   useEffect(() => {
-    if (initialized) {
-      if (user) {
-        // Start token refresh when user is authenticated
-        startTokenRefresh();
-        
-        // Register the session expired callback
-        registerSessionExpiredCallback(signOut);
-        
-        // Load songs and set up realtime
-        loadSongs();
-        setupSubscription(user.id);
-      } else {
-        // Stop token refresh when user is not authenticated
-        stopTokenRefresh();
-      }
+    if (initialized && user) {
+      registerSessionExpiredCallback(signOut);
+      loadSongs();
+      setupSubscription(user.id);
     }
   }, [initialized, user, loadSongs, setupSubscription, signOut]);
-
-  // When component unmounts or user logs out, ensure token refresh is stopped
-  useEffect(() => {
-    return () => {
-      stopTokenRefresh();
-    };
-  }, []);
 
   // Refresh token when app regains focus after being in background
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && user) {
-        console.log('App became visible, refreshing token');
-        startTokenRefresh(); // This will clear existing interval and start a new one
+        const lastRefresh = getLastSuccessfulRefresh();
+        if (Date.now() - lastRefresh > 45 * 60 * 1000) {
+          console.log('App became visible, performing backup token refresh');
+          forceTokenRefresh();
+        }
       }
     };
 

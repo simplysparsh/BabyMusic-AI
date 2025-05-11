@@ -4,7 +4,7 @@
 // - Related: src/store/song/types.ts (types)
 // - Related: src/lib/supabase.ts (database)
 
-import { supabase, supabaseWithRetry, forceTokenRefresh } from '../../lib/supabase';
+import { supabase, supabaseWithRetry } from '../../lib/supabase';
 import { useAuthStore } from '../authStore';
 import { SongService, mapDatabaseSongToSong } from '../../services/songService';
 import { SongStateService } from '../../services/songStateService';
@@ -112,8 +112,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         throw new Error('Baby name is required');
       }
       
-      // Force token refresh before critical operations
-      await forceTokenRefresh();
+      // Removed proactive token refresh; rely on Supabase auto-refresh and supabaseWithRetry retry logic.
       
       // --- Call Check Function using enhanced client with auto-retry --- 
       console.log(`[Action] Invoking check-generation-allowance function...`);
@@ -271,8 +270,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
     const babyName = profile.babyName || 'Baby'; // Use profile directly
     
     try {
-      // Force token refresh before retrying
-      await forceTokenRefresh();
+      // No proactive token refresh; retry logic will handle on auth failure.
       
       // --- Add Check Function Call using enhanced client --- 
       console.log(`[Action] Invoking check-generation-allowance before retrying song ${songId}...`);

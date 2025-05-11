@@ -373,7 +373,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     console.log('[AuthStore] signOut: Called stopTokenRefresh.');
     set({ initialized: false });
     try {
-      const { error } = await supabase.auth.signOut();
+      const signOutPromise = supabase.auth.signOut();
+      // Fallback timeout in case Supabase signOut hangs (network issues or concurrent refresh)
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('SIGN_OUT_TIMEOUT')), 15000);
+      });
+
+      const { error } = await Promise.race([
+        signOutPromise,
+        timeoutPromise
+      ]) as { error: any };
       
       if (error) {
         console.error('[AuthStore] signOut: Supabase signOut error:', error);
@@ -397,6 +406,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   
     } catch (error) {
       console.error('[AuthStore] signOut: Error during sign out process:', error);
+      if (error instanceof Error && error.message === 'SIGN_OUT_TIMEOUT') {
+        // Force clear storage as fallback
+        import('../lib/supabase').then(({ clearSupabaseStorage }) => clearSupabaseStorage());
+      }
       set({ 
         user: null, 
         profile: null,

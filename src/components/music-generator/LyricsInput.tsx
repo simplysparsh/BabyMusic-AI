@@ -28,7 +28,7 @@ export default function LyricsInput({ value, onChange, isFromScratch = false, on
   return (
     <div>
       <label className="block text-lg font-medium text-white/90 mb-2">
-        {isFromScratch ? 'Your Song Ideas' : 'Customize Your Song'}
+        {isFromScratch ? 'Enter Your Song Ideas' : 'Customize Your Song'}
         <span className="text-white/60 text-sm ml-2">
           {(isFromScratch || showCustomInput) && `(${MAX_INPUT_LENGTH} characters max)`}
         </span>

@@ -196,31 +196,58 @@ export default function PresetSongCard({
   const globalError = useErrorStore((state) => state.error);
   const isPlayLimitReached = globalError === PLAY_LIMIT_ERROR_MSG;
   
-  // Effect to sync with initialOptimisticState prop if it changes after mount
-  // This ensures that if the parent's intent is cleared while this card is already mounted
-  // and optimistically generating, the local optimistic state can be reset too.
+  /**
+   * Optimistic UI Intent Synchronization
+   * 
+   * This component implements optimistic UI to give immediate visual feedback when users
+   * click "Generate" or "Retry" buttons, without waiting for backend confirmation.
+   * 
+   * Problem: During song retry, the song transitions through multiple states:
+   *   FAILED → INITIAL → GENERATING
+   * 
+   * Without careful handling, this causes a UI flicker sequence:
+   *   "Retry" → "Generate" → "Generating..."
+   * 
+   * Solution: We maintain the optimistic "Generating..." state throughout the entire
+   * state transition by only clearing it when:
+   * 1. Parent intent has explicitly changed (intent flag cleared)
+   * 2. AND the actual song state has stabilized (real GENERATING or READY state)
+   * 
+   * This prevents premature clearing during intermediate states (FAILED→INITIAL),
+   * creating a smooth, flicker-free retry experience.
+   */
+  const prevInitialOptimisticRef = useRef<SongState | null>(initialOptimisticState);
+
   useEffect(() => {
-    if (initialOptimisticState === null && optimisticSongState === SongState.GENERATING) {
-      // If parent intent is cleared, and we were optimistically generating, clear local optimistic state too.
-      // This helps if the clearing logic in usePresetSongs (based on actual song state) is faster
-      // or if the component didn't remount but the intent was cleared.
+    const prev = prevInitialOptimisticRef.current;
+  
+    // Only clear optimistic UI when parent intent changes AND actual state is stable.
+    // This prevents the "Retry → Generate → Generating" flicker by maintaining 
+    // optimistic UI through the FAILED → INITIAL transition.
+    if (
+      prev === SongState.GENERATING &&
+      initialOptimisticState === null &&
+      (songState === SongState.GENERATING || songState === SongState.READY)
+    ) {
       setOptimisticSongState(null);
     }
-    // If the initial prop is GENERATING and we are not (e.g. after a quick failure and revert), re-align.
-    // This case should be rare if initialization is correct.
+
+    // Case 2: Parent has (re)set its intent to GENERATING while local state is not reflecting it.
     if (initialOptimisticState === SongState.GENERATING && optimisticSongState !== SongState.GENERATING) {
-        setOptimisticSongState(SongState.GENERATING);
+      setOptimisticSongState(SongState.GENERATING);
     }
-  }, [initialOptimisticState]);
+
+    // Always update the ref for the next run.
+    prevInitialOptimisticRef.current = initialOptimisticState;
+  }, [initialOptimisticState, optimisticSongState, songState]);
   
-  // Effect to clear optimistic state when actual state catches up or diverges
   useEffect(() => {
     // Only clear local optimistic state if it was set (i.e., this card was showing optimistic UI)
     if (optimisticSongState === SongState.GENERATING) {
       if (
         songState === SongState.GENERATING || // Actual state is now generating (task_id received)
-        songState === SongState.READY ||    // Actual state is ready
-        songState === SongState.FAILED       // Actual state is failed
+        songState === SongState.READY        // Actual state is ready
+        // We intentionally DO NOT clear on FAILED state to maintain optimistic UI during retries
       ) {
         // The actual state has caught up or resolved, so we don't need the local optimistic override anymore.
         setOptimisticSongState(null);

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase, supabaseWithRetry, stopTokenRefresh } from '../lib/supabase';
+import { supabase, supabaseWithRetry, stopTokenRefresh, clearSupabaseStorage } from '../lib/supabase';
 import { useSongStore } from './songStore';
 import { useErrorStore } from './errorStore';
 import { ProfileService } from '../services/profileService';
@@ -403,7 +403,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error('[AuthStore] signOut: Error during sign out process:', error);
       if (error instanceof Error && error.message === 'SIGN_OUT_TIMEOUT') {
         // Force clear storage as fallback
-        import('../lib/supabase').then(({ clearSupabaseStorage }) => clearSupabaseStorage());
+        clearSupabaseStorage();
       }
       set({ 
         user: null, 

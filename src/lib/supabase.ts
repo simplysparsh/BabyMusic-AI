@@ -125,10 +125,19 @@ export async function forceTokenRefresh(): Promise<{ error: any | null }> {
 export const supabaseWithRetry = {
   functions: {
     invoke: async (functionName: string, options?: any) => {
+      const start = Date.now();
+      console.log(`[supabaseWithRetry] Calling function ${functionName}`);
+      const TIMEOUT_MS = 15000;
+      const makeTimeout = () => new Promise<never>((_, reject) => setTimeout(() => reject(new Error('FUNCTION_TIMEOUT')), TIMEOUT_MS));
       try {
-        // Try the function call normally first
-        const result = await supabase.functions.invoke(functionName, options);
-        
+        // Race the real invoke against timeout
+        const result = await Promise.race([
+          supabase.functions.invoke(functionName, options),
+          makeTimeout()
+        ]) as { data: any; error: any };
+
+        console.log(`[supabaseWithRetry] Function ${functionName} responded in ${Date.now() - start} ms`, result.error ? 'with error' : 'success');
+
         // If there's an error that might be auth-related, try refreshing the token and calling again
         if (result.error && (
           result.error.message?.includes('JWT') || 
@@ -144,12 +153,19 @@ export const supabaseWithRetry = {
             return { data: null, error: refreshed.error };
           }
           
-          // Retry the function call after token refresh
-          return await supabase.functions.invoke(functionName, options);
+          // Retry the function call after token refresh (with timeout again)
+          return await Promise.race([
+            supabase.functions.invoke(functionName, options),
+            makeTimeout()
+          ]) as { data: any; error: any };
         }
         
         return result;
       } catch (error) {
+        if (error instanceof Error && error.message === 'FUNCTION_TIMEOUT') {
+          console.error(`[supabaseWithRetry] Function ${functionName} timed out after ${TIMEOUT_MS} ms`);
+          return { data: null, error }; // surface timeout to caller
+        }
         // For unexpected errors, still try to refresh and retry once
         console.error(`Error calling function ${functionName}:`, error);
         
@@ -159,7 +175,10 @@ export const supabaseWithRetry = {
             console.error(`Retry failed for function ${functionName}:`, refreshed.error);
             return { data: null, error: refreshed.error };
           }
-          return await supabase.functions.invoke(functionName, options);
+          return await Promise.race([
+            supabase.functions.invoke(functionName, options),
+            makeTimeout()
+          ]) as { data: any; error: any };
         } catch (retryError) {
           console.error(`Retry failed for function ${functionName}:`, retryError);
           return { data: null, error: retryError };

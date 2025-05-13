@@ -9,7 +9,6 @@ import { DEFAULT_LANGUAGE } from '../types';
 import type { UserProfile, Language, AgeGroup } from '../types';
 import type { PresetType as _PresetType } from '../types';
 import { PRESET_CONFIGS as _PRESET_CONFIGS } from '../data/lyrics';
-import { StreakService } from '../services/streakService';
 
 interface AuthState {
   user: User | null;
@@ -17,8 +16,9 @@ interface AuthState {
   initialized: boolean;
   isLoading: boolean;
   showPostSignupOnboarding: boolean;
+  showPostOAuthOnboarding: boolean;
+  error: string | null;
   
-  // Add loadProfile to the interface
   loadProfile: () => Promise<void>;
   
   updateProfile: (updates: { 
@@ -28,14 +28,15 @@ interface AuthState {
     birthYear?: number;
     ageGroup?: AgeGroup;
     gender?: string;
-  }) => Promise<UserProfile>; // Change return type to match implementation
+  }) => Promise<UserProfile>;
   
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, babyName: string, gender: string) => Promise<void>;
   signOut: () => Promise<void>;
-  loadUser: () => Promise<void | (() => void)>; // Fix return type to match implementation
+  loadUser: () => Promise<void | (() => void)>;
   hidePostSignupOnboarding: () => void;
-  incrementPlayCount: () => Promise<void>; // Made async
+  hidePostOAuthOnboarding: () => void;
+  incrementPlayCount: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -44,6 +45,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initialized: false,
   isLoading: false,
   showPostSignupOnboarding: false,
+  showPostOAuthOnboarding: false,
+  error: null,
+  
   loadProfile: async () => {
     const user = get().user;
     console.log('[AuthStore] loadProfile: Called. User from store:', user ? { id: user.id, email: user.email } : null);
@@ -90,7 +94,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             if (error.code === 'PGRST116' || error.message.includes('contains 0 rows')) {
               console.error('Profile not found for user, signing out.');
               await supabase.auth.signOut();
-              set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false });
+              set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false, showPostOAuthOnboarding: false });
               return;
             }
             throw error;
@@ -143,16 +147,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           
             set({ profile: userProfile });
             
-            if (!userProfile.birthMonth || !userProfile.birthYear) {
-              console.log('Profile incomplete (missing birth month/year), setting showPostSignupOnboarding flag.');
-              set({ showPostSignupOnboarding: true });
+            if (!userProfile.babyName || !userProfile.gender || !userProfile.birthMonth || !userProfile.birthYear) {
+              console.log('Profile incomplete (missing babyName, gender, birthMonth, or birthYear), setting showPostOAuthOnboarding flag.');
+              set({ showPostOAuthOnboarding: true });
             } else {
-               if (get().showPostSignupOnboarding) {
-                  console.log('Profile complete, ensuring showPostSignupOnboarding flag is false.');
-                  set({ showPostSignupOnboarding: false });
+               if (get().showPostOAuthOnboarding) {
+                  console.log('Profile complete, ensuring showPostOAuthOnboarding flag is false.');
+                  set({ showPostOAuthOnboarding: false });
                }
             }
-            
+            if (get().showPostSignupOnboarding && !get().showPostOAuthOnboarding) {
+              set({ showPostSignupOnboarding: false });
+            }
+
+            set({ error: null });
             return;
           } else {
             throw new Error('No profile data received despite no error');
@@ -164,7 +172,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           if (retryCount === MAX_RETRIES) {
             console.error('Max retries reached for loading profile. Signing out.');
             await supabase.auth.signOut();
-            set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false }); 
+            set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false, showPostOAuthOnboarding: false }); 
+            set({ error: err instanceof Error ? err.message : 'Failed to load profile.' });
             return;
           }
         }
@@ -176,342 +185,205 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   
-  updateProfile: async ({ babyName: newBabyName, preferredLanguage, birthMonth, birthYear, ageGroup, gender }) => {
+  updateProfile: async (updates) => {
     const user = get().user;
     if (!user) throw new Error('Not authenticated');
     const errorStore = useErrorStore.getState();
     const currentProfile = get().profile;
 
-    console.log('Starting profile update with data:', {
-      newBabyName,
-      preferredLanguage,
-      birthMonth,
-      birthYear,
-      ageGroup,
-      gender
-    });
+    console.log('Starting profile update with data:', updates);
 
     errorStore.clearError();
 
-    if (!newBabyName) {
+    if (!updates.babyName || !updates.babyName.trim()) {
       throw new Error('Baby name is required');
     }
 
     try {
-      const trimmedNewName = newBabyName.trim();
-      if (!trimmedNewName) {
-        throw new Error('Baby name is required');
-      }
-
-      const updatedProfile = await ProfileService.updateProfile({
+      const updatedProfileData = await ProfileService.updateProfile({
         userId: user.id,
-        babyName: trimmedNewName,
-        preferredLanguage,
-        birthMonth,
-        birthYear,
-        ageGroup,
-        gender
+        ...updates,
+        babyName: updates.babyName.trim(),
       });
 
-      console.log('Profile updated successfully:', updatedProfile);
+      console.log('Profile updated successfully:', updatedProfileData);
 
-      set({ profile: updatedProfile });
+      set({ profile: updatedProfileData });
 
-      const genderForRegen = gender || updatedProfile.gender;
+      if (get().showPostOAuthOnboarding && updatedProfileData.babyName && updatedProfileData.gender && updatedProfileData.birthMonth && updatedProfileData.birthYear) {
+        set({ showPostOAuthOnboarding: false });
+      }
 
-      if (trimmedNewName !== currentProfile?.babyName && genderForRegen) {
-        console.log('Baby name changed, triggering preset song regeneration...');
+      const genderForRegen = updates.gender || updatedProfileData.gender;
+
+      if ((updates.babyName.trim() !== currentProfile?.babyName || (updates.gender && !currentProfile?.gender)) && genderForRegen) {
+        console.log('Baby name or gender updated, triggering preset song regeneration...');
         
-        /**
-         * PRESET SONG REGENERATION STRATEGY:
-         * 
-         * 1. IMMEDIATELY REMOVE SONGS FROM STORE:
-         *    Before starting the backend regeneration process, we first remove
-         *    all preset songs from the UI state using notifyPresetSongsRegenerating.
-         *    This creates an immediate visual effect where preset cards disappear briefly.
-         * 
-         * 2. THEN START BACKEND REGENERATION:
-         *    The regeneratePresetSongs service method will:
-         *    - Delete all preset songs from the database
-         *    - Create new ones with the updated baby name
-         *    - The subscription system will handle adding the new songs to the store
-         * 
-         * This two-step approach ensures a consistent UI experience during regeneration,
-         * preventing cards from showing mixed states or stale data.
-         */
-        
-        // Clear out preset songs from the store immediately using the store's method
         const songStore = useSongStore.getState();
         songStore.notifyPresetSongsRegenerating();
         
-        // Now start the actual backend regeneration process
-        SongService.regeneratePresetSongs(user.id, trimmedNewName, genderForRegen)
+        SongService.regeneratePresetSongs(user.id, updates.babyName.trim(), genderForRegen, true)
           .catch(error => {
             console.error('Background preset song regeneration failed:', error);
           });
-      } else if (trimmedNewName !== currentProfile?.babyName && !genderForRegen) {
-          console.warn('Baby name changed, but skipping preset song regeneration because gender is missing.');
       }
-
-      return updatedProfile;
+      return updatedProfileData;
     } catch (error) {
-      console.error('Profile update failed:', error);
-      if (currentProfile) {
-        set({ profile: currentProfile });
-      }
-      errorStore.setError(error instanceof Error ? error.message : 'Failed to update profile');
+      console.error('Error updating profile:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update profile.';
+      errorStore.setError(errorMessage);
+      set({ error: errorMessage });
       throw error;
     }
   },
-  signIn: async (email: string, password: string) => {
+  signIn: async (email, password) => {
+    set({ isLoading: true, initialized: false, error: null });
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      if (!data.session) {
-        throw new Error('No session returned after sign in');
-      }
-      
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
       set({ user: data.user });
-      console.log('[AuthStore] signIn: User set in store. Calling loadProfile. User:', data.user ? { id: data.user.id, email: data.user.email } : null);
       await get().loadProfile(); 
+    } catch (error: any) {
+      console.error("Sign-in error:", error);
+      const message = error.message || 'An unknown sign-in error occurred.';
+      set({ user: null, profile: null, error: message });
+      throw error;
     } finally {
+      set({ isLoading: false, initialized: true });
     }
   },
   signUp: async (email: string, password: string, babyName: string, gender: string) => {
-    set({ initialized: false });
-    
+    set({ isLoading: true, initialized: false, error: null });
     if (!email.trim() || !password.trim() || !babyName.trim() || !gender) {
-      throw new Error('All fields are required');
+      const missingFieldsError = new Error('All fields (email, password, baby name, gender) are required for sign up.');
+      set({ error: missingFieldsError.message });
+      throw missingFieldsError;
     }
-
     try {
-      console.log('Starting signup process...');
-      
-      if (!supabase) {
-        console.error('Supabase client not initialized');
-        throw new Error('Authentication service configuration error. Please try again later.');
-      }
-      
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
-        password
+        password,
       });
+      if (signUpError) throw signUpError;
+      if (!data.user) throw new Error('Authentication failed: No user data received after sign up.');
+      
+      set({ user: data.user });
 
-      if (signUpError) {
-        console.error('Supabase signup error:', signUpError);
-        throw signUpError;
-      }
-      
-      if (!data.user) {
-        console.error('No user returned after sign up');
-        throw new Error('Authentication failed: No user data received after sign up.');
-      }
-      
-      console.log('Auth user created successfully, creating profile...');
-      
-      const user = data.user;
-      set({ user });
-
-      const trimmedBabyName = babyName.trim();
-      const userId = user.id;
-      const userEmail = user.email!;
       const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const profileDataToInsert = {
+        id: data.user.id,
+        baby_name: babyName.trim(),
+        email: data.user.email!,
+        gender: gender,
+        preferred_language: DEFAULT_LANGUAGE,
+        created_at: new Date().toISOString(),
+        timezone: userTimeZone,
+      };
 
-      try {
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert([{ 
-            id: userId,
-            baby_name: trimmedBabyName,
-            email: userEmail,
-            gender: gender,
-            preferred_language: DEFAULT_LANGUAGE,
-            created_at: new Date().toISOString(),
-            timezone: userTimeZone
-          }]);
-          
-        if (insertError) {
-          console.error('Error creating profile entry:', insertError);
-          throw new Error('Failed to create user profile after authentication.');
-        }
-
-        console.log('Profile created successfully for user:', userId);
-
-      } catch (profileError) {
-        console.error('Exception during profile creation:', profileError);
-        throw profileError;
+      const { error: insertError } = await supabase.from('profiles').insert([profileDataToInsert]);
+      if (insertError) {
+        console.error('Error creating profile entry:', insertError);
+        throw new Error('Failed to create user profile after authentication.');
       }
-
-      SongService.regeneratePresetSongs(userId, trimmedBabyName, gender, true)
-        .then(() => {
-            console.log(`Preset song regeneration initiated for user ${userId}`);
-        })
-        .catch((error) => {
-          console.error(`Error initiating preset song regeneration for user ${userId}:`, error);
-        });
 
       await get().loadProfile();
 
-      set({ initialized: true });
+      SongService.regeneratePresetSongs(data.user.id, babyName.trim(), gender, true)
+        .catch(err => console.error('Error regenerating presets on signup:', err));
+      
+      if (!get().profile?.birthMonth || !get().profile?.birthYear) {
+          set({ showPostOAuthOnboarding: true });
+      }
 
-    } catch (error) {
-      set({ user: null, initialized: true }); 
+    } catch (error: any) {
       console.error("Signup failed:", error);
-      throw error; 
+      const message = error.message || 'An unknown sign-up error occurred.';
+      set({ user: null, profile: null, error: message });
+      throw error;
+    } finally {
+      set({ isLoading: false, initialized: true });
     }
   },
   signOut: async () => {
-    console.log('[AuthStore] signOut: Attempting to sign out.');
-    stopTokenRefresh();
-    console.log('[AuthStore] signOut: Called stopTokenRefresh.');
+    set({ isLoading: true });
     try {
-      // 1. Clear client-side session immediately so UI can update
-      await supabase.auth.signOut({ scope: 'local' } as any);
-      console.log('[AuthStore] signOut: Supabase local signOut successful.');
-
-      // 2. Fire-and-forget server sign-out (revoke refresh token). We don't
-      //    await it; a slow network must not block the UI.
-      supabase.auth.signOut().catch(err => {
-        console.warn('[AuthStore] Background global signOut error (ignored):', err);
-      });
-      console.log('[AuthStore] signOut: Supabase global signOut initiated (fire-and-forget).');
-
-      // 3. Clear all local application state AFTER Supabase operations
-      console.log('[AuthStore] signOut: Clearing all user-related application state.');
-      set({ 
-        user: null, 
-        profile: null,
-        initialized: true, // Mark as initialized with no user
-        showPostSignupOnboarding: false
-      });
-  
-      useSongStore.setState({
-        songs: [],
-        processingTaskIds: new Set<string>()     
-      }, true);
-  
-      useErrorStore.getState().clearError();
-      console.log('[AuthStore] signOut: Application state cleared. Sign-out complete.');
-  
-    } catch (error) {
-      console.error('[AuthStore] signOut: Error during sign out process:', error);
-      // Even on error, ensure local state is cleared as best as possible
-      if (error instanceof Error && error.message === 'SIGN_OUT_TIMEOUT') {
-        // This block is currently unreachable as SIGN_OUT_TIMEOUT is not actively thrown,
-        // but kept for potential future reinstatement of a timeout mechanism.
-        console.warn('[AuthStore] signOut: SIGN_OUT_TIMEOUT error caught. Forcing storage clear.');
-        clearSupabaseStorage();
-      }
-      set({ 
-        user: null, 
-        profile: null,
-        initialized: true, // Mark as initialized with no user
-        showPostSignupOnboarding: false
-      });
-      // Ensure other stores are also reset on error
-      useSongStore.setState({
-        songs: [],
-        processingTaskIds: new Set<string>()
-      }, true);
-      useErrorStore.getState().clearError();
-      console.log('[AuthStore] signOut: Application state cleared after error. Sign-out process ended with error.');
-    }
-  },
-  loadUser: async () => {
-    try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      set({ initialized: false });
-      
-      if (sessionError) {
-        await supabase.auth.signOut();
-        set({ user: null, profile: null, initialized: true });
-        return;
-      }
-      
-      if (!session) {
-        set({ user: null, profile: null, initialized: true });
-        return;
-      }
-      
-      const user = session.user;
-      set({ user });
-      
-      if (user) {
-        console.log('[AuthStore] loadUser: Existing session found. Calling loadProfile. User:', user ? { id: user.id, email: user.email } : null);
-        await get().loadProfile();
-        StreakService.updateStreak(user.id);
-      }
-      set({ initialized: true });
-      
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log(`[AuthStore] loadUser (onAuthStateChange): Event: ${event}`, session ? { user: session.user?.id } : 'No session');
-        if (event === 'SIGNED_OUT') {
-          console.log('[AuthStore] loadUser (onAuthStateChange): SIGNED_OUT event received. Clearing user state.');
-          set({ user: null, profile: null });
-          return;
-        }
-
-        if (!session) {
-          console.log('[AuthStore] loadUser (onAuthStateChange): No session provided with event. Clearing user state.');
-          set({ user: null, profile: null });
-          return;
-        }
-
-        const newUser = session.user;
-        set({ user: newUser });
-
-        if (newUser) {
-          try {
-            console.log('[AuthStore] loadUser (onAuthStateChange): User state updated. Calling loadProfile. User:', newUser ? { id: newUser.id, email: newUser.email } : null);
-            await get().loadProfile();
-            StreakService.updateStreak(newUser.id);
-          } catch {
-            await supabase.auth.signOut();
-            set({ user: null, profile: null });
-          }
-        }
-      });
-      
-      return () => subscription.unsubscribe();
-
-    } catch {
       await supabase.auth.signOut();
-      set({ 
-        user: null, 
-        profile: null,
-        initialized: true,
-        showPostSignupOnboarding: false
-      });
+      stopTokenRefresh(); 
+      clearSupabaseStorage();
+      set({ user: null, profile: null, initialized: false, showPostSignupOnboarding: false, showPostOAuthOnboarding: false, error: null });
+    } catch (error: any) {
+      console.error("Sign-out error:", error);
+      const message = error.message || 'An unknown sign-out error occurred.';
+      set({ error: message });
+      throw error;
+    } finally {
+      set({ isLoading: false });
     }
   },
-  hidePostSignupOnboarding: () => {
-    set({ showPostSignupOnboarding: false });
-  },
   
-  // Updated function to call backend
-  incrementPlayCount: async (): Promise<void> => {
+  loadUser: async () => {
+    console.log('[AuthStore] loadUser: Initializing user session...');
+    set({ isLoading: true, error: null });
     try {
-      if (!get().user) {
-        console.log('User not logged in, cannot increment play count');
-        return;
-      }
-
-      const { data, error } = await supabaseWithRetry.functions.invoke('increment-play-count');
-      
-      if (error) {
-        console.error('Error incrementing play count:', error);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        set({ user: session.user });
+        await get().loadProfile();
       } else {
-        console.log('Play count incremented successfully:', data);
+        set({ user: null, profile: null });
       }
+    } catch (error: any) {
+      console.error("Error loading user session:", error);
+      const message = error.message || 'Failed to load session.';
+      set({ user: null, profile: null, error: message });
+    } finally {
+      set({ isLoading: false, initialized: true });
+    }
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`[AuthStore] onAuthStateChange: event='${event}', session exists=`, !!session);
+      set({ isLoading: true, error: null });
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        if (session?.user) {
+          set({ user: session.user });
+          await get().loadProfile();
+        } else {
+          console.warn('[AuthStore] onAuthStateChange: Signed in event but no session user.');
+          set({ user: null, profile: null });
+        }
+      } else if (event === 'SIGNED_OUT') {
+        set({ user: null, profile: null, showPostSignupOnboarding: false, showPostOAuthOnboarding: false, error: null });
+      }
+      set({ isLoading: false, initialized: true });
+    });
+
+    return () => {
+      if (authListener && authListener.subscription) {
+        authListener.subscription.unsubscribe();
+      }
+    };
+  },
+
+  hidePostSignupOnboarding: () => set({ showPostSignupOnboarding: false }),
+  hidePostOAuthOnboarding: () => set({ showPostOAuthOnboarding: false }),
+
+  incrementPlayCount: async () => {
+    const user = get().user;
+    const profile = get().profile;
+    if (!user || !profile) return;
+
+    try {
+      const updatedPlays = (profile.monthlyPlaysCount || 0) + 1;
+      set(state => ({ 
+        profile: state.profile ? { ...state.profile, monthlyPlaysCount: updatedPlays } : null 
+      }));
+      
+      await supabaseWithRetry.functions.invoke('increment-play-count');
     } catch (error) {
-      console.error('Error incrementing play count:', error);
+      console.error("Failed to increment play count in DB:", error);
+      set(state => ({ 
+        profile: state.profile ? { ...state.profile, monthlyPlaysCount: profile.monthlyPlaysCount } : null 
+      }));
     }
   }
 }));

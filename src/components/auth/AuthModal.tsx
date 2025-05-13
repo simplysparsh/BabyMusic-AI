@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { X } from 'lucide-react';
+import SocialAuthButtons from './SocialAuthButtons';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -384,16 +385,26 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
               : "Set up your account to start your baby's musical adventure"}
         </p>
         
-        {renderStep()}
+        {/* Social Auth Buttons Moved Here */}
+        {(!isSignIn || (isSignIn && step === 'credentials')) && (
+          <div className="mb-6">
+            <SocialAuthButtons />
+          </div>
+        )}
+
+        {/* 'or' Divider - only shown if not signing in or if social buttons are present */}
+        {(!isSignIn || (isSignIn && step === 'credentials')) && (
+          <div className="mb-6 text-center relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10"></div>
+            </div>
+            <div className="relative">
+              <span className="px-4 text-sm bg-[#2A2D3E] text-white/40">or</span>
+            </div>
+          </div>
+        )}
         
-        <div className="mt-8 text-center relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10"></div>
-          </div>
-          <div className="relative">
-            <span className="px-4 text-sm bg-[#2A2D3E] text-white/40">or</span>
-          </div>
-        </div>
+        {renderStep()}
         
         <p className="mt-6 text-center text-white/60 text-sm">
           {isSignIn ? "Don't have an account?" : "Already have an account?"}{' '}

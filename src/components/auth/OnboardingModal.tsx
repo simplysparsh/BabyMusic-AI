@@ -6,7 +6,7 @@ import { DEFAULT_LANGUAGE } from '../../types';
 
 interface OnboardingModalProps {
   isOpen: boolean;
-  onComplete: (updates: Partial<BabyProfile>) => void;
+  onComplete: (updates: Partial<BabyProfile> & { babyName?: string; gender?: string }) => void;
   userProfile: BabyProfile | null;
 }
 
@@ -34,28 +34,42 @@ const getAgeGroup = (month: number, year: number): AgeGroup => {
 
 export default function OnboardingModal({ isOpen, onComplete, userProfile }: OnboardingModalProps) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [babyName, setBabyName] = useState(userProfile?.babyName || '');
+  const [gender, setGender] = useState(userProfile?.gender || '');
   const [birthMonth, setBirthMonth] = useState<number>(userProfile?.birthMonth || CURRENT_MONTH);
   const [birthYear, setBirthYear] = useState<number>(userProfile?.birthYear || CURRENT_YEAR);
   const [preferredLanguage, setPreferredLanguage] = useState<Language>(userProfile?.preferredLanguage || DEFAULT_LANGUAGE);
   const [error, setError] = useState<string | null>(null);
   const [birthDateError, setBirthDateError] = useState<string | null>(null);
+  const [babyNameError, setBabyNameError] = useState<string | null>(null);
+  const [genderError, setGenderError] = useState<string | null>(null);
   const { updateProfile } = useAuthStore();
+
+  const needsBabyInfo = !userProfile?.babyName || !userProfile?.gender;
 
   useEffect(() => {
     if (isOpen && userProfile) {
       console.log('OnboardingModal opened for user profile:', userProfile);
+      setBabyName(userProfile.babyName || '');
+      setGender(userProfile.gender || '');
       setBirthMonth(userProfile.birthMonth || CURRENT_MONTH);
       setBirthYear(userProfile.birthYear || CURRENT_YEAR);
       setPreferredLanguage(userProfile.preferredLanguage || DEFAULT_LANGUAGE);
       setError(null);
       setBirthDateError(null);
+      setBabyNameError(null);
+      setGenderError(null);
       setIsUpdating(false);
     } else if (isOpen) {
+      setBabyName('');
+      setGender('');
       setBirthMonth(CURRENT_MONTH);
       setBirthYear(CURRENT_YEAR);
       setPreferredLanguage(DEFAULT_LANGUAGE);
       setError(null);
       setBirthDateError(null);
+      setBabyNameError(null);
+      setGenderError(null);
       setIsUpdating(false);
     }
   }, [isOpen, userProfile]);
@@ -66,43 +80,53 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
     // Reset errors
     setError(null);
     setBirthDateError(null);
-    
+    setBabyNameError(null);
+    setGenderError(null);
+
+    let hasError = false;
+
+    // Validate baby name if it was required
+    if (needsBabyInfo && !babyName.trim()) {
+      setBabyNameError('Please enter your baby\'s name');
+      hasError = true;
+    }
+
+    // Validate gender if it was required
+    if (needsBabyInfo && !gender) {
+      setGenderError('Please select your baby\'s gender');
+      hasError = true;
+    }
+
     // Validate birth date (UI only)
     const currentDate = new Date();
     const selectedDate = new Date(birthYear, birthMonth - 1);
     
     if (selectedDate > currentDate) {
       setBirthDateError("Birth date cannot be in the future");
-      return;
+      hasError = true;
     }
-    
+
+    if (hasError) return; // Stop if validation failed
+
     try {
-      // Calculate final age group just before updating
-      const finalAgeGroup = getAgeGroup(birthMonth, birthYear); 
-      console.log('Completing onboarding with data:', {
+      const finalAgeGroup = getAgeGroup(birthMonth, birthYear);
+      const profileUpdates = {
+        babyName: babyName.trim(),
+        gender: gender,
         birthMonth,
         birthYear,
-        ageGroup: finalAgeGroup, // Log the calculated age group
+        ageGroup: finalAgeGroup,
         preferredLanguage,
-      });
+      };
+
+      console.log('Completing onboarding with data:', profileUpdates);
       setIsUpdating(true);
       
-      await updateProfile({
-        babyName: userProfile.babyName!, 
-        birthMonth,
-        birthYear,
-        ageGroup: finalAgeGroup, // Pass calculated age group
-        preferredLanguage,
-      });
+      await updateProfile(profileUpdates);
       
       console.log('Profile updated successfully via onboarding');
       
-      onComplete({
-        birthMonth,
-        birthYear,
-        ageGroup: finalAgeGroup, // Pass calculated age group in callback
-        preferredLanguage,
-      });
+      onComplete(profileUpdates);
     } catch (error) {
       console.error('Failed to update profile during onboarding:', error);
       setError('Failed to save information. Please try again.');
@@ -110,6 +134,8 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
       setIsUpdating(false);
     }
   };
+
+  const currentBabyName = babyName || userProfile.babyName || 'your baby';
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-lg z-50 flex items-center justify-center p-4">
@@ -128,13 +154,59 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-white">Tell Us More</h2>
-                <p className="text-white/60">Help us personalize the experience for {userProfile.babyName || 'your baby'}</p>
+                <p className="text-white/60">Help us personalize the experience for {currentBabyName}</p>
               </div>
             </div>
 
+            {needsBabyInfo && (
+              <div>
+                <label className="block text-sm font-medium text-white/90 mb-2">
+                  What's your baby's name?
+                  <span className="text-primary ml-1" title="Required">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={babyName}
+                  onChange={(e) => {
+                    setBabyName(e.target.value);
+                    if (babyNameError) setBabyNameError(null);
+                  }}
+                  className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${babyNameError ? 'border-red-400' : ''}`}
+                  required
+                  placeholder="Enter your baby's name"
+                  autoFocus
+                />
+                {babyNameError && <p className="text-red-400 text-sm mt-1">{babyNameError}</p>}
+              </div>
+            )}
+
+            {needsBabyInfo && (
+              <div>
+                <label className="block text-sm font-medium text-white/90 mb-2">
+                  Baby's Gender
+                  <span className="text-primary ml-1" title="Required">*</span>
+                </label>
+                <select
+                  value={gender}
+                  onChange={(e) => {
+                    setGender(e.target.value);
+                    if (genderError) setGenderError(null);
+                  }}
+                  className={`input w-full bg-white/[0.07] hover:bg-white/[0.09] transition-colors ${genderError ? 'border-red-400' : ''}`}
+                  required
+                >
+                  <option value="">Select gender</option>
+                  <option value="boy">Boy</option>
+                  <option value="girl">Girl</option>
+                  <option value="other">Other</option>
+                </select>
+                {genderError && <p className="text-red-400 text-sm mt-1">{genderError}</p>}
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-white/90 mb-2">
-                When was {userProfile.babyName || 'your baby'} born?
+                When was {needsBabyInfo ? 'your baby' : currentBabyName} born?
                 <span className="text-primary ml-1" title="Required">*</span>
               </label>
               <div className="grid grid-cols-2 gap-4">

@@ -11,6 +11,15 @@ const PrivacyPolicy: React.FC = () => {
 
         <p className="mb-4">
           Thank you for using Baby Music AI ("we", "our", or "us"). We care about your privacy and want you to understand how we collect, use, and protect your data.
+          <span className="block mt-2">If you sign in using Google, please see the dedicated section below detailing how we handle Google user data.</span>
+        </p>
+
+        <h2 className="text-2xl font-semibold mt-8 mb-4 text-accent">Google Sign-In Data (OAuth)</h2>
+        <p className="mb-4">
+          If you choose to sign in using Google, we utilize Google OAuth facilitated by our authentication provider (Supabase) to access your basic profile information. Specifically, we access your email address and name as provided by Google, based on standard `openid`, `email`, and `profile` scopes.
+        </p>
+        <p className="mb-4">
+          This information is used solely for the purpose of authenticating your identity and creating or linking your Baby Music AI account. We store this data securely within our user database. We do not use this Google data for any other purpose, nor do we share it with any third parties beyond the necessary service providers involved in the authentication process (Google and Supabase).
         </p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-accent">1. Information We Collect</h2>

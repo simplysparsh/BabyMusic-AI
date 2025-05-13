@@ -371,24 +371,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     console.log('[AuthStore] signOut: Attempting to sign out.');
     stopTokenRefresh();
     console.log('[AuthStore] signOut: Called stopTokenRefresh.');
-    set({ initialized: false });
     try {
       // 1. Clear client-side session immediately so UI can update
       await supabase.auth.signOut({ scope: 'local' } as any);
+      console.log('[AuthStore] signOut: Supabase local signOut successful.');
 
       // 2. Fire-and-forget server sign-out (revoke refresh token). We don't
       //    await it; a slow network must not block the UI.
       supabase.auth.signOut().catch(err => {
         console.warn('[AuthStore] Background global signOut error (ignored):', err);
       });
+      console.log('[AuthStore] signOut: Supabase global signOut initiated (fire-and-forget).');
 
-      // The rest of the clean-up proceeds instantly.
-
-      console.log('[AuthStore] signOut: Supabase signOut successful. Clearing user state.');
+      // 3. Clear all local application state AFTER Supabase operations
+      console.log('[AuthStore] signOut: Clearing all user-related application state.');
       set({ 
         user: null, 
         profile: null,
-        initialized: true,
+        initialized: true, // Mark as initialized with no user
         showPostSignupOnboarding: false
       });
   
@@ -398,19 +398,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }, true);
   
       useErrorStore.getState().clearError();
+      console.log('[AuthStore] signOut: Application state cleared. Sign-out complete.');
   
     } catch (error) {
       console.error('[AuthStore] signOut: Error during sign out process:', error);
+      // Even on error, ensure local state is cleared as best as possible
       if (error instanceof Error && error.message === 'SIGN_OUT_TIMEOUT') {
-        // Force clear storage as fallback
+        // This block is currently unreachable as SIGN_OUT_TIMEOUT is not actively thrown,
+        // but kept for potential future reinstatement of a timeout mechanism.
+        console.warn('[AuthStore] signOut: SIGN_OUT_TIMEOUT error caught. Forcing storage clear.');
         clearSupabaseStorage();
       }
       set({ 
         user: null, 
         profile: null,
-        initialized: true,
+        initialized: true, // Mark as initialized with no user
         showPostSignupOnboarding: false
       });
+      // Ensure other stores are also reset on error
+      useSongStore.setState({
+        songs: [],
+        processingTaskIds: new Set<string>()
+      }, true);
+      useErrorStore.getState().clearError();
+      console.log('[AuthStore] signOut: Application state cleared after error. Sign-out process ended with error.');
     }
   },
   loadUser: async () => {

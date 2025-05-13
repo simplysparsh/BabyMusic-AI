@@ -388,17 +388,10 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
               : "Set up your account to start your baby's musical adventure"}
         </p>
         
-        {/* Social Auth Buttons Moved Here */}
-        {/* Conditionally render based on the feature flag */}
-        {enableGoogleOAuth && (!isSignIn || (isSignIn && step === 'credentials')) && (
-          <div className="mb-6">
-            <SocialAuthButtons />
-          </div>
-        )}
-
-        {/* 'or' Divider - only shown if social buttons are present OR if it's the signup form */}
+        {renderStep()}
+        
         {(enableGoogleOAuth && (!isSignIn || (isSignIn && step === 'credentials'))) && (
-          <div className="mb-6 text-center relative">
+          <div className="my-6 text-center relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-white/10"></div>
             </div>
@@ -407,8 +400,12 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
             </div>
           </div>
         )}
-        
-        {renderStep()}
+
+        {enableGoogleOAuth && (!isSignIn || (isSignIn && step === 'credentials')) && (
+          <div className="mt-6">
+            <SocialAuthButtons />
+          </div>
+        )}
         
         <p className="mt-6 text-center text-white/60 text-sm">
           {isSignIn ? "Don't have an account?" : "Already have an account?"}{' '}

@@ -3,6 +3,9 @@ import { useAuthStore } from '../../store/authStore';
 import { X } from 'lucide-react';
 import SocialAuthButtons from './SocialAuthButtons';
 
+// Read the feature flag
+const enableGoogleOAuth = import.meta.env.VITE_ENABLE_GOOGLE_OAUTH === 'true';
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -386,14 +389,15 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
         </p>
         
         {/* Social Auth Buttons Moved Here */}
-        {(!isSignIn || (isSignIn && step === 'credentials')) && (
+        {/* Conditionally render based on the feature flag */}
+        {enableGoogleOAuth && (!isSignIn || (isSignIn && step === 'credentials')) && (
           <div className="mb-6">
             <SocialAuthButtons />
           </div>
         )}
 
-        {/* 'or' Divider - only shown if not signing in or if social buttons are present */}
-        {(!isSignIn || (isSignIn && step === 'credentials')) && (
+        {/* 'or' Divider - only shown if social buttons are present OR if it's the signup form */}
+        {(enableGoogleOAuth && (!isSignIn || (isSignIn && step === 'credentials'))) && (
           <div className="mb-6 text-center relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-white/10"></div>

@@ -279,7 +279,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         created_at: new Date().toISOString(),
         timezone: userTimeZone,
       };
-
+          
       const { error: insertError } = await supabase.from('profiles').insert([profileDataToInsert]);
       if (insertError) {
         console.error('Error creating profile entry:', insertError);
@@ -299,7 +299,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error("Signup failed:", error);
       const message = error.message || 'An unknown sign-up error occurred.';
       set({ user: null, profile: null, error: message });
-      throw error;
+      throw error; 
     } finally {
       set({ isLoading: false, initialized: true });
     }
@@ -339,7 +339,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } finally {
       set({ isLoading: false, initialized: true });
     }
-
+      
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log(`[AuthStore] onAuthStateChange: event='${event}', session exists=`, !!session);
       set({ isLoading: true, error: null });

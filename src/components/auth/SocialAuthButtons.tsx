@@ -1,24 +1,13 @@
-import { useState } from 'react';
 import { signInWithGoogle } from '../../services/authService';
 
-// Placeholder icons for FB and X - replace with actual icons later
-const FacebookIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg"><path d="M22.676 0H1.324C.593 0 0 .593 0 1.324v21.352C0 23.407.593 24 1.324 24h11.494v-9.294H9.689v-3.621h3.129V8.41c0-3.1 1.893-4.785 4.659-4.785 1.325 0 2.463.099 2.795.142v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.309h3.587l-.467 3.622h-3.12V24h6.116c.73 0 1.323-.593 1.323-1.324V1.324C24 .593 23.407 0 22.676 0z"/></svg>
-);
-const XIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="black" xmlns="http://www.w3.org/2000/svg"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.847h-7.407l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.153h7.59l5.243 6.931ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
-);
-
 export default function SocialAuthButtons() {
-  const [showOtherOptions, setShowOtherOptions] = useState(false);
-
-  const baseButtonStyles = "w-full flex items-center justify-center gap-2 bg-white text-black font-medium py-3 rounded-xl shadow hover:bg-gray-100 transition-all duration-200 border border-gray-200";
+  const googleButtonStyles = "w-full flex items-center justify-center gap-2 bg-white text-black font-medium py-3 rounded-xl shadow hover:bg-gray-100 transition-all duration-200 border border-gray-200";
 
   return (
     <div className="flex flex-col gap-3 w-full">
       <button
         onClick={signInWithGoogle}
-        className={baseButtonStyles}
+        className={googleButtonStyles}
         aria-label="Continue with Google"
       >
         <svg width="20" height="20" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -36,36 +25,6 @@ export default function SocialAuthButtons() {
         </svg>
         Continue with Google
       </button>
-
-      {!showOtherOptions && (
-        <button
-          onClick={() => setShowOtherOptions(true)}
-          className={baseButtonStyles}
-          aria-label="See other options"
-        >
-          See other options
-        </button>
-      )}
-
-      {showOtherOptions && (
-        <div className="flex gap-3 w-full">
-          <button 
-            onClick={() => alert('Facebook Sign-in (not implemented yet)')}
-            className={`${baseButtonStyles} flex-1`}
-            aria-label="Continue with Facebook"
-          >
-            <FacebookIcon />
-          </button>
-          <button 
-            onClick={() => alert('X Sign-in (not implemented yet)')} 
-            className={`${baseButtonStyles} flex-1`}
-            aria-label="Continue with X (formerly Twitter)"
-          >
-            <XIcon />
-          </button>
-          {/* Add Apple button here later if needed */}
-        </div>
-      )}
     </div>
   );
 } 

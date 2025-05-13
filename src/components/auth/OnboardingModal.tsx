@@ -96,7 +96,7 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
       setGenderError('Please select your baby\'s gender');
       hasError = true;
     }
-
+    
     // Validate birth date (UI only)
     const currentDate = new Date();
     const selectedDate = new Date(birthYear, birthMonth - 1);
@@ -107,9 +107,9 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
     }
 
     if (hasError) return; // Stop if validation failed
-
+    
     try {
-      const finalAgeGroup = getAgeGroup(birthMonth, birthYear);
+      const finalAgeGroup = getAgeGroup(birthMonth, birthYear); 
       const profileUpdates = {
         babyName: babyName.trim(),
         gender: gender,

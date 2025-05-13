@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { Music2, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Settings } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import AuthModal from './auth/AuthModal';
 import EmailSignupForm from './EmailSignupForm';
@@ -52,7 +52,11 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
             <a href="/" className="flex items-center space-x-2 relative hover:opacity-80 transition-opacity">
-              <Music2 className="w-6 h-6 sm:w-8 sm:h-8 text-primary animate-float" />
+              <img 
+                src="/logo.png" 
+                alt="BabyMusic AI Logo" 
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full transition-transform duration-300 ease-in-out hover:scale-105"
+              /> 
               <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 BabyMusic AI
               </span>

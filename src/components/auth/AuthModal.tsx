@@ -41,6 +41,10 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
     }
   }, [isOpen, defaultMode]);
 
+  const shouldShowOAuthOptions = () => {
+    return enableGoogleOAuth && (isSignIn || (!isSignIn && step === 'babyNameFirst'));
+  };
+
   if (!isOpen) return null;
 
   const handleBabyNameFirstSubmit = (e: FormEvent) => {
@@ -390,7 +394,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
         
         {renderStep()}
         
-        {(enableGoogleOAuth && (!isSignIn || (isSignIn && step === 'credentials'))) && (
+        {shouldShowOAuthOptions() && (
           <div className="my-6 text-center relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-white/10"></div>
@@ -401,7 +405,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
           </div>
         )}
 
-        {enableGoogleOAuth && (!isSignIn || (isSignIn && step === 'credentials')) && (
+        {shouldShowOAuthOptions() && (
           <div className="mt-6">
             <SocialAuthButtons />
           </div>

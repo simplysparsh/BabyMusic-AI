@@ -376,7 +376,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
           <X className="w-5 h-5" />
         </button>
         
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-primary via-white to-secondary 
+        <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-primary via-white to-secondary 
                      bg-clip-text text-transparent mb-2">
           {isSignIn 
             ? 'Welcome Back' 

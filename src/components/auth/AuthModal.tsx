@@ -384,13 +384,16 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
               ? 'Tell Us About Your Baby' 
               : 'Create Account'}
         </h2>
-        <p className="text-white/60 text-sm mb-8">
-          {isSignIn 
-            ? "Sign in to continue your musical journey" 
-            : step === 'babyNameFirst'
-              ? "Let's start by getting your baby's name"
-              : "Set up your account to start your baby's musical adventure"}
-        </p>
+        {isSignIn && (
+          <p className="text-white/60 text-sm mb-8">
+            Sign in to continue your musical journey
+          </p>
+        )}
+        {(!isSignIn && step !== 'babyNameFirst') && (
+          <p className="text-white/60 text-sm mb-8">
+            Set up your account to start your baby's musical adventure
+          </p>
+        )}
         
         {renderStep()}
         

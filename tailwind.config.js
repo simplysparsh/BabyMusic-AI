@@ -8,7 +8,7 @@ export default {
         nunito: ['"Nunito"', 'sans-serif'] // Add Nunito
       },
       colors: {
-        primary: '#FFB5E8',    // Soft pink
+        primary: '#FF9DD5',    // Slightly darker pink for better contrast with white text
         secondary: '#B5DEFF',  // Baby blue
         accent: '#AFF6D6',     // Mint green
         background: {
@@ -35,7 +35,7 @@ export default {
     themes: [
       {
         babymusic: {
-          "primary": "#FFB5E8",
+          "primary": "#FF9DD5",
           "secondary": "#B5DEFF",
           "accent": "#AFF6D6",
           "neutral": "#2A2D3E",

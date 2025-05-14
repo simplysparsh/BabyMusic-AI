@@ -1,16 +1,49 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    react({
-      babel: {
-        // Only apply console removal in production builds
-        plugins: 
-          process.env.NODE_ENV === 'production' 
-            ? ['transform-remove-console']
-            : []
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['logo.svg'], // Make sure your logo is included
+      manifest: {
+        name: 'BabyMusic AI',
+        short_name: 'BabyMusic',
+        description: 'AI-powered music generation for your little one\'s special moments.', // You can refine this
+        start_url: '/',
+        display: 'standalone',
+        theme_color: '#ADD8E6',
+        background_color: '#FFFFFF',
+        icons: [
+          {
+            src: 'pwa-64x64.png',
+            sizes: '64x64',
+            type: 'image/png'
+          },
+          {
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: 'pwa-maskable-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
+        ]
+      },
+      devOptions: {
+        enabled: true // Enable PWA in development for testing
       }
     })
   ],

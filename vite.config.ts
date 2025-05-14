@@ -15,8 +15,8 @@ export default defineConfig({
         description: 'AI-powered music generation for your little one\'s special moments.', // You can refine this
         start_url: '/',
         display: 'standalone',
-        theme_color: '#ADD8E6',
-        background_color: '#FFFFFF',
+        theme_color: '#2A2D3E',
+        background_color: '#2A2D3E',
         icons: [
           {
             src: 'pwa-64x64.png',

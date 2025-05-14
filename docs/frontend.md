@@ -134,3 +134,14 @@ The frontend components are designed with user experience in mind, incorporating
 - **Intuitive Controls**: Easy-to-use interface for all features
 
 By leveraging these UI/UX considerations and the power of React, the Baby Music AI frontend components work together to create a seamless, engaging, and user-friendly experience for parents and their little ones.
+
+## Progressive Web App (PWA) Features
+
+The frontend is enhanced with PWA capabilities to provide a more native app-like experience, primarily through the `vite-plugin-pwa` Vite plugin.
+
+- **Manifest Generation**: A `manifest.webmanifest` is automatically generated, including app name, icons, theme colors, start URL, and display mode (`standalone`). This enables the "Add to Home Screen" functionality.
+- **Service Worker**: A service worker is generated (using Workbox via the plugin) to cache application assets. This improves load times and provides basic offline fallback capabilities. The service worker is configured to auto-update when new versions of the app are deployed.
+- **Asset Generation**: PWA-specific icons (for the manifest, Apple touch icons, favicons) are generated from `public/logo.svg` using `@vite-pwa/assets-generator`. This process is configured in `pwa-assets.config.ts`.
+- **Richer Install UI**: Screenshots of the application (stored in `public/screenshots/`) are included in the manifest to provide users with a preview during the PWA installation process on supported platforms.
+
+These features contribute to making BabyMusic AI installable and more accessible, behaving more like a native application on users' devices.

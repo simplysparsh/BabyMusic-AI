@@ -108,3 +108,35 @@ The application is deployed on Netlify, with the following configuration:
 - **Redirects**: All routes redirect to `index.html` to support SPA routing
 
 This architecture allows for a scalable, modular, and maintainable application that can easily integrate with various AI services and backend providers.
+
+## Progressive Web App (PWA) Integration
+
+To enhance user experience and provide app-like capabilities, Baby Music AI is configured as a Progressive Web App (PWA). This allows users to "install" the application to their home screen on mobile devices and use it as a standalone app.
+
+### Key PWA Features Implemented:
+
+*   **Web App Manifest (`manifest.webmanifest`):**
+    *   Configured via `vite-plugin-pwa` in `vite.config.ts`.
+    *   Defines app name (`BabyMusic AI`), short name (`BabyMusic`), start URL (`/`), display mode (`standalone`), theme colors, and icons.
+    *   Includes icons of various sizes generated from `public/logo.svg` by `@vite-pwa/assets-generator`.
+    *   Specifies screenshots for a richer installation UI on supported platforms.
+*   **Service Worker:**
+    *   Generated automatically by `vite-plugin-pwa` using Workbox.
+    *   Handles pre-caching of core application assets for basic offline availability and faster loads.
+    *   Configured for `autoUpdate` to seamlessly update the service worker when new app versions are deployed.
+*   **"Add to Home Screen" (A2HS) Prompt:**
+    *   The setup enables browsers to prompt users to add the application to their home screen.
+*   **PWA Assets Generation:**
+    *   Icons (including favicons, Apple touch icons, and various PWA icon sizes) are generated from `public/logo.svg` using `@vite-pwa/assets-generator`.
+    *   The generation is configured in `pwa-assets.config.ts` and can be run with `npm run generate-pwa-assets`.
+    *   Generated assets are placed in the `public` directory and linked in `index.html` and the web app manifest.
+
+### Configuration Files:
+
+*   `vite.config.ts`: Contains the main `VitePWA` plugin configuration, including manifest details.
+*   `pwa-assets.config.ts`: Configures the PWA assets generator.
+*   `index.html`: Includes links for favicons and Apple touch icons. The manifest link is auto-injected.
+*   `public/logo.svg`: The source image for all generated PWA icons.
+*   `public/screenshots/`: Contains screenshots for the PWA installation prompt.
+
+This PWA setup provides a more integrated and accessible experience for users, particularly on mobile devices.

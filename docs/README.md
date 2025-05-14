@@ -5,6 +5,7 @@ Welcome to the comprehensive documentation for the Baby Music AI project! This d
 ## Table of Contents
 
 - [Architecture Overview](./architecture.md)
+  - Includes Progressive Web App (PWA) Integration details
 - [Frontend Components](./frontend.md)
 - [Backend Services](./backend.md)
 - [API Integration](./api-integration.md)

@@ -1,7 +1,7 @@
 import { signInWithGoogle } from '../../services/authService';
 
 export default function SocialAuthButtons() {
-  const googleButtonStyles = "w-full flex items-center justify-center gap-2 bg-white text-black font-medium py-3 rounded-xl shadow hover:bg-gray-100 transition-all duration-200 border border-gray-200";
+  const googleButtonStyles = "w-full flex items-center justify-center gap-2 bg-white text-black font-medium py-2.5 rounded-xl shadow hover:bg-gray-100 transition-all duration-200 border border-gray-200";
 
   return (
     <div className="flex flex-col gap-3 w-full">

@@ -1,14 +1,20 @@
 import { signInWithGoogle } from '../../services/authService';
 
-export default function SocialAuthButtons() {
-  const googleButtonStyles = "w-full flex items-center justify-center gap-2 bg-white text-black font-medium py-2.5 rounded-xl shadow hover:bg-gray-100 transition-all duration-200 border border-gray-200";
+interface SocialAuthButtonsProps {
+  mode?: 'signin' | 'signup';
+}
+
+export default function SocialAuthButtons({ mode = 'signin' }: SocialAuthButtonsProps) {
+  const googleButtonStyles = "w-full flex items-center justify-center gap-2 bg-white text-black font-medium py-2 rounded-xl shadow hover:bg-gray-100 transition-all duration-200 border border-gray-200";
+  
+  const buttonText = mode === 'signup' ? 'Signup with Google' : 'Continue with Google';
 
   return (
     <div className="flex flex-col gap-3 w-full">
       <button
         onClick={signInWithGoogle}
         className={googleButtonStyles}
-        aria-label="Continue with Google"
+        aria-label={buttonText}
       >
         <svg width="20" height="20" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g clipPath="url(#clip0_17_40)">
@@ -23,7 +29,7 @@ export default function SocialAuthButtons() {
             </clipPath>
           </defs>
         </svg>
-        Continue with Google
+        {buttonText}
       </button>
     </div>
   );

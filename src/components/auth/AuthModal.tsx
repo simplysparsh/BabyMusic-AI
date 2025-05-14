@@ -163,8 +163,8 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                   {babyNameError}
                 </p>
               )}
-              <p className="text-xs text-white/40 mt-2">
-                We'll use this to personalize songs for your little one
+              <p className="text-xs text-white/40 mt-2 whitespace-nowrap overflow-hidden text-ellipsis">
+                To personalize songs for your little one
               </p>
             </div>
 
@@ -177,7 +177,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
             <button
               type="submit"
               className="w-full bg-gradient-to-r from-primary to-secondary text-black font-medium
-                       py-2.5 rounded-xl hover:opacity-90 transition-all duration-300
+                       py-2 rounded-xl hover:opacity-90 transition-all duration-300
                        shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40
                        hover:scale-[1.02] active:scale-[0.98]"
             >
@@ -261,7 +261,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="flex-1 bg-white/5 text-white py-3 rounded-xl border border-white/10
+                  className="flex-1 bg-white/5 text-white py-2 rounded-xl border border-white/10
                            hover:bg-white/10 transition-all duration-300 hover:border-white/20"
                 >
                   Back
@@ -271,7 +271,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                 type="submit"
                 disabled={isLoading}
                 className={`flex-1 bg-gradient-to-r from-primary to-secondary text-black font-medium
-                         py-3 rounded-xl hover:opacity-90 transition-all duration-300
+                         py-2 rounded-xl hover:opacity-90 transition-all duration-300
                          shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40
                          hover:scale-[1.02] active:scale-[0.98]
                          disabled:opacity-50 disabled:cursor-not-allowed
@@ -341,7 +341,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                 type="button"
                 onClick={() => setStep('credentials')}
                 className="flex-1 bg-gradient-to-r from-primary to-secondary text-black font-medium
-                         py-3 rounded-xl hover:opacity-90 transition-all duration-300
+                         py-2 rounded-xl hover:opacity-90 transition-all duration-300
                          shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40
                          hover:scale-[1.02] active:scale-[0.98]"
               >
@@ -380,9 +380,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                      bg-clip-text text-transparent mb-2">
           {isSignIn 
             ? 'Welcome Back' 
-            : step === 'babyNameFirst' 
-              ? 'Tell Us About Your Baby' 
-              : 'Create Account'}
+            : 'Create Account'}
         </h2>
         {isSignIn && (
           <p className="text-white/60 text-sm mb-8">
@@ -395,10 +393,16 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
           </p>
         )}
         
-        {renderStep()}
+        {/* OAuth sign-up */}
+        {shouldShowOAuthOptions() && step === 'babyNameFirst' && (
+          <div className="mt-6 mb-4">
+            <SocialAuthButtons mode="signup" />
+          </div>
+        )}
         
-        {shouldShowOAuthOptions() && (
-          <div className="my-6 text-center relative">
+        {/* "or" divider between Google and baby info */}
+        {shouldShowOAuthOptions() && step === 'babyNameFirst' && (
+          <div className="my-4 text-center relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-white/10"></div>
             </div>
@@ -407,11 +411,30 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
             </div>
           </div>
         )}
-
-        {shouldShowOAuthOptions() && (
-          <div className="mt-6">
-            <SocialAuthButtons />
+        
+        {/* Baby name form with dedicated heading */}
+        {(!isSignIn && step === 'babyNameFirst') && (
+          <div className="mt-4">
+            <h3 className="text-base sm:text-lg font-medium text-white mb-3">Tell Us About Your Baby</h3>
           </div>
+        )}
+        
+        {renderStep()}
+
+        {shouldShowOAuthOptions() && step !== 'babyNameFirst' && (
+          <>
+            <div className="my-6 text-center relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/10"></div>
+              </div>
+              <div className="relative">
+                <span className="px-4 text-sm bg-[#2A2D3E] text-white/40">or</span>
+              </div>
+            </div>
+            <div className="mt-6">
+              <SocialAuthButtons mode={isSignIn ? 'signin' : 'signup'} />
+            </div>
+          </>
         )}
         
         <p className="mt-6 text-center text-white/60 text-sm">

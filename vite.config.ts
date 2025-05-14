@@ -60,6 +60,106 @@ export default defineConfig({
       },
       devOptions: {
         enabled: true // Enable PWA in development for testing
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'], // Ensure all necessary assets are precached
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // <== 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'gstatic-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // <== 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/assets/') || url.pathname.endsWith('logo.svg') || url.pathname.startsWith('/screenshots/'),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'static-assets-cache',
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            // Ensure process.env.VITE_SUPABASE_URL is correctly loaded by Vite
+            urlPattern: ({ url, sameOrigin }) => {
+              // Check if sameOrigin and is an API call, or if it's a Supabase storage URL for audio
+              if (sameOrigin && (url.pathname.startsWith('/rest/v1/') || url.pathname.startsWith('/rpc/'))) {
+                return true;
+              }
+              // Check for Supabase storage URLs (audio files) from your specific Supabase project
+              if (process.env.VITE_SUPABASE_URL && url.href.startsWith(process.env.VITE_SUPABASE_URL) && url.pathname.includes('/storage/v1/object/public/songs/')) {
+                return false; // This will be handled by the audio-cache rule
+              }
+              // General Supabase API calls if not same origin but matches the known Supabase URL structure
+              if (process.env.VITE_SUPABASE_URL && url.href.startsWith(process.env.VITE_SUPABASE_URL) && (url.pathname.startsWith('/rest/v1/') || url.pathname.startsWith('/rpc/'))) {
+                return true;
+              }
+              return false;
+            },
+            method: 'GET', // Important: Only cache GET requests for APIs
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              networkTimeoutSeconds: 5,
+              expiration: {
+                maxEntries: 40,
+                maxAgeSeconds: 60 * 60 * 1 // 1 hour
+              },
+              cacheableResponse: {
+                statuses: [0, 200] // Cache opaque responses and successful ones
+              }
+            }
+          },
+          {
+            urlPattern: ({ url }) => {
+              // More specific check for audio files from Supabase storage or other CDNs
+              if (process.env.VITE_SUPABASE_URL && url.href.startsWith(process.env.VITE_SUPABASE_URL) && url.pathname.includes('/storage/v1/object/public/songs/')) {
+                return /\.(mp3|m4a|wav)$/i.test(url.pathname);
+              }
+              // General audio file match for other CDNs if you use them
+              return /\.(mp3|m4a|wav)$/i.test(url.pathname);
+            },
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'audio-cache',
+              rangeRequests: true, // Enable range requests for audio
+              expiration: {
+                maxEntries: 50, // Max 50 audio files
+                maxAgeSeconds: 60 * 60 * 24 * 7 // Cache audio for 7 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
       }
     })
   ],

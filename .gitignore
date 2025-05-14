@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 # Local Netlify folder
 .netlify
+
+# Development server specific output
+dev-dist/

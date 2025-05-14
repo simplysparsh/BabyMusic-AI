@@ -35,10 +35,26 @@ export default defineConfig({
             purpose: 'any'
           },
           {
-            src: 'pwa-maskable-512x512.png',
+            src: 'maskable-icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable'
+          }
+        ],
+        screenshots: [
+          {
+            src: 'screenshots/desktop-view.png',
+            sizes: '2458x1804', // Updated dimensions
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'BabyMusic AI Desktop View'
+          },
+          {
+            src: 'screenshots/mobile-view.png',
+            sizes: '742x1460', // Updated dimensions
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'BabyMusic AI Mobile View'
           }
         ]
       },

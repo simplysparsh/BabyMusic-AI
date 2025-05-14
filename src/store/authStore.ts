@@ -186,12 +186,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             };
             
             try {
-              const { error: insertError } = await supabase.from('profiles').insert([profileDataToInsert]);
-              if (insertError) {
-                console.error('Error creating initial profile for OAuth user:', insertError);
-                await supabase.auth.signOut();
-                set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false, showPostOAuthOnboarding: false });
-                return;
+              // Use upsert so we don't fail if a minimal profile row has already been created by the auth listener
+              const { error: upsertError } = await supabase
+                .from('profiles')
+                .upsert([profileDataToInsert], { onConflict: 'id', ignoreDuplicates: false });
+
+              if (upsertError) {
+                console.error('Error creating/updating profile entry:', upsertError);
+                throw new Error('Failed to create or update user profile after authentication.');
               }
               
               // Create a minimal profile object and mark for onboarding
@@ -337,10 +339,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         timezone: userTimeZone,
       };
           
-      const { error: insertError } = await supabase.from('profiles').insert([profileDataToInsert]);
-      if (insertError) {
-        console.error('Error creating profile entry:', insertError);
-        throw new Error('Failed to create user profile after authentication.');
+      // Use upsert so we don't fail if a minimal profile row has already been created by the auth listener
+      const { error: upsertError } = await supabase
+        .from('profiles')
+        .upsert([profileDataToInsert], { onConflict: 'id', ignoreDuplicates: false });
+
+      if (upsertError) {
+        console.error('Error creating/updating profile entry:', upsertError);
+        throw new Error('Failed to create or update user profile after authentication.');
       }
 
       await get().loadProfile();

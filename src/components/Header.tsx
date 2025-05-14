@@ -57,11 +57,11 @@ export default function Header() {
                 alt="BabyMusic AI Logo" 
                 className="w-10 h-10 sm:w-12 sm:h-12 rounded-full transition-transform duration-300 ease-in-out hover:scale-105"
               /> 
-              <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              <span className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 BabyMusic AI
               </span>
             </a>
-            <nav className="flex items-center space-x-4 relative">
+            <nav className="flex items-center space-x-2 sm:space-x-4 relative">
               {user ? (
                 <>
                   <button
@@ -116,7 +116,7 @@ export default function Header() {
                           setAuthMode('signup');
                           setIsAuthModalOpen(true);
                         }}
-                        className="btn-primary text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3"
+                        className="btn-primary text-sm sm:text-base px-3 py-2 sm:px-5 sm:py-3"
                       >
                         Try Free
                       </button>

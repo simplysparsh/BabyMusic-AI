@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState, useRef } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { X } from 'lucide-react';
 import SocialAuthButtons from './SocialAuthButtons';
@@ -26,33 +26,6 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
     isSignIn ? 'credentials' : 'babyNameFirst'
   );
   const { signIn, signUp } = useAuthStore();
-  const modalContentRef = useRef<HTMLDivElement>(null);
-
-  // Handle input focus to ensure OAuth buttons remain visible on mobile
-  const handleInputFocus = () => {
-    // Small delay to allow keyboard to appear
-    setTimeout(() => {
-      if (modalContentRef.current) {
-        // Scroll to show OAuth section if available
-        const socialSection = modalContentRef.current.querySelector('[data-social-auth]');
-        if (socialSection) {
-          // Position the social buttons at the top of the viewport with extra margin
-          socialSection.scrollIntoView({ 
-            behavior: 'auto', // Use 'auto' instead of 'smooth' for minimal animation
-            block: 'start' 
-          });
-          
-          // Add additional scroll to ensure visibility
-          const extraScroll = 200; // pixels - increased for better visibility
-          const currentScroll = window.scrollY || document.documentElement.scrollTop;
-          window.scrollTo({
-            top: currentScroll - extraScroll,
-            behavior: 'auto'
-          });
-        }
-      }
-    }, 50); // Minimal delay
-  };
 
   useEffect(() => {
     if (isOpen) {
@@ -178,7 +151,6 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
                 type="text"
                 value={babyName}
                 onChange={(e) => setBabyName(e.target.value)}
-                onFocus={handleInputFocus}
                 className={`input w-full bg-white/[0.07] focus:bg-white/[0.09] transition-colors
                          ${babyNameError ? 'border-red-400 focus:border-red-400' : ''}`}
                 required
@@ -395,7 +367,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
         <div className="absolute top-12 left-12 w-20 h-20 bg-primary/10 rounded-full blur-xl animate-float"></div>
         <div className="absolute bottom-12 right-12 w-20 h-20 bg-secondary/10 rounded-full blur-xl animate-float" style={{ animationDelay: '1s' }}></div>
         
-        <div ref={modalContentRef} className="relative p-8 overflow-y-auto max-h-[80vh]">
+        <div className="relative p-8">
         <button
           onClick={onClose}
           className="absolute right-4 top-4 text-white/60 hover:text-white bg-white/5 rounded-full p-2
@@ -437,7 +409,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
         )}
 
         {shouldShowOAuthOptions() && (
-          <div data-social-auth className="mt-6">
+          <div className="mt-6">
             <SocialAuthButtons />
           </div>
         )}

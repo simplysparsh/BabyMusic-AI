@@ -88,15 +88,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               timezone
             `)
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
           
           if (error) {
-            if (error.code === 'PGRST116' || error.message.includes('contains 0 rows')) {
-              console.error('Profile not found for user, signing out.');
-              await supabase.auth.signOut();
-              set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false, showPostOAuthOnboarding: false });
-              return;
-            }
+            // Unexpected errors (e.g., permission, network). Let retry logic handle.
             throw error;
           }
 
@@ -163,9 +158,71 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             set({ error: null });
             return;
           } else {
-            throw new Error('No profile data received despite no error');
+            // No profile exists yet. Skip throwing and create one below.
+            throw { code: 'PGRST116', message: '0 rows', details: 'No profile row' } as any;
           }
         } catch (err) {
+          // Check if this is a "no profile" error, which we want to handle specially
+          const isNoProfileError =
+            // Supabase/PostgREST specific code for missing row
+            (typeof err === 'object' && err !== null && 'code' in err && (err as any).code === 'PGRST116') ||
+            // Fallback for generic Error instances that mention zero-row result
+            (err instanceof Error && err.message.toLowerCase().includes('0 rows')) ||
+            // Supabase error objects also expose a `details` field with this wording
+            (typeof err === 'object' && err !== null && 'details' in err && typeof (err as any).details === 'string' && (err as any).details.toLowerCase().includes('0 rows'));
+
+          if (isNoProfileError) {
+            // Handle the profile creation directly here instead of relying on retry
+            console.log('Profile not found error caught in catch block, creating profile now');
+            
+            // Create a minimal profile to start onboarding
+            const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const profileDataToInsert = {
+              id: user.id,
+              email: user.email!,
+              preferred_language: DEFAULT_LANGUAGE,
+              created_at: new Date().toISOString(),
+              timezone: userTimeZone,
+            };
+            
+            try {
+              const { error: insertError } = await supabase.from('profiles').insert([profileDataToInsert]);
+              if (insertError) {
+                console.error('Error creating initial profile for OAuth user:', insertError);
+                await supabase.auth.signOut();
+                set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false, showPostOAuthOnboarding: false });
+                return;
+              }
+              
+              // Create a minimal profile object and mark for onboarding
+              const userProfile: UserProfile = {
+                id: user.id,
+                email: user.email!,
+                isPremium: false,
+                generationCount: 0,
+                monthlyPlaysCount: 0,
+                playCountResetAt: null,
+                dailyGenerations: 0,
+                lastGenerationDate: null,
+                babyName: '',
+                preferredLanguage: DEFAULT_LANGUAGE,
+                gender: undefined,
+                birthMonth: undefined,
+                birthYear: undefined,
+                ageGroup: undefined,
+                timezone: userTimeZone
+              };
+              
+              set({ profile: userProfile, showPostOAuthOnboarding: true });
+              console.log('Created minimal profile and set showPostOAuthOnboarding flag');
+              return;
+            } catch (profileCreateErr) {
+              console.error('Error in profile creation:', profileCreateErr);
+              // Let it fall through to normal retry logic
+            }
+          }
+          
+          // For other errors, do normal retry logic
           retryCount++;
           console.error(`Error loading profile (attempt ${retryCount}/${MAX_RETRIES}):`, err);
 
@@ -345,7 +402,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: true, error: null });
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (session?.user) {
+          // Log the authentication provider for debugging
+          console.log(`[AuthStore] onAuthStateChange: User signed in via ${session.user.app_metadata?.provider || 'unknown'}`);
+          
           set({ user: session.user });
+          // loadProfile will detect if this is a new OAuth user and create a profile
           await get().loadProfile();
         } else {
           console.warn('[AuthStore] onAuthStateChange: Signed in event but no session user.');

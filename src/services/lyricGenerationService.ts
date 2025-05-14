@@ -308,21 +308,13 @@ export const logLyricGenerationError = async (
   error: string,
   params: LyricGenerationParams
 ) => {
-  try {
-    await supabase.from('lyric_generation_errors').insert([
-      {
-        error_message: error,
-        theme: params.theme,
-        mood: params.mood,
-        song_type: params.songType,
-        preset_type: params.presetType,
-        has_user_input: !!params.userInput,
-      }
-    ]);
-  } catch (logError) {
-    console.error('Failed to log lyric generation error:', {
-      originalError: error,
-      logError,
-    });
-  }
+  // Log to console instead of database to avoid permission issues
+  console.error('Lyric generation error:', {
+    error_message: error,
+    theme: params.theme, 
+    mood: params.mood,
+    song_type: params.songType,
+    preset_type: params.presetType,
+    has_user_input: !!params.userInput
+  });
 };

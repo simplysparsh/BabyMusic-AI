@@ -66,16 +66,9 @@ export class ClaudeAPI {
   /**
    * Log when lyrics need to be truncated due to exceeding the 1000 character limit
    */
-  private static async logLyricsTruncation(originalLength: number): Promise<void> {
-    try {
-      await supabase.from('lyric_generation_errors').insert([
-        {
-          error_message: `Lyrics exceeded 1000 character limit (${originalLength} chars) and were truncated`
-        }
-      ]);
-    } catch (error) {
-      console.error('Failed to log lyrics truncation:', error);
-    }
+  private static logLyricsTruncation(originalLength: number): void {
+    // Log to console instead of attempting to write to database
+    console.warn(`Lyrics truncation: Original length ${originalLength} chars exceeds limit of 1000 chars`);
   }
 
   static async makeRequest(userPrompt: string, systemPrompt?: string, babyName?: string): Promise<ValidatedResponse> {

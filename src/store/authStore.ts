@@ -10,6 +10,12 @@ import type { UserProfile, Language, AgeGroup } from '../types';
 import type { PresetType as _PresetType } from '../types';
 import { PRESET_CONFIGS as _PRESET_CONFIGS } from '../data/lyrics';
 
+export enum SignupMethod {
+  Email = 'email',
+  OAuth = 'oauth',
+  None = 'none'
+}
+
 interface AuthState {
   user: User | null;
   profile: UserProfile | null;
@@ -142,20 +148,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           
             set({ profile: userProfile });
             
-            if (!userProfile.babyName || !userProfile.gender || !userProfile.birthMonth || !userProfile.birthYear) {
-              console.log('Profile incomplete (missing babyName, gender, birthMonth, or birthYear), setting showPostOAuthOnboarding flag.');
+            // Only show OAuth onboarding if it's an OAuth user and their profile is generally incomplete.
+            // For email/password users, babyName and gender are collected at signup.
+            // The OnboardingModal itself handles showing specific fields (like birth info)
+            // based on what's missing from the userProfile.
+            const isOAuthUser = user?.app_metadata?.provider && user.app_metadata.provider !== 'email';
+            const isProfileGenerallyIncomplete = !userProfile.babyName || !userProfile.gender || !userProfile.birthMonth || !userProfile.birthYear;
+
+            // Read signup method from localStorage (persisted across reloads)
+            const lastSignupMethod = (localStorage.getItem('lastSignupMethod') as SignupMethod | null) ?? SignupMethod.None;
+            if (isOAuthUser && isProfileGenerallyIncomplete && lastSignupMethod !== SignupMethod.Email) {
+              console.log('[AuthStore] loadProfile: OAuth user with generally incomplete profile. Setting showPostOAuthOnboarding flag.');
               set({ showPostOAuthOnboarding: true });
-            } else {
-               if (get().showPostOAuthOnboarding) {
-                  console.log('Profile complete, ensuring showPostOAuthOnboarding flag is false.');
-                  set({ showPostOAuthOnboarding: false });
-               }
+            } else if (get().showPostOAuthOnboarding) {
+              // If the flag is true, but the condition above isn't met (e.g., not an OAuth user needing this specific onboarding, or profile is complete)
+              // then turn off the flag. This is important to correct the state if it was wrongly set.
+              console.log('[AuthStore] loadProfile: Profile complete for OAuth, or not an OAuth user needing onboarding. Ensuring showPostOAuthOnboarding flag is false.');
+              set({ showPostOAuthOnboarding: false });
             }
-            if (get().showPostSignupOnboarding && !get().showPostOAuthOnboarding) {
+            
+            // Only hide post-signup onboarding if the profile has birth info (i.e., is complete for post-signup onboarding)
+            if (get().showPostSignupOnboarding && userProfile.birthMonth && userProfile.birthYear) {
               set({ showPostSignupOnboarding: false });
             }
 
             set({ error: null });
+            localStorage.removeItem('lastSignupMethod'); // Clear after first use
             return;
           } else {
             // No profile exists yet. Skip throwing and create one below.
@@ -196,7 +214,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 throw new Error('Failed to create or update user profile after authentication.');
               }
               
-              // Create a minimal profile object and mark for onboarding
+              // Create a minimal profile object and mark for onboarding only for OAuth
               const userProfile: UserProfile = {
                 id: user.id,
                 email: user.email!,
@@ -214,9 +232,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 ageGroup: undefined,
                 timezone: userTimeZone
               };
-              
-              set({ profile: userProfile, showPostOAuthOnboarding: true });
-              console.log('Created minimal profile and set showPostOAuthOnboarding flag');
+              const lastSignupMethod = (localStorage.getItem('lastSignupMethod') as SignupMethod | null) ?? SignupMethod.None;
+              set({ profile: userProfile, showPostOAuthOnboarding: lastSignupMethod === SignupMethod.OAuth });
+              console.log('Created minimal profile and set showPostOAuthOnboarding flag:', lastSignupMethod === SignupMethod.OAuth);
               return;
             } catch (profileCreateErr) {
               console.error('Error in profile creation:', profileCreateErr);
@@ -327,7 +345,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!data.user) throw new Error('Authentication failed: No user data received after sign up.');
       
       set({ user: data.user });
-
+      localStorage.setItem('lastSignupMethod', SignupMethod.Email); // Track signup method persistently
       const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const profileDataToInsert = {
         id: data.user.id,
@@ -350,13 +368,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       await get().loadProfile();
-
       SongService.regeneratePresetSongs(data.user.id, babyName.trim(), gender, true)
         .catch(err => console.error('Error regenerating presets on signup:', err));
+      set({ showPostSignupOnboarding: true });
       
-      if (!get().profile?.birthMonth || !get().profile?.birthYear) {
-          set({ showPostOAuthOnboarding: true });
-      }
+      
 
     } catch (error: any) {
       console.error("Signup failed:", error);

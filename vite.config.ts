@@ -63,6 +63,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'], // Ensure all necessary assets are precached
+        globIgnores: ['**/og-image-v1.png'], // Exclude specific large files from precache
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -107,55 +108,37 @@ export default defineConfig({
             }
           },
           {
-            // Ensure process.env.VITE_SUPABASE_URL is correctly loaded by Vite
-            urlPattern: ({ url, sameOrigin }) => {
-              // Check if sameOrigin and is an API call, or if it's a Supabase storage URL for audio
-              if (sameOrigin && (url.pathname.startsWith('/rest/v1/') || url.pathname.startsWith('/rpc/'))) {
-                return true;
-              }
-              // Check for Supabase storage URLs (audio files) from your specific Supabase project
-              if (process.env.VITE_SUPABASE_URL && url.href.startsWith(process.env.VITE_SUPABASE_URL) && url.pathname.includes('/storage/v1/object/public/songs/')) {
-                return false; // This will be handled by the audio-cache rule
-              }
-              // General Supabase API calls if not same origin but matches the known Supabase URL structure
-              if (process.env.VITE_SUPABASE_URL && url.href.startsWith(process.env.VITE_SUPABASE_URL) && (url.pathname.startsWith('/rest/v1/') || url.pathname.startsWith('/rpc/'))) {
-                return true;
-              }
-              return false;
-            },
-            method: 'GET', // Important: Only cache GET requests for APIs
+            urlPattern: /\.supabase\.co\/rest\/v1\/|\.supabase\.co\/rpc\/|\/rest\/v1\/|\/rpc\//,
+            method: 'GET',
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
               networkTimeoutSeconds: 5,
               expiration: {
                 maxEntries: 40,
-                maxAgeSeconds: 60 * 60 * 1 // 1 hour
+                maxAgeSeconds: 60 * 60 * 1
               },
               cacheableResponse: {
-                statuses: [0, 200] // Cache opaque responses and successful ones
+                statuses: [0, 200]
               }
             }
           },
           {
-            urlPattern: ({ url }) => {
-              // More specific check for audio files from Supabase storage or other CDNs
-              if (process.env.VITE_SUPABASE_URL && url.href.startsWith(process.env.VITE_SUPABASE_URL) && url.pathname.includes('/storage/v1/object/public/songs/')) {
-                return /\.(mp3|m4a|wav)$/i.test(url.pathname);
-              }
-              // General audio file match for other CDNs if you use them
-              return /\.(mp3|m4a|wav)$/i.test(url.pathname);
-            },
+            urlPattern: ({ url }) => /\.(mp3|m4a|wav)$/i.test(url.pathname),
             handler: 'CacheFirst',
             options: {
               cacheName: 'audio-cache',
-              rangeRequests: true, // Enable range requests for audio
+              matchOptions: {
+                ignoreSearch: true
+              },
+              rangeRequests: true,
+              fetchOptions: { mode: 'no-cors' }, // Allow opaque full-file response to be cached
               expiration: {
-                maxEntries: 50, // Max 50 audio files
-                maxAgeSeconds: 60 * 60 * 24 * 7 // Cache audio for 7 days
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 * 7
               },
               cacheableResponse: {
-                statuses: [0, 200]
+                statuses: [0, 200, 206]
               }
             }
           }
@@ -181,7 +164,6 @@ export default defineConfig({
         comments: false
       },
       compress: {
-        // Terser also removes console logs as a fallback mechanism
         drop_console: true
       }
     }

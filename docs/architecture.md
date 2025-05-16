@@ -124,8 +124,9 @@ To enhance user experience and provide app-like capabilities, Baby Music AI is c
     *   Generated automatically by `vite-plugin-pwa` using Workbox.
     *   Handles pre-caching of core application assets for basic offline availability and faster loads.
     *   Configured for `autoUpdate` to seamlessly update the service worker when new app versions are deployed.
-*   **"Add to Home Screen" (A2HS) Prompt:**
-    *   The setup enables browsers to prompt users to add the application to their home screen.
+*   **"Add to Home Screen" (A2HS) Functionality:**
+    *   The PWA setup (manifest, service worker) enables browsers to offer an "Add to Home Screen" option.
+    *   This is actively facilitated through custom UI elements: an "Get App" button in the header and a dedicated step in the onboarding flow. These elements either trigger the browser's native install prompt (via the `beforeinstallprompt` event) or provide guided instructions for iOS users. More details on the UI implementation can be found in `frontend.md`.
 *   **PWA Assets Generation:**
     *   Icons (including favicons, Apple touch icons, and various PWA icon sizes) are generated from `public/logo.svg` using `@vite-pwa/assets-generator`.
     *   The generation is configured in `pwa-assets.config.ts` and can be run with `npm run generate-pwa-assets`.

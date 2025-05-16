@@ -143,5 +143,11 @@ The frontend is enhanced with PWA capabilities to provide a more native app-like
 - **Service Worker**: A service worker is generated (using Workbox via the plugin) to cache application assets. This improves load times and provides basic offline fallback capabilities. The service worker is configured to auto-update when new versions of the app are deployed.
 - **Asset Generation**: PWA-specific icons (for the manifest, Apple touch icons, favicons) are generated from `public/logo.svg` using `@vite-pwa/assets-generator`. This process is configured in `pwa-assets.config.ts`.
 - **Richer Install UI**: Screenshots of the application (stored in `public/screenshots/`) are included in the manifest to provide users with a preview during the PWA installation process on supported platforms.
+- **User-Initiated Installation Prompts**:
+    - An **"Get App" button** is available in the application header, allowing users to install the PWA at any time if they haven't already.
+    - During the **onboarding flow** (`OnboardingModal.tsx`), after initial profile setup, users are prompted with an "Unlock Full Experience" button to install the PWA.
+    - These UI elements utilize the `beforeinstallprompt` event to trigger the native browser installation prompt on supported platforms (e.g., Android, Desktop Chrome).
+    - For iOS devices, where direct prompting isn't available, these buttons trigger a modal (`IOSInstallModal.tsx`) that provides clear instructions on how to use Safari's "Add to Home Screen" feature.
+    - The `usePWAInstall.ts` custom hook encapsulates the logic for detecting installability, handling the `beforeinstallprompt` event, and managing installation state.
 
 These features contribute to making BabyMusic AI installable and more accessible, behaving more like a native application on users' devices.

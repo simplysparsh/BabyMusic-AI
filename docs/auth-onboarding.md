@@ -118,6 +118,17 @@ SongService.regeneratePresetSongs(user.id, babyName)
   });
 ```
 
+### 4. PWA Installation Prompt
+
+Following the successful collection of baby profile information, the onboarding flow includes a step to encourage users to install the BabyMusic AI application as a Progressive Web App (PWA). This offers benefits such as quick home screen access, a smoother app-like experience, and offline capabilities.
+
+- Users are presented with an "Unlock Full Experience" button.
+- On compatible devices (Android, Desktop Chrome), this triggers the native browser installation prompt.
+- On iOS, this button opens a modal with clear instructions for using Safari's "Add to Home Screen" feature.
+- Users can also choose to skip this step and complete onboarding.
+
+For more detailed information on the PWA installation UI and its features, please refer to the [PWA Features section in frontend.md](./frontend.md#progressive-web-app-pwa-features).
+
 ## Session Management
 
 The application implements persistent session management:

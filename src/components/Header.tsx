@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, Smartphone } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import AuthModal from './auth/AuthModal';
 import EmailSignupForm from './EmailSignupForm';
 import ProfileModal from './profile/ProfileModal';
 import { useErrorStore } from '../store/errorStore';
 import { useEmailSignup } from '../hooks/useEmailSignup';
+import InstallPWAButton from './common/InstallPWAButton';
 
 export default function Header() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -61,9 +62,14 @@ export default function Header() {
                 BabyMusic AI
               </span>
             </a>
-            <nav className="flex items-center space-x-2 sm:space-x-4 relative">
+            <nav className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 relative">
               {user ? (
                 <>
+                  <InstallPWAButton 
+                    className="text-white/70 hover:text-white transition-all duration-300 px-2.5 py-1.5 sm:px-3 sm:py-2 hover:bg-white/10 rounded-lg text-xs sm:text-sm active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2"
+                    buttonText="Get App"
+                    showIcon={true}
+                  />
                   <button
                     onClick={() => setIsProfileModalOpen(true)}
                     className="fixed-button w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full
@@ -92,6 +98,14 @@ export default function Header() {
                 </>
               ) : (
                 <>
+                  <InstallPWAButton 
+                    className="bg-transparent border border-primary/70 text-primary/90 hover:bg-primary/10 hover:text-primary hover:border-primary
+                               text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-[7px] rounded-lg 
+                               flex items-center justify-center gap-1.5 sm:gap-2 
+                               transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md hover:shadow-primary/20"
+                    buttonText="Get App"
+                    showIcon={true}
+                  />
                   {isSignupDisabled ? (
                     <button
                       onClick={handleOpenEmailSignup}

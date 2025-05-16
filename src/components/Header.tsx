@@ -120,7 +120,7 @@ export default function Header() {
                           setAuthMode('signin');
                           setIsAuthModalOpen(true);
                         }}
-                        className="btn-secondary text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3" 
+                        className="btn-primary sm:btn-secondary text-sm sm:text-base px-3 py-2 sm:px-6 sm:py-3" 
                         data-auth-trigger
                       >
                         Sign In
@@ -130,7 +130,7 @@ export default function Header() {
                           setAuthMode('signup');
                           setIsAuthModalOpen(true);
                         }}
-                        className="btn-primary text-sm sm:text-base px-3 py-2 sm:px-5 sm:py-3"
+                        className="btn-primary text-sm sm:text-base px-3 py-2 sm:px-5 sm:py-3 hidden sm:inline-flex"
                       >
                         Try Free
                       </button>

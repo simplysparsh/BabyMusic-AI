@@ -9,8 +9,8 @@ export default function IOSInstallModal({ isOpen, onClose }: IOSInstallModalProp
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[150] flex items-center justify-center p-4">
-      <div className="bg-background-dark border border-white/10 rounded-2xl shadow-xl max-w-md w-full relative fade-in max-h-[90vh] overflow-y-auto p-6 sm:p-8">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[150] flex items-start justify-center p-4 pt-8 sm:pt-12">
+      <div className="bg-background-dark border border-white/10 rounded-2xl shadow-xl max-w-md w-full relative fade-in max-h-[90vh] sm:max-h-[85vh] overflow-y-auto p-6 sm:p-8">
         <button
           onClick={onClose}
           className="absolute right-4 top-4 text-white/60 hover:text-white bg-white/5 rounded-full p-2 transition-all duration-300 hover:rotate-90 hover:bg-white/10 hover:scale-110"

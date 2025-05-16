@@ -131,11 +131,32 @@ export default defineConfig({
               matchOptions: {
                 ignoreSearch: true
               },
-              rangeRequests: true,
-              fetchOptions: { mode: 'no-cors' }, // Allow opaque full-file response to be cached
+              fetchOptions: { mode: 'no-cors' },
+              plugins: [
+                {
+                  requestWillFetch: async ({ request }) => {
+                    if (request.headers.has('range')) {
+                      const newHeaders = new Headers(request.headers);
+                      newHeaders.delete('range');
+                      return new Request(request.url, {
+                        headers: newHeaders,
+                        mode: 'no-cors',
+                        credentials: request.credentials,
+                        cache: request.cache,
+                        redirect: request.redirect,
+                        integrity: request.integrity,
+                        referrer: request.referrer,
+                        referrerPolicy: request.referrerPolicy,
+                        signal: request.signal,
+                      });
+                    }
+                    return request;
+                  }
+                }
+              ],
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 7
+                maxAgeSeconds: 60 * 60 * 24 * 10
               },
               cacheableResponse: {
                 statuses: [0, 200, 206]

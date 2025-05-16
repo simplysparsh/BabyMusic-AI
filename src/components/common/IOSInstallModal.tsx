@@ -10,7 +10,7 @@ export default function IOSInstallModal({ isOpen, onClose }: IOSInstallModalProp
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[150] flex items-center justify-center p-4">
-      <div className="bg-background-dark border border-white/10 rounded-2xl p-6 sm:p-8 shadow-xl max-w-md w-full relative fade-in">
+      <div className="bg-background-dark border border-white/10 rounded-2xl shadow-xl max-w-md w-full relative fade-in max-h-[90vh] overflow-y-auto p-6 sm:p-8">
         <button
           onClick={onClose}
           className="absolute right-4 top-4 text-white/60 hover:text-white bg-white/5 rounded-full p-2 transition-all duration-300 hover:rotate-90 hover:bg-white/10 hover:scale-110"
@@ -25,15 +25,9 @@ export default function IOSInstallModal({ isOpen, onClose }: IOSInstallModalProp
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-white mb-3">Unlock the Full App Experience</h2>
           <p className="text-white/70 text-sm sm:text-base mb-6 sm:mb-8">
-            Get the best of BabyMusic AI on your iPhone or iPad! Add to your Home Screen for:
+            Add BabyMusic AI to your Home Screen for instant one-tap access, a smoother app experience, and offline listening.
           </p>
           
-          <ul className="text-left text-sm sm:text-base text-white/70 space-y-3 mb-6 sm:mb-8 pl-4 list-disc list-outside marker:text-primary">
-            <li>Instant one-tap access.</li>
-            <li>A smoother, app-like feel.</li>
-            <li>Be first for offline listening (soon!).</li>
-          </ul>
-
           <p className="text-white/80 text-sm sm:text-base mb-4 font-medium">Here's how:</p>
           
           <ol className="text-left text-sm sm:text-base text-white/80 space-y-4 mb-6 sm:mb-8 pl-2">

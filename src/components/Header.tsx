@@ -100,8 +100,8 @@ export default function Header() {
                 <>
                   <InstallPWAButton 
                     className="bg-transparent border border-primary/70 text-primary/90 hover:bg-primary/10 hover:text-primary hover:border-primary
-                               text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-[7px] rounded-lg 
-                               flex items-center justify-center gap-1.5 sm:gap-2 
+                               text-xs sm:text-sm px-2 py-2 sm:px-4 sm:py-[7px] rounded-lg 
+                               flex items-center justify-center gap-1 sm:gap-2 
                                transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md hover:shadow-primary/20"
                     buttonText="Get App"
                     showIcon={true}

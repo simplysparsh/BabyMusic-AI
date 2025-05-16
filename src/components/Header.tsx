@@ -66,22 +66,13 @@ export default function Header() {
               {user ? (
                 <>
                   <InstallPWAButton 
-                    className="text-white/70 hover:text-white transition-all duration-300 px-2.5 py-1.5 sm:px-3 sm:py-2 hover:bg-white/10 rounded-lg text-xs sm:text-sm active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2"
+                    className="text-indigo-400 hover:text-indigo-300 transition-all duration-300 px-2.5 py-1.5 sm:px-3 sm:py-2 hover:bg-white/10 rounded-lg text-sm active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 -mr-1"
                     buttonText="Get App"
                     showIcon={true}
                   />
                   <button
-                    onClick={() => setIsProfileModalOpen(true)}
-                    className="fixed-button w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full
-                             bg-white/10 text-white/80 hover:text-white hover:bg-white/20 
-                             transition-all duration-300 hover:scale-105 shadow-lg shadow-black/5
-                             relative z-[101]"
-                  >
-                    <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
-                  <button
                     className="text-white/80 hover:text-white transition-all duration-300 px-3 py-1.5 sm:px-4 sm:py-2
-                             hover:bg-white/5 rounded-lg text-sm sm:text-base active:scale-95"
+                             hover:bg-white/5 rounded-lg text-sm active:scale-95"
                     onClick={async () => {
                       try {
                         await signOut();
@@ -94,6 +85,15 @@ export default function Header() {
                     }}
                   >
                     Sign Out
+                  </button>
+                  <button
+                    onClick={() => setIsProfileModalOpen(true)}
+                    className="fixed-button w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full
+                             bg-white/10 text-white/80 hover:text-white hover:bg-white/20 
+                             transition-all duration-300 hover:scale-105 shadow-lg shadow-black/5
+                             relative z-[101]"
+                  >
+                    <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </>
               ) : (

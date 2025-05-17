@@ -5,6 +5,7 @@ import type { AgeGroup, BabyProfile, Language } from '../../types';
 import { DEFAULT_LANGUAGE } from '../../types';
 import InstallPWAButton from '../common/InstallPWAButton';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
+import IOSInstallModal from '../common/IOSInstallModal';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -50,7 +51,7 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
   const [genderError, setGenderError] = useState<string | null>(null);
   const { updateProfile, clearOnboardingInProgress } = useAuthStore();
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('infoCollection');
-  const { canInstall, isInstalled } = usePWAInstall();
+  const { canInstall, isInstalled, isIOS } = usePWAInstall();
   const [showPwaInstallMessage, setShowPwaInstallMessage] = useState(false);
   const [pwaInstallOutcome, setPwaInstallOutcome] = useState<'success' | 'skipped' | 'failed' | null>(null);
 
@@ -306,7 +307,22 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
   );
 
   const renderPwaInstallStep = () => {
-    // If already installed, or install not available, show a slightly different message or just a finish button
+    if (isIOS) {
+      return (
+        <>
+          <IOSInstallModal isOpen={true} onClose={handleFinishOnboarding} />
+          <div className="text-center mt-6">
+            <button
+              onClick={handleFinishOnboarding}
+              className="w-full max-w-xs mx-auto bg-gradient-to-r from-primary to-secondary text-black font-medium py-3 sm:py-3.5 text-base sm:text-lg rounded-xl hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              Finish Setup
+            </button>
+          </div>
+        </>
+      );
+    }
+    
     if (isInstalled) {
       return (
         <div className="text-center space-y-6 sm:space-y-8 py-8 sm:py-10 px-2">

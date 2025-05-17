@@ -10,6 +10,7 @@ interface OnboardingModalProps {
   isOpen: boolean;
   onComplete: (updates: Partial<BabyProfile> & { babyName?: string; gender?: string }) => void;
   userProfile: BabyProfile | null;
+  mode?: 'signup' | 'oauth';
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -37,7 +38,7 @@ const getAgeGroup = (month: number, year: number): AgeGroup => {
   return '13-24';
 };
 
-export default function OnboardingModal({ isOpen, onComplete, userProfile }: OnboardingModalProps) {
+export default function OnboardingModal({ isOpen, onComplete, userProfile, mode = 'oauth' }: OnboardingModalProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [babyName, setBabyName] = useState(userProfile?.babyName || '');
   const [gender, setGender] = useState(userProfile?.gender || '');
@@ -379,7 +380,7 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
         <div>
           <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">One Last Step for the Best Experience!</h3>
           <p className="text-white/70 max-w-xs sm:max-w-md mx-auto leading-relaxed text-sm sm:text-base">
-            Don't miss out! Install BabyMusic AI to your phone for one-tap instant access, a silky-smooth app experience, and be first to get offline listening (coming soon!). <strong className="text-white">It's free & takes just a moment!</strong>
+            Install BabyMusic to your phone for one-tap instant access, a silky-smooth experience, and offline listening. Don't miss out! <strong className="text-white">It's free & takes just a moment!</strong>
           </p>
         </div>
         
@@ -410,7 +411,7 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
         ) : (
           <div className="bg-white/5 p-3 sm:p-4 rounded-lg max-w-xs mx-auto">
             <p className="text-white/60 text-xs sm:text-sm">
-              PWA installation isn't available right now (perhaps private browsing or unsupported browser). You can continue without installing.
+              App installation isn't available right now (perhaps private browsing or unsupported browser). Install via button on the menu.
             </p>
           </div>
         )}

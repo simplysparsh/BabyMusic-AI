@@ -12,7 +12,7 @@ import { forceTokenRefresh, getLastSuccessfulRefresh, registerSessionExpiredCall
 import OnboardingModal from './components/auth/OnboardingModal';
 
 function App() {
-  const { user, initialized, profile, showPostOAuthOnboarding, hidePostOAuthOnboarding, signOut } = useAuthStore();
+  const { user, initialized, profile, showPostOAuthOnboarding, showPostSignupOnboarding, hidePostOAuthOnboarding, hidePostSignupOnboarding, signOut } = useAuthStore();
   const loadSongs = useSongStore(state => state.loadSongs);
   const setupSubscription = useSongStore(state => state.setupSubscription);
   const [path, setPath] = useState(window.location.pathname);
@@ -88,11 +88,17 @@ function App() {
       </Suspense>
       
       <OnboardingModal 
-        isOpen={showPostOAuthOnboarding}
+        isOpen={showPostOAuthOnboarding || showPostSignupOnboarding}
         userProfile={profile}
+        mode={showPostOAuthOnboarding ? 'oauth' : 'signup'}
         onComplete={() => {
-          console.log('Onboarding complete callback in App.tsx (OAuth flow)');
-          hidePostOAuthOnboarding();
+          if (showPostOAuthOnboarding) {
+            console.log('Onboarding complete callback in App.tsx (OAuth flow)');
+            hidePostOAuthOnboarding();
+          } else if (showPostSignupOnboarding) {
+            console.log('Onboarding complete callback in App.tsx (Email flow)');
+            hidePostSignupOnboarding();
+          }
         }}
       />
     </div>

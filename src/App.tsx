@@ -20,9 +20,7 @@ function App() {
   const [path, setPath] = useState(window.location.pathname);
 
   // Mount usePWAInstall at the top level to always capture beforeinstallprompt
-  const { canInstall, isInstalled } = usePWAInstall();
-  const [showPwaFallback, setShowPwaFallback] = useState(false);
-  const [pwaFallbackClosed, setPwaFallbackClosed] = useState(false);
+  usePWAInstall();
 
   // Handle client-side navigation
   useEffect(() => {
@@ -68,15 +66,6 @@ function App() {
     };
   }, [user]);
 
-  // Fallback: detect if app is installable (address bar icon visible) but canInstall is false
-  useEffect(() => {
-    if (!canInstall && !isInstalled && window.matchMedia('(display-mode: standalone)').matches === false) {
-      setShowPwaFallback(true);
-    } else {
-      setShowPwaFallback(false);
-    }
-  }, [canInstall, isInstalled]);
-
   // Show loading spinner while auth state is initializing
   if (!initialized) {
     return (
@@ -116,28 +105,6 @@ function App() {
           }
         }}
       />
-
-      {/* Fallback PWA install message if prompt is not available but app is installable */}
-      {showPwaFallback && !pwaFallbackClosed && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/90 border border-primary/10 rounded-lg px-4 py-2 z-[200] shadow-md flex items-center gap-2 text-sm min-w-[260px] max-w-[90vw]" style={{backdropFilter: 'blur(6px)'}}>
-          {/* Use MonitorDown if available, else Monitor as fallback */}
-          {MonitorDown ? (
-            <MonitorDown className="w-4 h-4 text-black/70 flex-shrink-0" aria-hidden="true" />
-          ) : (
-            <Monitor className="w-4 h-4 text-black/70 flex-shrink-0" aria-hidden="true" />
-          )}
-          <span className="text-primary font-semibold">Tip:</span>
-          <span className="text-black/80">To install the app, look for the <b>install</b> {MonitorDown ? <MonitorDown className="inline w-4 h-4 text-black/70 align-text-bottom" aria-hidden="true" /> : <Monitor className="inline w-4 h-4 text-black/70 align-text-bottom" aria-hidden="true" />} button in your browser's address bar.</span>
-          <button
-            onClick={() => setPwaFallbackClosed(true)}
-            className="ml-2 text-black/40 hover:text-black/70 transition-colors text-base font-bold focus:outline-none px-1 rounded"
-            aria-label="Close install tip"
-            style={{ lineHeight: 1 }}
-          >
-            ×
-          </button>
-        </div>
-      )}
     </div>
   );
 }

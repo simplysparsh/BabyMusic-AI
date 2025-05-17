@@ -92,16 +92,16 @@ export default function Hero({ onOpenAuth }: HeroProps) {
   };
   
   return (
-    <section className="relative pt-24 pb-12 overflow-hidden">
-      <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <section className="relative pt-28 pb-16 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center">
-          <h1 className="font-nunito text-2xl sm:text-5xl md:text-6xl font-bold text-white mb-4 sm:mb-6 tracking-tight leading-tight sm:leading-tight">
+          <h1 className="font-nunito text-3xl sm:text-5xl md:text-6xl font-bold text-white mb-4 sm:mb-6 tracking-tight">
             The Sound of You Doing
             <span className="block py-1 bg-gradient-to-br from-primary to-secondary bg-clip-text text-transparent">
               Everything Right
             </span>
           </h1>
-          <p className="text-sm sm:text-xl text-[#EAEAEA] mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-2 tracking-wide">
+          <p className="text-base sm:text-xl text-[#EAEAEA] mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-2 tracking-wide">
             From playtime to bedtime, personalized melodies that build brains — and bonds. Rooted in neuroscience.
           </p>
           
@@ -155,7 +155,7 @@ export default function Hero({ onOpenAuth }: HeroProps) {
             <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
               <button 
                 onClick={onOpenAuth}
-                className="btn-primary w-full max-w-xs mx-auto text-sm sm:text-base px-5 py-2.5 sm:px-6 sm:py-3 shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 whitespace-nowrap"
+                className="btn-primary text-sm sm:text-base px-5 py-2.5 sm:px-6 sm:py-3 shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 whitespace-nowrap"
               >
                 Get Started Free
                 <ArrowRight className="w-5 h-5 ml-2 inline-block" />

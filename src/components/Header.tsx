@@ -93,15 +93,16 @@ export default function Header() {
                              transition-all duration-300 hover:scale-105 shadow-lg shadow-black/5
                              relative z-[101]"
                   >
-                    <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <Settings className="w-5 h-5" />
                   </button>
                 </>
               ) : (
                 <>
                   <InstallPWAButton 
-                    className="bg-transparent border border-primary/70 text-primary/90 hover:bg-primary/10 hover:text-primary hover:border-primary text-xs sm:text-sm px-2 py-1.5 sm:px-4 sm:py-[7px] rounded-lg flex items-center justify-center gap-1 sm:gap-2 transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md hover:shadow-primary/20"
+                    className="bg-transparent border border-primary/70 text-primary/90 hover:bg-primary/10 hover:text-primary hover:border-primary text-xs sm:text-sm px-2 py-1.5 sm:px-4 sm:py-[7px] rounded-lg flex items-center gap-1 transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md hover:shadow-primary/20"
                     buttonText="Get App"
                     showIcon={true}
+                    IconComponent={Smartphone}
                   />
                   {isSignupDisabled ? (
                     <button

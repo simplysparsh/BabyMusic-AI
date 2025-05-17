@@ -10,7 +10,6 @@ interface OnboardingModalProps {
   isOpen: boolean;
   onComplete: (updates: Partial<BabyProfile> & { babyName?: string; gender?: string }) => void;
   userProfile: BabyProfile | null;
-  mode?: 'signup' | 'oauth';
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -38,7 +37,7 @@ const getAgeGroup = (month: number, year: number): AgeGroup => {
   return '13-24';
 };
 
-export default function OnboardingModal({ isOpen, onComplete, userProfile, mode = 'oauth' }: OnboardingModalProps) {
+export default function OnboardingModal({ isOpen, onComplete, userProfile }: OnboardingModalProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [babyName, setBabyName] = useState(userProfile?.babyName || '');
   const [gender, setGender] = useState(userProfile?.gender || '');
@@ -51,7 +50,7 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile, mode 
   const [genderError, setGenderError] = useState<string | null>(null);
   const { updateProfile } = useAuthStore();
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('infoCollection');
-  const { canInstall, isInstalled, triggerInstallPrompt } = usePWAInstall();
+  const { canInstall, isInstalled } = usePWAInstall();
   const [showPwaInstallMessage, setShowPwaInstallMessage] = useState(false);
   const [pwaInstallOutcome, setPwaInstallOutcome] = useState<'success' | 'skipped' | 'failed' | null>(null);
 
@@ -153,18 +152,6 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile, mode 
   };
 
   const currentBabyName = babyName || userProfile.babyName || 'your baby';
-
-  const handlePwaInstall = async () => {
-    const success = await triggerInstallPrompt();
-    if (success) {
-      setPwaInstallOutcome('success');
-    } else {
-      setPwaInstallOutcome('failed'); // Or could be 'skipped' if they just close the prompt
-    }
-    setShowPwaInstallMessage(true);
-    // Automatically proceed after a short delay if installed or failed, or user can click finish
-    setTimeout(() => handleFinishOnboarding(), 2500); 
-  };
 
   const handleFinishOnboarding = () => {
     setOnboardingStep('completed');

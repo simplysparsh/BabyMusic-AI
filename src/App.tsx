@@ -11,6 +11,7 @@ import { useSongStore } from './store/songStore';
 import { forceTokenRefresh, getLastSuccessfulRefresh, registerSessionExpiredCallback } from './lib/supabase';
 import OnboardingModal from './components/auth/OnboardingModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
+import { Download, MonitorDown, Monitor } from 'lucide-react';
 
 function App() {
   const { user, initialized, profile, showPostOAuthOnboarding, showPostSignupOnboarding, hidePostOAuthOnboarding, hidePostSignupOnboarding, signOut } = useAuthStore();
@@ -118,12 +119,18 @@ function App() {
 
       {/* Fallback PWA install message if prompt is not available but app is installable */}
       {showPwaFallback && !pwaFallbackClosed && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-black/90 border border-primary/30 rounded-xl px-6 py-3 z-[200] shadow-lg flex items-center gap-3">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/90 border border-primary/10 rounded-lg px-4 py-2 z-[200] shadow-md flex items-center gap-2 text-sm min-w-[260px] max-w-[90vw]" style={{backdropFilter: 'blur(6px)'}}>
+          {/* Use MonitorDown if available, else Monitor as fallback */}
+          {MonitorDown ? (
+            <MonitorDown className="w-4 h-4 text-black/70 flex-shrink-0" aria-hidden="true" />
+          ) : (
+            <Monitor className="w-4 h-4 text-black/70 flex-shrink-0" aria-hidden="true" />
+          )}
           <span className="text-primary font-semibold">Tip:</span>
-          <span className="text-white/80">To install the app, use the <b>browser's install button</b> in the address bar.</span>
+          <span className="text-black/80">To install the app, look for the <b>install</b> {MonitorDown ? <MonitorDown className="inline w-4 h-4 text-black/70 align-text-bottom" aria-hidden="true" /> : <Monitor className="inline w-4 h-4 text-black/70 align-text-bottom" aria-hidden="true" />} button in your browser's address bar.</span>
           <button
             onClick={() => setPwaFallbackClosed(true)}
-            className="ml-4 text-white/50 hover:text-white transition-colors text-lg font-bold focus:outline-none"
+            className="ml-2 text-black/40 hover:text-black/70 transition-colors text-base font-bold focus:outline-none px-1 rounded"
             aria-label="Close install tip"
             style={{ lineHeight: 1 }}
           >

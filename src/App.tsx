@@ -21,6 +21,7 @@ function App() {
   // Mount usePWAInstall at the top level to always capture beforeinstallprompt
   const { canInstall, isInstalled } = usePWAInstall();
   const [showPwaFallback, setShowPwaFallback] = useState(false);
+  const [pwaFallbackClosed, setPwaFallbackClosed] = useState(false);
 
   // Handle client-side navigation
   useEffect(() => {
@@ -69,8 +70,6 @@ function App() {
   // Fallback: detect if app is installable (address bar icon visible) but canInstall is false
   useEffect(() => {
     if (!canInstall && !isInstalled && window.matchMedia('(display-mode: standalone)').matches === false) {
-      // Heuristic: if the app is not installed and not in standalone, and canInstall is false, show fallback
-      // We can't directly detect the address bar icon, but this is a reasonable proxy
       setShowPwaFallback(true);
     } else {
       setShowPwaFallback(false);
@@ -118,10 +117,18 @@ function App() {
       />
 
       {/* Fallback PWA install message if prompt is not available but app is installable */}
-      {showPwaFallback && (
+      {showPwaFallback && !pwaFallbackClosed && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-black/90 border border-primary/30 rounded-xl px-6 py-3 z-[200] shadow-lg flex items-center gap-3">
           <span className="text-primary font-semibold">Tip:</span>
           <span className="text-white/80">To install the app, use the <b>browser's install button</b> in the address bar.</span>
+          <button
+            onClick={() => setPwaFallbackClosed(true)}
+            className="ml-4 text-white/50 hover:text-white transition-colors text-lg font-bold focus:outline-none"
+            aria-label="Close install tip"
+            style={{ lineHeight: 1 }}
+          >
+            ×
+          </button>
         </div>
       )}
     </div>

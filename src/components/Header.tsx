@@ -50,19 +50,19 @@ export default function Header() {
             </button>
           </div>
         )}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-12 sm:h-16">
             <a href="/" className="flex items-center space-x-2 relative hover:opacity-80 transition-opacity">
               <img 
                 src="/logo.png" 
                 alt="BabyMusic AI Logo" 
-                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full transition-transform duration-300 ease-in-out hover:scale-105"
+                className="w-8 h-8 sm:w-12 sm:h-12 rounded-full transition-transform duration-300 ease-in-out hover:scale-105"
               /> 
-              <span className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              <span className="text-base sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 BabyMusic AI
               </span>
             </a>
-            <nav className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 relative">
+            <nav className="flex items-center space-x-1 sm:space-x-3 md:space-x-4 relative">
               {user ? (
                 <>
                   <InstallPWAButton 
@@ -99,10 +99,7 @@ export default function Header() {
               ) : (
                 <>
                   <InstallPWAButton 
-                    className="bg-transparent border border-primary/70 text-primary/90 hover:bg-primary/10 hover:text-primary hover:border-primary
-                               text-xs sm:text-sm px-2 py-2 sm:px-4 sm:py-[7px] rounded-lg 
-                               flex items-center justify-center gap-1 sm:gap-2 
-                               transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md hover:shadow-primary/20"
+                    className="bg-transparent border border-primary/70 text-primary/90 hover:bg-primary/10 hover:text-primary hover:border-primary text-xs sm:text-sm px-2 py-1.5 sm:px-4 sm:py-[7px] rounded-lg flex items-center justify-center gap-1 sm:gap-2 transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md hover:shadow-primary/20"
                     buttonText="Get App"
                     showIcon={true}
                   />
@@ -120,7 +117,7 @@ export default function Header() {
                           setAuthMode('signin');
                           setIsAuthModalOpen(true);
                         }}
-                        className="btn-primary sm:btn-secondary text-sm sm:text-base px-3 py-2 sm:px-6 sm:py-3" 
+                        className="btn-primary sm:btn-secondary text-xs sm:text-base px-3 py-1.5 sm:px-6 sm:py-3 rounded-lg"
                         data-auth-trigger
                       >
                         Sign In

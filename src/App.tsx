@@ -11,7 +11,6 @@ import { useSongStore } from './store/songStore';
 import { forceTokenRefresh, getLastSuccessfulRefresh, registerSessionExpiredCallback } from './lib/supabase';
 import OnboardingModal from './components/auth/OnboardingModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
-import { MonitorDown, Monitor } from 'lucide-react';
 
 function App() {
   const { user, initialized, profile, showPostOAuthOnboarding, showPostSignupOnboarding, hidePostOAuthOnboarding, hidePostSignupOnboarding, signOut } = useAuthStore();

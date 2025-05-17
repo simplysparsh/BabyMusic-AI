@@ -33,7 +33,7 @@ export default function IOSInstallModal({ isOpen, onClose }: IOSInstallModalProp
           <ol className="text-left text-sm sm:text-base text-white/80 space-y-4 mb-6 sm:mb-8 pl-2">
             <li className="flex items-center gap-3">
               <span className="flex-shrink-0 w-6 h-6 bg-primary/80 text-black rounded-full flex items-center justify-center font-semibold text-xs">1</span>
-              <span>Tap the <Share className="inline-block w-4 h-4 sm:w-5 sm:h-5 mx-0.5 text-blue-400" /> <strong className="text-white">Share</strong> button in Safari.</span>
+              <span>Tap the <Share className="inline-block w-4 h-4 sm:w-5 sm:h-5 mx-0.5 text-blue-400" /> <strong className="text-white">Share</strong> button in browser.</span>
             </li>
             <li className="flex items-center gap-3">
               <span className="flex-shrink-0 w-6 h-6 bg-primary/80 text-black rounded-full flex items-center justify-center font-semibold text-xs">2</span>

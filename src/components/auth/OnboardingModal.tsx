@@ -48,7 +48,7 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
   const [birthDateError, setBirthDateError] = useState<string | null>(null);
   const [babyNameError, setBabyNameError] = useState<string | null>(null);
   const [genderError, setGenderError] = useState<string | null>(null);
-  const { updateProfile } = useAuthStore();
+  const { updateProfile, clearOnboardingInProgress } = useAuthStore();
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('infoCollection');
   const { canInstall, isInstalled } = usePWAInstall();
   const [showPwaInstallMessage, setShowPwaInstallMessage] = useState(false);
@@ -164,6 +164,7 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
       ageGroup: finalAgeGroup,
       preferredLanguage,
     };
+    clearOnboardingInProgress();
     onComplete(profileUpdates); // Now call the original onComplete
   };
 

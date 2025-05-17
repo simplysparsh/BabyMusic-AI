@@ -43,6 +43,7 @@ interface AuthState {
   hidePostSignupOnboarding: () => void;
   hidePostOAuthOnboarding: () => void;
   incrementPlayCount: () => Promise<void>;
+  clearOnboardingInProgress: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -97,7 +98,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             .maybeSingle();
           
           if (error) {
-            // Unexpected errors (e.g., permission, network). Let retry logic handle.
             throw error;
           }
 
@@ -148,32 +148,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           
             set({ profile: userProfile });
             
-            // Only show OAuth onboarding if it's an OAuth user and their profile is generally incomplete.
-            // For email/password users, babyName and gender are collected at signup.
-            // The OnboardingModal itself handles showing specific fields (like birth info)
-            // based on what's missing from the userProfile.
+            // --- Robust Onboarding Modal Logic ---
+            const isProfileIncomplete = !userProfile.babyName || !userProfile.gender || !userProfile.birthMonth || !userProfile.birthYear;
             const isOAuthUser = user?.app_metadata?.provider && user.app_metadata.provider !== 'email';
-            const isProfileGenerallyIncomplete = !userProfile.babyName || !userProfile.gender || !userProfile.birthMonth || !userProfile.birthYear;
-
-            // Read signup method from localStorage (persisted across reloads)
-            const lastSignupMethod = (localStorage.getItem('lastSignupMethod') as SignupMethod | null) ?? SignupMethod.None;
-            if (isOAuthUser && isProfileGenerallyIncomplete && lastSignupMethod !== SignupMethod.Email) {
-              console.log('[AuthStore] loadProfile: OAuth user with generally incomplete profile. Setting showPostOAuthOnboarding flag.');
+            const onboardingInProgress = localStorage.getItem('onboardingInProgress') === 'true';
+            // Fallback: user is new if created_at within 5 min
+            let isUserNew = false;
+            if (profileData.created_at) {
+              const createdAt = new Date(profileData.created_at).getTime();
+              const now = Date.now();
+              isUserNew = (now - createdAt) < 5 * 60 * 1000;
+            }
+            // If onboardingInProgress flag is set and profile is incomplete, force modal open
+            if (onboardingInProgress && isProfileIncomplete) {
               set({ showPostOAuthOnboarding: true });
-            } else if (get().showPostOAuthOnboarding) {
-              // If the flag is true, but the condition above isn't met (e.g., not an OAuth user needing this specific onboarding, or profile is complete)
-              // then turn off the flag. This is important to correct the state if it was wrongly set.
-              console.log('[AuthStore] loadProfile: Profile complete for OAuth, or not an OAuth user needing onboarding. Ensuring showPostOAuthOnboarding flag is false.');
+            } else if (!onboardingInProgress && isProfileIncomplete && isOAuthUser && isUserNew) {
+              // Fallback: OAuth, incomplete, new user, no flag (e.g. iOS localStorage wiped)
+              set({ showPostOAuthOnboarding: true });
+              localStorage.setItem('onboardingInProgress', 'true');
+            } else if (get().showPostOAuthOnboarding && !isProfileIncomplete) {
+              // If modal is open but profile is now complete, close it
               set({ showPostOAuthOnboarding: false });
             }
-            
-            // Only hide post-signup onboarding if the profile has birth info (i.e., is complete for post-signup onboarding)
-            if (get().showPostSignupOnboarding && userProfile.birthMonth && userProfile.birthYear) {
+            // For email signup, show post-signup onboarding if birth info is missing and onboardingInProgress is set
+            if (onboardingInProgress && (!userProfile.birthMonth || !userProfile.birthYear) && !isOAuthUser) {
+              set({ showPostSignupOnboarding: true });
+            } else if (get().showPostSignupOnboarding && userProfile.birthMonth && userProfile.birthYear) {
               set({ showPostSignupOnboarding: false });
             }
-
+            // If profile is now complete, clear onboardingInProgress
+            if (!isProfileIncomplete && onboardingInProgress) {
+              localStorage.removeItem('onboardingInProgress');
+            }
             set({ error: null });
-            localStorage.removeItem('lastSignupMethod'); // Clear after first use
             return;
           } else {
             // No profile exists yet. Skip throwing and create one below.
@@ -346,6 +353,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       set({ user: data.user });
       localStorage.setItem('lastSignupMethod', SignupMethod.Email); // Track signup method persistently
+      localStorage.setItem('onboardingInProgress', 'true');
       const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const profileDataToInsert = {
         id: data.user.id,
@@ -468,5 +476,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         profile: state.profile ? { ...state.profile, monthlyPlaysCount: profile.monthlyPlaysCount } : null 
       }));
     }
+  },
+
+  clearOnboardingInProgress: () => {
+    localStorage.removeItem('onboardingInProgress');
+    set({ showPostOAuthOnboarding: false, showPostSignupOnboarding: false });
   }
 }));

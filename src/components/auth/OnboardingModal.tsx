@@ -5,12 +5,12 @@ import type { AgeGroup, BabyProfile, Language } from '../../types';
 import { DEFAULT_LANGUAGE } from '../../types';
 import InstallPWAButton from '../common/InstallPWAButton';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
-import IOSInstallModal from '../common/IOSInstallModal';
 
 interface OnboardingModalProps {
   isOpen: boolean;
   onComplete: (updates: Partial<BabyProfile> & { babyName?: string; gender?: string }) => void;
   userProfile: BabyProfile | null;
+  onShouldShowIOSInstallInstructions?: () => void;
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -38,7 +38,7 @@ const getAgeGroup = (month: number, year: number): AgeGroup => {
   return '13-24';
 };
 
-export default function OnboardingModal({ isOpen, onComplete, userProfile }: OnboardingModalProps) {
+export default function OnboardingModal({ isOpen, onComplete, userProfile, onShouldShowIOSInstallInstructions }: OnboardingModalProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [babyName, setBabyName] = useState(userProfile?.babyName || '');
   const [gender, setGender] = useState(userProfile?.gender || '');
@@ -308,15 +308,25 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
 
   const renderPwaInstallStep = () => {
     if (isIOS) {
+      onShouldShowIOSInstallInstructions?.();
+      
       return (
         <>
-          <IOSInstallModal isOpen={true} onClose={handleFinishOnboarding} />
-          <div className="text-center mt-6">
+          <div className="text-center space-y-6 sm:space-y-8 py-8 sm:py-10 px-2">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto bg-gradient-to-br from-primary/10 to-secondary/10 rounded-full flex items-center justify-center border-2 border-primary/30 shadow-xl relative group">
+              <Download className="w-10 h-10 sm:w-12 sm:h-12 text-primary group-hover:scale-110 transition-transform duration-300" />
+              <div className="absolute inset-0 rounded-full border-2 border-primary/50 animate-ping opacity-50 group-hover:opacity-75 transition-opacity"></div>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-bold text-white">iOS App Experience</h3>
+            <p className="text-white/70 max-w-xs sm:max-w-sm mx-auto text-sm sm:text-base">
+              For the best experience on iOS, add BabyMusic AI to your Home Screen. Instructions will appear separately.
+              If you don't see them, you can always do this later from the browser menu.
+            </p>
             <button
               onClick={handleFinishOnboarding}
               className="w-full max-w-xs mx-auto bg-gradient-to-r from-primary to-secondary text-black font-medium py-3 sm:py-3.5 text-base sm:text-lg rounded-xl hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
             >
-              Finish Setup
+              Finish Setup <ArrowRight className="w-5 h-5" />
             </button>
           </div>
         </>
@@ -404,12 +414,10 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
               setShowPwaInstallMessage(true);
               setTimeout(() => handleFinishOnboarding(), 2500); 
             }}
-            onInstructionsShown={() => { // Handle iOS instructions shown
-              setPwaInstallOutcome('skipped'); // Or a new state like 'ios_instructions' if you want to differentiate further
+            onInstructionsShown={() => {
+              setPwaInstallOutcome('skipped');
               setShowPwaInstallMessage(true);
-              // No automatic timeout here, user closes iOS modal and then clicks finish, or we add one.
-              // For consistency, let's add a timeout too, assuming they'll read and close.
-              setTimeout(() => handleFinishOnboarding(), 3500); // Slightly longer timeout for reading instructions
+              setTimeout(() => handleFinishOnboarding(), 3500);
             }}
           />
         ) : (
@@ -432,7 +440,7 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile }: Onb
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-lg z-50 flex items-center justify-center p-4">
-      <div className="card w-full max-w-lg relative border-white/[0.05] fade-in overflow-hidden">
+      <div className="card w-full max-w-lg relative border-white/[0.05] fade-in overflow-hidden max-h-[90dvh] sm:max-h-[85vh] overflow-y-auto">
         {isUpdating && onboardingStep === 'infoCollection' && (
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>

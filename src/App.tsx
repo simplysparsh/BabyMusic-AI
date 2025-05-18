@@ -11,12 +11,14 @@ import { useSongStore } from './store/songStore';
 import { forceTokenRefresh, getLastSuccessfulRefresh, registerSessionExpiredCallback } from './lib/supabase';
 import OnboardingModal from './components/auth/OnboardingModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
+import IOSInstallModal from './components/common/IOSInstallModal';
 
 function App() {
-  const { user, initialized, profile, showPostOAuthOnboarding, showPostSignupOnboarding, hidePostOAuthOnboarding, hidePostSignupOnboarding, signOut } = useAuthStore();
+  const { user, initialized, profile, showPostOAuthOnboarding, showPostSignupOnboarding, hidePostOAuthOnboarding, hidePostSignupOnboarding, signOut, clearOnboardingInProgress } = useAuthStore();
   const loadSongs = useSongStore(state => state.loadSongs);
   const setupSubscription = useSongStore(state => state.setupSubscription);
   const [path, setPath] = useState(window.location.pathname);
+  const [isIOSInstallModalOpen, setIsIOSInstallModalOpen] = useState(false);
 
   // Mount usePWAInstall at the top level to always capture beforeinstallprompt
   usePWAInstall();
@@ -102,6 +104,18 @@ function App() {
             console.log('Onboarding complete callback in App.tsx (Email flow)');
             hidePostSignupOnboarding();
           }
+        }}
+        onShouldShowIOSInstallInstructions={() => setIsIOSInstallModalOpen(true)}
+      />
+
+      <IOSInstallModal 
+        isOpen={isIOSInstallModalOpen}
+        onClose={() => {
+          setIsIOSInstallModalOpen(false);
+          if (showPostOAuthOnboarding) hidePostOAuthOnboarding();
+          if (showPostSignupOnboarding) hidePostSignupOnboarding();
+          clearOnboardingInProgress();
+          console.log('IOS PWA Install Modal closed, onboarding finalized.');
         }}
       />
     </div>

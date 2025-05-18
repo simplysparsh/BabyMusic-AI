@@ -376,15 +376,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       await get().loadProfile();
-      // Temporary flag to disable preset song regeneration during signup
-      const DISABLE_PRESET_REGEN = true; // Set to false to re-enable
-      if (DISABLE_PRESET_REGEN) {
-        console.warn('[authStore] Preset song regeneration is temporarily DISABLED via DISABLE_PRESET_REGEN flag.');
-      }
-      if (!DISABLE_PRESET_REGEN) {
-        SongService.regeneratePresetSongs(data.user.id, babyName.trim(), gender, true)
-          .catch(err => console.error('Error regenerating presets on signup:', err));
-      }
+      SongService.regeneratePresetSongs(data.user.id, babyName.trim(), gender, true)
+        .catch(err => console.error('Error regenerating presets on signup:', err));
       set({ showPostSignupOnboarding: true });
       
       

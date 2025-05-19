@@ -199,7 +199,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 ageGroup: undefined,
                 timezone: userTimeZone
               };
-              const lastSignupMethod = (localStorage.getItem('lastSignupMethod') as SignupMethod | null) ?? SignupMethod.None;
               set({ profile: userProfile });
               console.log('Created minimal profile for OAuth onboarding.');
               return;
@@ -298,7 +297,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!data.user) throw new Error('Authentication failed: No user data received after sign up.');
       
       set({ user: data.user });
-      localStorage.setItem('lastSignupMethod', SignupMethod.Email); 
       localStorage.setItem('onboardingInProgress', 'true');
       const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const profileDataToInsert = {

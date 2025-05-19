@@ -434,9 +434,10 @@ export class SongService {
   }
 
   static async regeneratePresetSongs(userId: string, babyName: string, gender: string, isInitialSetup: boolean = false) {
-    const TEMPORARILY_DISABLE_REGENERATION = true;
+    // Controlled via .env: VITE_DISABLE_PRESET_REGENERATION=true disables preset song regeneration
+    const TEMPORARILY_DISABLE_REGENERATION = import.meta.env.VITE_DISABLE_PRESET_REGENERATION === 'true';
     if (TEMPORARILY_DISABLE_REGENERATION) {
-      console.warn('[SongService] Preset song regeneration is temporarily DISABLED via TEMPORARILY_DISABLE_REGENERATION flag in regeneratePresetSongs.');
+      console.warn('[SongService] Preset song regeneration is temporarily DISABLED via VITE_DISABLE_PRESET_REGENERATION env variable.');
       return;
     }
 

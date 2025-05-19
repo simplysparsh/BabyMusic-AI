@@ -38,6 +38,7 @@ interface AuthState {
   
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, babyName: string, gender: string) => Promise<void>;
+  finalizeNewUserSetup: (userId: string, babyName: string, gender: string) => Promise<void>;
   signOut: () => Promise<void>;
   loadUser: () => Promise<void | (() => void)>;
   hidePostSignupOnboarding: () => void;
@@ -352,7 +353,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!data.user) throw new Error('Authentication failed: No user data received after sign up.');
       
       set({ user: data.user });
-      localStorage.setItem('lastSignupMethod', SignupMethod.Email); // Track signup method persistently
+      localStorage.setItem('lastSignupMethod', SignupMethod.Email); 
       localStorage.setItem('onboardingInProgress', 'true');
       const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const profileDataToInsert = {
@@ -365,7 +366,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         timezone: userTimeZone,
       };
           
-      // Use upsert so we don't fail if a minimal profile row has already been created by the auth listener
       const { error: upsertError } = await supabase
         .from('profiles')
         .upsert([profileDataToInsert], { onConflict: 'id', ignoreDuplicates: false });
@@ -375,13 +375,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('Failed to create or update user profile after authentication.');
       }
 
-      await get().loadProfile();
-      SongService.regeneratePresetSongs(data.user.id, babyName.trim(), gender, true)
-        .catch(err => console.error('Error regenerating presets on signup:', err));
+      // Call finalizeNewUserSetup instead of regenerating songs directly
+      await get().finalizeNewUserSetup(data.user.id, babyName.trim(), gender);
+      // Load profile after setup to ensure it's up-to-date for UI
+      await get().loadProfile(); 
+
       set({ showPostSignupOnboarding: true });
       
-      
-
     } catch (error: any) {
       console.error("Signup failed:", error);
       const message = error.message || 'An unknown sign-up error occurred.';
@@ -389,6 +389,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       throw error; 
     } finally {
       set({ isLoading: false, initialized: true });
+    }
+  },
+  finalizeNewUserSetup: async (userId: string, babyName: string, gender: string) => {
+    console.log('[AuthStore] finalizeNewUserSetup called for user:', userId);
+    try {
+      // The profile should have been created/updated by the caller (signUp or OAuth onboarding)
+      // This function's main job now is to trigger the initial song regeneration.
+      // We could add a step here to ensure the profile in the store is updated if needed,
+      // but loadProfile is called after this in signUp. For OAuth, profile will be updated before this.
+
+      // Call SongService to regenerate preset songs, flagging it as an initial setup
+      await SongService.regeneratePresetSongs(userId, babyName, gender, true); // isInitialSetup = true
+      console.log('[AuthStore] Preset songs regeneration triggered by finalizeNewUserSetup for user:', userId);
+
+    } catch (error) {
+      console.error(`[AuthStore] Error in finalizeNewUserSetup for user ${userId}:`, error);
+      // Decide if this error should be surfaced to the user or just logged.
+      // For now, just logging, as song regeneration failure shouldn't block signup.
+      // The error will be logged within regeneratePresetSongs itself too.
     }
   },
   signOut: async () => {

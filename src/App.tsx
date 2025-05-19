@@ -16,7 +16,7 @@ import IOSInstallModal from './components/common/IOSInstallModal';
 import { useUIStore } from './store/uiStore';
 
 function App() {
-  const { user, initialized, profile, signOut, clearOnboardingInProgress } = useAuthStore();
+  const { user, initialized, profile, signOut } = useAuthStore();
   const loadSongs = useSongStore(state => state.loadSongs);
   const setupSubscription = useSongStore(state => state.setupSubscription);
   const [path, setPath] = useState(window.location.pathname);

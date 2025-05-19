@@ -5,6 +5,7 @@ import { useErrorStore } from '../../store/errorStore';
 import { supabaseWithRetry, forceTokenRefresh } from '../../lib/supabase';
 import { Language, DEFAULT_LANGUAGE } from '../../types';
 import { CURRENT_YEAR, CURRENT_MONTH, AGE_OPTIONS } from './utils/dateUtils';
+import { SongService } from '../../services/songService';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -64,6 +65,10 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setLocalError({});
     clearError();
 
+    const currentBabyName = profile?.babyName;
+    const currentGender = profile?.gender;
+    const userId = profile?.id;
+
     const trimmedName = formState.babyName.trim();
     if (!trimmedName) {
       setLocalError({ babyName: "Please enter your baby's name" });
@@ -90,6 +95,19 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         preferredLanguage: formState.preferredLanguage,
       });
       setShowSuccess(true);
+
+      const nameChanged = trimmedName !== currentBabyName;
+      const genderChanged = formState.gender !== currentGender;
+
+      if ((nameChanged || genderChanged) && userId) {
+        console.log('[ProfileModal] Baby name or gender changed, triggering song regeneration.');
+        const genderForRegen = formState.gender;
+        SongService.regeneratePresetSongs(userId, trimmedName, genderForRegen, false)
+          .catch(songRegenError => {
+            console.error('[ProfileModal] Background song regeneration failed:', songRegenError);
+          });
+      }
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to update profile";
       if (!errorMessage.includes('preset') && !errorMessage.includes('songs')) {
@@ -104,7 +122,6 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setIsPortalLoading(true);
 
     try {
-      // Refresh token before creating portal session
       await forceTokenRefresh();
       
       const { data, error } = await supabaseWithRetry.functions.invoke('create-customer-portal-session');

@@ -37,14 +37,6 @@ interface AuthState {
   
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, babyName: string, gender: string) => Promise<void>;
-  finalizeNewUserSetup: (userId: string, updates: { 
-    babyName: string; 
-    gender: string;
-    birthMonth?: number;
-    birthYear?: number;
-    ageGroup?: AgeGroup;
-    preferredLanguage?: Language;
-  }) => Promise<void>;
   signOut: () => Promise<void>;
   loadUser: () => Promise<void | (() => void)>;
   hidePostSignupOnboarding: () => void;
@@ -374,8 +366,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('Failed to create or update user profile after authentication.');
       }
 
-      // Call finalizeNewUserSetup instead of regenerating songs directly
-      await get().finalizeNewUserSetup(data.user.id, { babyName: babyName.trim(), gender });
+      // Directly call SongService.regeneratePresetSongs ONCE after initial profile upsert
+      await SongService.regeneratePresetSongs(data.user.id, babyName.trim(), gender, true);
       // Load profile after setup to ensure it's up-to-date for UI
       await get().loadProfile(); 
 
@@ -388,47 +380,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       throw error; 
     } finally {
       set({ isLoading: false, initialized: true });
-    }
-  },
-  finalizeNewUserSetup: async (userId: string, updates: { 
-    babyName: string; 
-    gender: string;
-    birthMonth?: number;
-    birthYear?: number;
-    ageGroup?: AgeGroup;
-    preferredLanguage?: Language;
-  }) => {
-    console.log(`[AuthStore] finalizeNewUserSetup called for user: ${userId} with updates:`, updates);
-    try {
-      // 1. Ensure profile is updated with all provided details.
-      // This call will also handle setting ageGroup based on birthMonth/Year if provided.
-      const updatedProfile = await ProfileService.updateProfile({
-        userId,
-        babyName: updates.babyName.trim(), // Ensure babyName is trimmed
-        gender: updates.gender,
-        birthMonth: updates.birthMonth,
-        birthYear: updates.birthYear,
-        ageGroup: updates.ageGroup, // Pass if already calculated by onboarding
-        preferredLanguage: updates.preferredLanguage,
-      });
-
-      // Update the local store with the fully updated profile immediately
-      set({ profile: updatedProfile });
-      console.log('[AuthStore] Profile updated via ProfileService in finalizeNewUserSetup:', updatedProfile);
-
-      // 2. Call SongService to regenerate preset songs, flagging it as an initial setup
-      // Use the babyName and gender from the (potentially updated) profile or the updates directly.
-      await SongService.regeneratePresetSongs(userId, updatedProfile.babyName, updatedProfile.gender!, true); // isInitialSetup = true
-      console.log(`[AuthStore] Preset songs regeneration triggered by finalizeNewUserSetup for user: ${userId}`);
-
-    } catch (error) {
-      console.error(`[AuthStore] Error in finalizeNewUserSetup for user ${userId}:`, error);
-      const errorStore = useErrorStore.getState();
-      const errorMessage = error instanceof Error ? error.message : 'Failed to finalize user setup.';
-      errorStore.setError(errorMessage);
-      // It's important to re-throw or handle this error appropriately,
-      // as failure here (especially in profile update) could be critical.
-      throw error; 
     }
   },
   signOut: async () => {

@@ -5,6 +5,7 @@ import type { AgeGroup, BabyProfile, Language } from '../../types';
 import { DEFAULT_LANGUAGE } from '../../types';
 import InstallPWAButton from '../common/InstallPWAButton';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
+import { SongService } from '../../services/songService';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -49,7 +50,7 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile, onSho
   const [birthDateError, setBirthDateError] = useState<string | null>(null);
   const [babyNameError, setBabyNameError] = useState<string | null>(null);
   const [genderError, setGenderError] = useState<string | null>(null);
-  const { user, clearOnboardingInProgress, finalizeNewUserSetup } = useAuthStore();
+  const { user, updateProfile, clearOnboardingInProgress } = useAuthStore();
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('infoCollection');
   const { canInstall, isInstalled, isIOS } = usePWAInstall();
   const [showPwaInstallMessage, setShowPwaInstallMessage] = useState(false);
@@ -139,18 +140,16 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile, onSho
       setIsUpdating(true);
       
       if (user && user.id) {
-        await finalizeNewUserSetup(user.id, {
-          babyName: profileUpdates.babyName,
-          gender: profileUpdates.gender,
-          birthMonth: profileUpdates.birthMonth,
-          birthYear: profileUpdates.birthYear,
-          ageGroup: profileUpdates.ageGroup,
-          preferredLanguage: profileUpdates.preferredLanguage,
-        });
-        console.log('Profile setup finalized via finalizeNewUserSetup in onboarding');
-        setOnboardingStep('pwaInstallPrompt'); 
+        await updateProfile(profileUpdates);
+        // Only for OAuth: trigger initial song regeneration after onboarding info is saved
+        // Detect OAuth by checking if showPostOAuthOnboarding was true or if profile was missing name/gender before
+        // For simplicity, assume if userProfile.babyName is missing, it's OAuth onboarding
+        if (!userProfile?.babyName && !userProfile?.gender) {
+          await SongService.regeneratePresetSongs(user.id, profileUpdates.babyName, profileUpdates.gender, true);
+        }
+        setOnboardingStep('pwaInstallPrompt');
       } else {
-        console.error('User ID not available in OnboardingModal for finalizeNewUserSetup');
+        console.error('User ID not available in OnboardingModal for updateProfile');
         setError('User session error. Please try again.');
       }
       

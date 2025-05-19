@@ -11,6 +11,7 @@ interface InstallPWAButtonProps {
   onInstallFailure?: () => void;
   onInstructionsShown?: () => void;
   IconComponent?: React.ElementType;
+  onShowIOSInstructions?: () => void;
 }
 
 export default function InstallPWAButton({
@@ -21,13 +22,13 @@ export default function InstallPWAButton({
   onInstallFailure,
   onInstructionsShown,
   IconComponent = Smartphone,
+  onShowIOSInstructions,
 }: InstallPWAButtonProps) {
   const { canInstall, isInstalled, isIOS, triggerInstallPrompt } = usePWAInstall();
-  const [isIOSModalOpen, setIsIOSModalOpen] = useState(false);
 
   const handleInstallClick = async () => {
     if (isIOS) {
-      setIsIOSModalOpen(true);
+      if (onShowIOSInstructions) onShowIOSInstructions();
       if (onInstructionsShown) onInstructionsShown();
     } else if (canInstall) {
       const success = await triggerInstallPrompt();
@@ -48,17 +49,9 @@ export default function InstallPWAButton({
   }
 
   return (
-    <>
-      <button onClick={handleInstallClick} className={className}>
-        {showIcon && IconComponent && <IconComponent className="w-4 h-4 sm:w-5 sm:h-5" />}
-        {buttonText}
-      </button>
-      {isIOS && (
-        <IOSInstallModal 
-          isOpen={isIOSModalOpen} 
-          onClose={() => setIsIOSModalOpen(false)} 
-        />
-      )}
-    </>
+    <button onClick={handleInstallClick} className={className}>
+      {showIcon && IconComponent && <IconComponent className="w-4 h-4 sm:w-5 sm:h-5" />}
+      {buttonText}
+    </button>
   );
 } 

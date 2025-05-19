@@ -8,7 +8,7 @@ import { useErrorStore } from '../store/errorStore';
 import { useEmailSignup } from '../hooks/useEmailSignup';
 import InstallPWAButton from './common/InstallPWAButton';
 
-export default function Header() {
+export default function Header({ onShowIOSInstructions }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signup');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -69,6 +69,7 @@ export default function Header() {
                     className="text-indigo-400 hover:text-indigo-300 transition-all duration-300 px-2.5 py-1.5 sm:px-3 sm:py-2 hover:bg-white/10 rounded-lg text-sm active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 -mr-1"
                     buttonText="Get App"
                     showIcon={true}
+                    onShowIOSInstructions={onShowIOSInstructions}
                   />
                   <button
                     className="text-white/80 hover:text-white transition-all duration-300 px-3 py-1.5 sm:px-4 sm:py-2
@@ -103,6 +104,7 @@ export default function Header() {
                     buttonText="Get App"
                     showIcon={true}
                     IconComponent={Smartphone}
+                    onShowIOSInstructions={onShowIOSInstructions}
                   />
                   {isSignupDisabled ? (
                     <button

@@ -95,7 +95,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background-dark">
-      <Header />
+      <Header onShowIOSInstructions={() => setIsIOSInstallModalOpen(true)} />
       <Suspense fallback={null}>
         {path === '/methodology' ? (
           <Methodology />

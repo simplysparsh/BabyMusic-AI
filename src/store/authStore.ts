@@ -274,14 +274,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const user = get().user;
     if (!user) throw new Error('Not authenticated');
     const errorStore = useErrorStore.getState();
-    const currentProfile = get().profile;
+    // const currentProfile = get().profile; // Keep this if needed for other logic, but not for song regen here
 
     console.log('Starting profile update with data:', updates);
 
     errorStore.clearError();
 
     if (!updates.babyName || !updates.babyName.trim()) {
-      throw new Error('Baby name is required');
+      // This validation is for the babyName itself, not for triggering song regen.
+      // It should remain if babyName is always required for any updateProfile call.
+      // If babyName can be optional for some updates, this might need adjustment.
+      // For now, assuming it's a general requirement for this function.
+      throw new Error('Baby name is required'); 
     }
 
     try {
@@ -295,23 +299,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       set({ profile: updatedProfileData });
 
+      // This logic is for UI state (closing onboarding modal), not song regeneration.
+      // It should remain if still relevant.
       if (get().showPostOAuthOnboarding && updatedProfileData.babyName && updatedProfileData.gender && updatedProfileData.birthMonth && updatedProfileData.birthYear) {
         set({ showPostOAuthOnboarding: false });
       }
 
-      const genderForRegen = updates.gender || updatedProfileData.gender;
-
-      if ((updates.babyName.trim() !== currentProfile?.babyName || (updates.gender && !currentProfile?.gender)) && genderForRegen) {
-        console.log('Baby name or gender updated, triggering preset song regeneration...');
-        
-        const songStore = useSongStore.getState();
-        songStore.notifyPresetSongsRegenerating();
-        
-        SongService.regeneratePresetSongs(user.id, updates.babyName.trim(), genderForRegen, true)
-          .catch(error => {
-            console.error('Background preset song regeneration failed:', error);
-          });
-      }
       return updatedProfileData;
     } catch (error) {
       console.error('Error updating profile:', error);

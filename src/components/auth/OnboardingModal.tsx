@@ -6,6 +6,7 @@ import { DEFAULT_LANGUAGE } from '../../types';
 import InstallPWAButton from '../common/InstallPWAButton';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { SongService } from '../../services/songService';
+import { SignupMethod } from '../../store/authStore';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -141,10 +142,11 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile, onSho
       
       if (user && user.id) {
         await updateProfile(profileUpdates);
-        // Only for OAuth: trigger initial song regeneration after onboarding info is saved
-        // Detect OAuth by checking if showPostOAuthOnboarding was true or if profile was missing name/gender before
-        // For simplicity, assume if userProfile.babyName is missing, it's OAuth onboarding
-        if (!userProfile?.babyName && !userProfile?.gender) {
+        // Check the lastSignupMethod from localStorage
+        const signupMethod = localStorage.getItem('lastSignupMethod');
+        
+        // Generate preset songs if it was an OAuth signup
+        if (signupMethod === SignupMethod.OAuth) {
           await SongService.regeneratePresetSongs(user.id, profileUpdates.babyName, profileUpdates.gender, true);
         }
         setOnboardingStep('pwaInstallPrompt');

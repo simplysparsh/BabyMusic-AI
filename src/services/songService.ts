@@ -433,14 +433,14 @@ export class SongService {
     }
   }
 
-  static async regeneratePresetSongs(userId: string, babyName: string, gender: string, isSignUp: boolean = false) {
+  static async regeneratePresetSongs(userId: string, babyName: string, gender: string, isInitialSetup: boolean = false) {
     const TEMPORARILY_DISABLE_REGENERATION = true;
     if (TEMPORARILY_DISABLE_REGENERATION) {
       console.warn('[SongService] Preset song regeneration is temporarily DISABLED via TEMPORARILY_DISABLE_REGENERATION flag in regeneratePresetSongs.');
       return;
     }
 
-    const logPrefix = isSignUp ? 'Sign-up' : 'Profile update';
+    const logPrefix = isInitialSetup ? 'Initial-User-Setup' : 'Profile-Update';
     console.log(`${logPrefix}: Starting preset song regeneration:`, { userId, babyName, gender });
 
     let regenerationSuccessful = false;

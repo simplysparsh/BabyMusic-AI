@@ -26,7 +26,7 @@ function App() {
   const closeOnboarding = useUIStore(state => state.closeOnboarding);
 
   // Mount usePWAInstall at the top level to always capture beforeinstallprompt
-  usePWAInstall();
+  usePWAInstall(user?.id);
 
   // Handle client-side navigation
   useEffect(() => {

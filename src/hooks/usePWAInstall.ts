@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { ProfileService } from '../services/profileService';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -29,7 +30,7 @@ const getIsIOS = () => {
   );
 };
 
-export function usePWAInstall(): PWAInstallStatus {
+export function usePWAInstall(userId?: string): PWAInstallStatus {
   const [canInstall, setCanInstall] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -53,10 +54,12 @@ export function usePWAInstall(): PWAInstallStatus {
     setCanInstall(false);
     setIsInstalled(true);
     console.log('[usePWAInstall] PWA installed successfully.');
-    // Here you could add analytics tracking for PWA installation
-    // e.g., analytics.track('pwa_installed');
-    // Or update user profile: updateUserProfile({ pwa_installed_at: new Date() });
-  }, []);
+    if (userId) {
+      ProfileService.updatePWAInstallStatus(userId, true).catch((err) => {
+        console.error('Failed to update PWA install status in profile:', err);
+      });
+    }
+  }, [userId]);
 
   useEffect(() => {
     // Check if running in standalone mode (already installed)

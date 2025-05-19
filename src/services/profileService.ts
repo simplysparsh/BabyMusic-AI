@@ -66,6 +66,9 @@ export class ProfileService {
           id,
           email,
           is_premium,
+          generation_count,
+          monthly_plays_count,
+          play_count_reset_at,
           daily_generations,
           last_generation_date,
           baby_name,
@@ -99,6 +102,9 @@ export class ProfileService {
       id: profile.id,
       email: profile.email,
       isPremium: profile.is_premium,
+      generationCount: profile.generation_count ?? 0,
+      monthlyPlaysCount: profile.monthly_plays_count ?? 0,
+      playCountResetAt: profile.play_count_reset_at ?? null,
       dailyGenerations: profile.daily_generations,
       lastGenerationDate: profile.last_generation_date,
       babyName: profile.baby_name,
@@ -111,5 +117,17 @@ export class ProfileService {
     };
 
     return profileResponse;
+  }
+
+  static async updatePWAInstallStatus(userId: string, hasInstalled: boolean): Promise<void> {
+    if (!userId) throw new Error('User ID is required');
+    const { error } = await supabase
+      .from('profiles')
+      .update({ has_installed_pwa: hasInstalled })
+      .eq('id', userId);
+    if (error) {
+      console.error('Error updating PWA install status:', error);
+      throw error;
+    }
   }
 }

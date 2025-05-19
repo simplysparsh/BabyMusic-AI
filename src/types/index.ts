@@ -81,6 +81,7 @@ export interface UserProfile {
   gender?: string;
   /** User's timezone in IANA format (e.g., America/Los_Angeles) */
   timezone?: string;
+  hasInstalledPWA?: boolean;
 }
 
 // Define BabyProfile type that contains the baby-related subset of profile data

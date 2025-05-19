@@ -38,7 +38,14 @@ interface AuthState {
   
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, babyName: string, gender: string) => Promise<void>;
-  finalizeNewUserSetup: (userId: string, babyName: string, gender: string) => Promise<void>;
+  finalizeNewUserSetup: (userId: string, updates: { 
+    babyName: string; 
+    gender: string;
+    birthMonth?: number;
+    birthYear?: number;
+    ageGroup?: AgeGroup;
+    preferredLanguage?: Language;
+  }) => Promise<void>;
   signOut: () => Promise<void>;
   loadUser: () => Promise<void | (() => void)>;
   hidePostSignupOnboarding: () => void;
@@ -369,7 +376,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       // Call finalizeNewUserSetup instead of regenerating songs directly
-      await get().finalizeNewUserSetup(data.user.id, babyName.trim(), gender);
+      await get().finalizeNewUserSetup(data.user.id, { babyName: babyName.trim(), gender });
       // Load profile after setup to ensure it's up-to-date for UI
       await get().loadProfile(); 
 
@@ -384,23 +391,45 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: false, initialized: true });
     }
   },
-  finalizeNewUserSetup: async (userId: string, babyName: string, gender: string) => {
-    console.log('[AuthStore] finalizeNewUserSetup called for user:', userId);
+  finalizeNewUserSetup: async (userId: string, updates: { 
+    babyName: string; 
+    gender: string;
+    birthMonth?: number;
+    birthYear?: number;
+    ageGroup?: AgeGroup;
+    preferredLanguage?: Language;
+  }) => {
+    console.log(`[AuthStore] finalizeNewUserSetup called for user: ${userId} with updates:`, updates);
     try {
-      // The profile should have been created/updated by the caller (signUp or OAuth onboarding)
-      // This function's main job now is to trigger the initial song regeneration.
-      // We could add a step here to ensure the profile in the store is updated if needed,
-      // but loadProfile is called after this in signUp. For OAuth, profile will be updated before this.
+      // 1. Ensure profile is updated with all provided details.
+      // This call will also handle setting ageGroup based on birthMonth/Year if provided.
+      const updatedProfile = await ProfileService.updateProfile({
+        userId,
+        babyName: updates.babyName.trim(), // Ensure babyName is trimmed
+        gender: updates.gender,
+        birthMonth: updates.birthMonth,
+        birthYear: updates.birthYear,
+        ageGroup: updates.ageGroup, // Pass if already calculated by onboarding
+        preferredLanguage: updates.preferredLanguage,
+      });
 
-      // Call SongService to regenerate preset songs, flagging it as an initial setup
-      await SongService.regeneratePresetSongs(userId, babyName, gender, true); // isInitialSetup = true
-      console.log('[AuthStore] Preset songs regeneration triggered by finalizeNewUserSetup for user:', userId);
+      // Update the local store with the fully updated profile immediately
+      set({ profile: updatedProfile });
+      console.log('[AuthStore] Profile updated via ProfileService in finalizeNewUserSetup:', updatedProfile);
+
+      // 2. Call SongService to regenerate preset songs, flagging it as an initial setup
+      // Use the babyName and gender from the (potentially updated) profile or the updates directly.
+      await SongService.regeneratePresetSongs(userId, updatedProfile.babyName, updatedProfile.gender!, true); // isInitialSetup = true
+      console.log(`[AuthStore] Preset songs regeneration triggered by finalizeNewUserSetup for user: ${userId}`);
 
     } catch (error) {
       console.error(`[AuthStore] Error in finalizeNewUserSetup for user ${userId}:`, error);
-      // Decide if this error should be surfaced to the user or just logged.
-      // For now, just logging, as song regeneration failure shouldn't block signup.
-      // The error will be logged within regeneratePresetSongs itself too.
+      const errorStore = useErrorStore.getState();
+      const errorMessage = error instanceof Error ? error.message : 'Failed to finalize user setup.';
+      errorStore.setError(errorMessage);
+      // It's important to re-throw or handle this error appropriately,
+      // as failure here (especially in profile update) could be critical.
+      throw error; 
     }
   },
   signOut: async () => {

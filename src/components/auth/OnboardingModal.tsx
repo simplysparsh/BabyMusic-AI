@@ -49,7 +49,7 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile, onSho
   const [birthDateError, setBirthDateError] = useState<string | null>(null);
   const [babyNameError, setBabyNameError] = useState<string | null>(null);
   const [genderError, setGenderError] = useState<string | null>(null);
-  const { updateProfile, clearOnboardingInProgress } = useAuthStore();
+  const { user, updateProfile, clearOnboardingInProgress, finalizeNewUserSetup } = useAuthStore();
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('infoCollection');
   const { canInstall, isInstalled, isIOS } = usePWAInstall();
   const [showPwaInstallMessage, setShowPwaInstallMessage] = useState(false);
@@ -138,15 +138,25 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile, onSho
       console.log('Completing onboarding with data:', profileUpdates);
       setIsUpdating(true);
       
-      await updateProfile(profileUpdates);
+      if (user && user.id) {
+        await finalizeNewUserSetup(user.id, {
+          babyName: profileUpdates.babyName,
+          gender: profileUpdates.gender,
+          birthMonth: profileUpdates.birthMonth,
+          birthYear: profileUpdates.birthYear,
+          ageGroup: profileUpdates.ageGroup,
+          preferredLanguage: profileUpdates.preferredLanguage,
+        });
+        console.log('Profile setup finalized via finalizeNewUserSetup in onboarding');
+        setOnboardingStep('pwaInstallPrompt'); 
+      } else {
+        console.error('User ID not available in OnboardingModal for finalizeNewUserSetup');
+        setError('User session error. Please try again.');
+      }
       
-      console.log('Profile updated successfully via onboarding');
-      
-      // Move to PWA install prompt step instead of calling onComplete immediately
-      setOnboardingStep('pwaInstallPrompt'); 
     } catch (error) {
       console.error('Failed to update profile during onboarding:', error);
-      setError('Failed to save information. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to save information. Please try again.');
     } finally {
       setIsUpdating(false);
     }
@@ -157,7 +167,7 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile, onSho
   const handleFinishOnboarding = () => {
     setOnboardingStep('completed');
     const finalAgeGroup = getAgeGroup(birthMonth, birthYear);
-    const profileUpdates = {
+    const profileUpdatesForCallback = {
       babyName: babyName.trim(),
       gender: gender,
       birthMonth,
@@ -166,7 +176,7 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile, onSho
       preferredLanguage,
     };
     clearOnboardingInProgress();
-    onComplete(profileUpdates); // Now call the original onComplete
+    onComplete(profileUpdatesForCallback); 
   };
 
   const renderInfoCollectionStep = () => (

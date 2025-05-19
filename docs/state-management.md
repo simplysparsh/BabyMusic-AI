@@ -17,6 +17,13 @@ The `authStore` manages user authentication and profile information. It includes
 - `register(email, password, name)`: An action to register a new user with the provided email, password, and name.
 - `updateProfile(profile)`: An action to update the user's profile information.
 
+### `uiStore` (Onboarding Modal State)
+
+The onboarding modal state is managed in Zustand for UI control. However, for OAuth signups (which involve a full-page redirect), a hybrid approach is used:
+
+- **Email signup:** Zustand state is used to control the onboarding modal. The modal appears immediately after signup.
+- **OAuth signup:** Before redirecting to the OAuth provider, a flag (`onboardingInProgress`) and the signup method are set in `localStorage`. After the user is redirected back and the app reloads, the app checks for this flag on initialization. If present, it triggers the onboarding modal via Zustand and then clears the flag. This ensures the onboarding modal appears even after a full page reload caused by OAuth redirects.
+
 ### `songStore`
 
 The `songStore` manages the state related to songs, including the song list, generation status, and selected song. It includes the following state variables and actions:
@@ -57,6 +64,13 @@ The `streakStore` manages the state related to the user's daily activity streak.
 - `setStreakData(data)`: Action to update the streak data.
 - `setLoading(loading)`: Action to set the loading state.
 - `setError(error)`: Action to set an error message.
+
+## Hybrid Onboarding Modal State (Zustand + localStorage)
+
+- Zustand is used for all UI state, including the onboarding modal.
+- For OAuth signups, a flag is set in localStorage before redirect to persist onboarding intent across the full-page reload.
+- On app initialization, the app checks for this flag and, if present, triggers the onboarding modal via Zustand and clears the flag.
+- This ensures a seamless onboarding experience for both email and OAuth signups.
 
 ## Enhanced Supabase Client
 
@@ -106,4 +120,4 @@ const MyComponent = () => {
 };
 ```
 
-By using Zustand stores, Baby Music AI can efficiently manage the application state, keep the components focused on rendering and user interactions, and ensure a smooth and responsive user experience.
+By using Zustand stores (and the hybrid onboarding modal approach for OAuth), Baby Music AI can efficiently manage the application state, keep the components focused on rendering and user interactions, and ensure a smooth and responsive user experience.

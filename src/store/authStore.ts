@@ -283,7 +283,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   signUp: async (email: string, password: string, babyName: string, gender: string) => {
     set({ isLoading: true, initialized: false, error: null });
-    localStorage.setItem('lastSignupMethod', SignupMethod.Email);
     if (!email.trim() || !password.trim() || !babyName.trim() || !gender) {
       const missingFieldsError = new Error('All fields (email, password, baby name, gender) are required for sign up.');
       set({ error: missingFieldsError.message });
@@ -296,9 +295,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
       if (signUpError) throw signUpError;
       if (!data.user) throw new Error('Authentication failed: No user data received after sign up.');
-      
       set({ user: data.user });
-      localStorage.setItem('onboardingInProgress', 'true');
       const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const profileDataToInsert = {
         id: data.user.id,
@@ -309,21 +306,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         created_at: new Date().toISOString(),
         timezone: userTimeZone,
       };
-          
       const { error: upsertError } = await supabase
         .from('profiles')
         .upsert([profileDataToInsert], { onConflict: 'id', ignoreDuplicates: false });
-
       if (upsertError) {
         console.error('Error creating/updating profile entry:', upsertError);
         throw new Error('Failed to create or update user profile after authentication.');
       }
-
-      // Directly call SongService.regeneratePresetSongs ONCE after initial profile upsert
       await SongService.regeneratePresetSongs(data.user.id, babyName.trim(), gender, true);
-      // Load profile after setup to ensure it's up-to-date for UI
       await get().loadProfile(); 
-
     } catch (error: any) {
       console.error("Signup failed:", error);
       const message = error.message || 'An unknown sign-up error occurred.';

@@ -13,6 +13,7 @@ import OAuthOnboardingModal from './components/auth/OAuthOnboardingModal';
 import EmailOnboardingModal from './components/auth/EmailOnboardingModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import IOSInstallModal from './components/common/IOSInstallModal';
+import { useUIStore } from './store/uiStore';
 
 function App() {
   const { user, initialized, profile, signOut, clearOnboardingInProgress } = useAuthStore();
@@ -20,11 +21,9 @@ function App() {
   const setupSubscription = useSongStore(state => state.setupSubscription);
   const [path, setPath] = useState(window.location.pathname);
   const [isIOSInstallModalOpen, setIsIOSInstallModalOpen] = useState(false);
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => {
-    // Check onboardingInProgress in localStorage
-    return localStorage.getItem('onboardingInProgress') === 'true';
-  });
-  const [signupMethod, setSignupMethod] = useState<SignupMethod | null>(null);
+  const isOnboardingOpen = useUIStore(state => state.isOnboardingOpen);
+  const signupMethod = useUIStore(state => state.signupMethod);
+  const closeOnboarding = useUIStore(state => state.closeOnboarding);
 
   // Mount usePWAInstall at the top level to always capture beforeinstallprompt
   usePWAInstall();
@@ -47,10 +46,22 @@ function App() {
 
   // Handle authentication state changes (without manual interval)
   useEffect(() => {
+    // IMPORTANT: This logic ensures onboarding modal is shown after OAuth signups.
+    // When using OAuth, the app redirects away and reloads, losing in-memory state.
+    // We persist onboarding intent in localStorage before redirect, and check here on app load.
+    // If the flag is present, we trigger onboarding via Zustand and clear the flag.
+    // DO NOT REMOVE this check unless you have an alternative way to persist onboarding intent across OAuth redirects.
     if (initialized && user) {
-        registerSessionExpiredCallback(signOut);
-        loadSongs();
-        setupSubscription(user.id);
+      const onboardingFlag = localStorage.getItem('onboardingInProgress');
+      const lastSignupMethod = localStorage.getItem('lastSignupMethod');
+      if (onboardingFlag === 'true' && lastSignupMethod) {
+        useUIStore.getState().openOnboarding(lastSignupMethod as SignupMethod);
+        localStorage.removeItem('onboardingInProgress');
+        localStorage.removeItem('lastSignupMethod');
+      }
+      registerSessionExpiredCallback(signOut);
+      loadSongs();
+      setupSubscription(user.id);
     }
   }, [initialized, user, loadSongs, setupSubscription, signOut]);
 
@@ -72,30 +83,6 @@ function App() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user]);
-
-  // Show onboarding modal after signup or OAuth if onboardingInProgress is set
-  useEffect(() => {
-    if (user && localStorage.getItem('onboardingInProgress') === 'true') {
-      // Get the signup method
-      const storedSignupMethod = localStorage.getItem('lastSignupMethod');
-      setSignupMethod(
-        storedSignupMethod === SignupMethod.OAuth 
-          ? SignupMethod.OAuth 
-          : storedSignupMethod === SignupMethod.Email 
-            ? SignupMethod.Email 
-            : null
-      );
-      setIsOnboardingOpen(true);
-    }
-  }, [user]);
-
-  // Handler for completing onboarding
-  const handleOnboardingComplete = (_updates: any) => {
-    setIsOnboardingOpen(false);
-    localStorage.removeItem('onboardingInProgress');
-    localStorage.removeItem('lastSignupMethod');
-    clearOnboardingInProgress();
-  };
 
   // Show loading spinner while auth state is initializing
   if (!initialized) {
@@ -127,7 +114,7 @@ function App() {
       <OAuthOnboardingModal 
         isOpen={isOnboardingOpen && signupMethod === SignupMethod.OAuth}
         userProfile={profile}
-        onComplete={handleOnboardingComplete}
+        onComplete={closeOnboarding}
         onShouldShowIOSInstallInstructions={() => setIsIOSInstallModalOpen(true)}
       />
 
@@ -135,7 +122,7 @@ function App() {
       <EmailOnboardingModal 
         isOpen={isOnboardingOpen && signupMethod === SignupMethod.Email}
         userProfile={profile}
-        onComplete={handleOnboardingComplete}
+        onComplete={closeOnboarding}
         onShouldShowIOSInstallInstructions={() => setIsIOSInstallModalOpen(true)}
       />
 
@@ -143,11 +130,7 @@ function App() {
         isOpen={isIOSInstallModalOpen}
         onClose={() => {
           setIsIOSInstallModalOpen(false);
-          setIsOnboardingOpen(false);
-          localStorage.removeItem('onboardingInProgress');
-          localStorage.removeItem('lastSignupMethod');
-          clearOnboardingInProgress();
-          console.log('IOS PWA Install Modal closed, onboarding finalized.');
+          closeOnboarding();
         }}
       />
     </div>

@@ -23,27 +23,15 @@ The `AuthModal` component handles both sign-in and sign-up flows. Key features i
 - Error handling for various authentication scenarios
 - Seamless transition to onboarding flow after successful registration
 
-```jsx
-// Example from AuthModal.tsx
-const handleCredentialsSubmit = async (e: FormEvent) => {
-  e.preventDefault();
-  if (isSignIn) {
-    // Handle sign-in logic
-  } else {
-    // Handle sign-up logic and transition to onboarding
-    try {
-      await signUp(trimmedEmail, password, trimmedBabyName);
-      setShowOnboarding(true);
-    } catch (err) {
-      // Error handling
-    }
-  }
-};
-```
+#### Hybrid Onboarding Modal State (Zustand + localStorage)
+
+- The onboarding modal is managed in Zustand for UI state.
+- For email signup, the modal appears immediately after signup.
+- For OAuth signup, a flag is set in localStorage before redirect. After the user returns and the app reloads, the app checks this flag and triggers onboarding via Zustand, then clears the flag. This ensures onboarding is shown even after a full page reload caused by OAuth redirects.
 
 ### OnboardingModal
 
-The `OnboardingModal` component guides new users through setting up their baby's profile after registration:
+The `OnboardingModal.tsx` component guides new users through setting up their baby's profile after registration:
 
 - Multi-step wizard interface
 - Collection of baby information (name, birth date, gender)

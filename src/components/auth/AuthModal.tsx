@@ -2,6 +2,8 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { X } from 'lucide-react';
 import SocialAuthButtons from './SocialAuthButtons';
+import { useUIStore } from '../../store/uiStore';
+import { SignupMethod } from '../../store/authStore';
 
 // Read the feature flag
 const enableGoogleOAuth = import.meta.env.VITE_ENABLE_GOOGLE_OAUTH === 'true';
@@ -26,6 +28,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
     isSignIn ? 'credentials' : 'babyNameFirst'
   );
   const { signIn, signUp } = useAuthStore();
+  const openOnboarding = useUIStore(state => state.openOnboarding);
 
   useEffect(() => {
     if (isOpen) {
@@ -112,7 +115,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: A
       try {
         console.log('Starting signup process with gender:', gender);
         await signUp(trimmedEmail, password, trimmedBabyName, gender);
-        console.log('Signup successful, closing modal...');
+        openOnboarding(SignupMethod.Email);
         onClose();
       } catch (err) {
         console.error('Signup error:', err);

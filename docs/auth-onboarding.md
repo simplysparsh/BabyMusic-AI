@@ -74,11 +74,10 @@ After a successful registration, new users go through an onboarding process to c
 
 ### 1. Onboarding Modal Component
 
-The `OnboardingModal.tsx` component guides users through the onboarding process:
+The onboarding modal is managed using Zustand for UI state. However, for OAuth signups (e.g., Google), a hybrid approach is used:
 
-- Collects additional information about the baby
-- Updates the user profile with the collected information
-- Initializes preset songs based on the baby's profile
+- **Email signup:** Zustand state is used to control the onboarding modal. The modal appears immediately after signup.
+- **OAuth signup:** Before redirecting to the OAuth provider, a flag (`onboardingInProgress`) and the signup method are set in `localStorage`. After the user is redirected back and the app reloads, the app checks for this flag on initialization. If present, it triggers the onboarding modal via Zustand and then clears the flag. This ensures the onboarding modal appears even after a full page reload caused by OAuth redirects.
 
 ### 2. Onboarding Steps
 
@@ -151,6 +150,8 @@ The authentication and onboarding system implements several security measures:
 ## Implementation Notes
 
 - The authentication state is managed by Zustand for a clean and reactive approach
+- The onboarding modal uses Zustand for UI state, but for OAuth signups, a localStorage flag is used to persist onboarding intent across redirects
+- On app initialization, the app checks for this flag and triggers onboarding if needed
 - Modals use React hooks to manage their state and transitions
 - Form validation is performed both on the client and server side
 - Error messages are user-friendly and actionable

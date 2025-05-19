@@ -90,7 +90,7 @@ function App() {
   }, [user]);
 
   // Handler for completing onboarding
-  const handleOnboardingComplete = (updates: any) => {
+  const handleOnboardingComplete = (_updates: any) => {
     setIsOnboardingOpen(false);
     localStorage.removeItem('onboardingInProgress');
     localStorage.removeItem('lastSignupMethod');

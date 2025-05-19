@@ -448,15 +448,14 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile, onSho
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-lg z-50 flex items-center justify-center p-4">
-      <div className="card w-full max-w-lg relative border-white/[0.05] fade-in overflow-hidden max-h-[90dvh] sm:max-h-[85vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-lg z-50 flex items-center justify-center p-2 sm:p-4">
+      <div className="card w-full max-w-xs sm:max-w-lg relative border-white/[0.05] fade-in overflow-hidden max-h-[95dvh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-8">
         {isUpdating && onboardingStep === 'infoCollection' && (
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
           </div>
         )}
-        
-        <div className="relative p-8">
+        <div className="relative">
           {onboardingStep === 'infoCollection' && renderInfoCollectionStep()}
           {onboardingStep === 'pwaInstallPrompt' && renderPwaInstallStep()}
         </div>

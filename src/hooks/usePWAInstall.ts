@@ -39,6 +39,17 @@ export function usePWAInstall(userId?: string): PWAInstallStatus {
     setIsIOS(getIsIOS());
   }, []);
 
+  // Standalone mode detection: If user logs in and app is running as PWA, update profile
+  useEffect(() => {
+    if (userId && window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+      ProfileService.updatePWAInstallStatus(userId, true)
+        .catch((err) => {
+          console.error('Failed to update PWA install status (standalone mode detection):', err);
+        });
+    }
+  }, [userId]);
+
   const handleBeforeInstallPrompt = useCallback((event: Event) => {
     event.preventDefault();
     deferredInstallPrompt = event as BeforeInstallPromptEvent;
@@ -48,18 +59,6 @@ export function usePWAInstall(userId?: string): PWAInstallStatus {
     }
     console.log('[usePWAInstall] beforeinstallprompt event captured.');
   }, []);
-
-  const handleAppInstalled = useCallback(() => {
-    deferredInstallPrompt = null;
-    setCanInstall(false);
-    setIsInstalled(true);
-    console.log('[usePWAInstall] PWA installed successfully.');
-    if (userId) {
-      ProfileService.updatePWAInstallStatus(userId, true).catch((err) => {
-        console.error('Failed to update PWA install status in profile:', err);
-      });
-    }
-  }, [userId]);
 
   useEffect(() => {
     // Check if running in standalone mode (already installed)
@@ -76,16 +75,13 @@ export function usePWAInstall(userId?: string): PWAInstallStatus {
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
-
-    console.log('[usePWAInstall] Event listeners for PWA install added.');
+    console.log('[usePWAInstall] Event listener for beforeinstallprompt added.');
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-      console.log('[usePWAInstall] Event listeners for PWA install removed.');
+      console.log('[usePWAInstall] Event listener for beforeinstallprompt removed.');
     };
-  }, [handleBeforeInstallPrompt, handleAppInstalled, isInstalled]);
+  }, [handleBeforeInstallPrompt, isInstalled]);
 
   const triggerInstallPrompt = useCallback(async (): Promise<boolean> => {
     if (!deferredInstallPrompt) {
@@ -101,8 +97,7 @@ export function usePWAInstall(userId?: string): PWAInstallStatus {
       console.log(`[usePWAInstall] User choice: ${outcome}`);
 
       if (outcome === 'accepted') {
-        // The 'appinstalled' event will usually handle setting isInstalled.
-        // Setting it here can make the UI update faster.
+        // Standalone mode detection effect will handle setting isInstalled and updating the profile.
         setIsInstalled(true); 
         console.log('[usePWAInstall] User accepted the PWA installation.');
       } else {

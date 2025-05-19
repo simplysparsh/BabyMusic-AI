@@ -283,6 +283,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   signUp: async (email: string, password: string, babyName: string, gender: string) => {
     set({ isLoading: true, initialized: false, error: null });
+    localStorage.setItem('lastSignupMethod', SignupMethod.Email);
     if (!email.trim() || !password.trim() || !babyName.trim() || !gender) {
       const missingFieldsError = new Error('All fields (email, password, baby name, gender) are required for sign up.');
       set({ error: missingFieldsError.message });

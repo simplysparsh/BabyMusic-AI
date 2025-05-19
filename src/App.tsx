@@ -6,10 +6,11 @@ import PremiumPage from './pages/PremiumPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import { useEffect, useState, Suspense } from 'react';
-import { useAuthStore } from './store/authStore'; 
+import { useAuthStore, SignupMethod } from './store/authStore'; 
 import { useSongStore } from './store/songStore';
 import { forceTokenRefresh, getLastSuccessfulRefresh, registerSessionExpiredCallback } from './lib/supabase';
-import OnboardingModal from './components/auth/OnboardingModal';
+import OAuthOnboardingModal from './components/auth/OAuthOnboardingModal';
+import EmailOnboardingModal from './components/auth/EmailOnboardingModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import IOSInstallModal from './components/common/IOSInstallModal';
 
@@ -23,6 +24,7 @@ function App() {
     // Check onboardingInProgress in localStorage
     return localStorage.getItem('onboardingInProgress') === 'true';
   });
+  const [signupMethod, setSignupMethod] = useState<SignupMethod | null>(null);
 
   // Mount usePWAInstall at the top level to always capture beforeinstallprompt
   usePWAInstall();
@@ -74,9 +76,26 @@ function App() {
   // Show onboarding modal after signup or OAuth if onboardingInProgress is set
   useEffect(() => {
     if (user && localStorage.getItem('onboardingInProgress') === 'true') {
+      // Get the signup method
+      const storedSignupMethod = localStorage.getItem('lastSignupMethod');
+      setSignupMethod(
+        storedSignupMethod === SignupMethod.OAuth 
+          ? SignupMethod.OAuth 
+          : storedSignupMethod === SignupMethod.Email 
+            ? SignupMethod.Email 
+            : null
+      );
       setIsOnboardingOpen(true);
     }
   }, [user]);
+
+  // Handler for completing onboarding
+  const handleOnboardingComplete = (updates: any) => {
+    setIsOnboardingOpen(false);
+    localStorage.removeItem('onboardingInProgress');
+    localStorage.removeItem('lastSignupMethod');
+    clearOnboardingInProgress();
+  };
 
   // Show loading spinner while auth state is initializing
   if (!initialized) {
@@ -104,14 +123,19 @@ function App() {
         )}
       </Suspense>
       
-      <OnboardingModal 
-        isOpen={isOnboardingOpen}
+      {/* OAuth Onboarding Modal */}
+      <OAuthOnboardingModal 
+        isOpen={isOnboardingOpen && signupMethod === SignupMethod.OAuth}
         userProfile={profile}
-        onComplete={() => {
-          setIsOnboardingOpen(false);
-          localStorage.removeItem('onboardingInProgress');
-          clearOnboardingInProgress();
-        }}
+        onComplete={handleOnboardingComplete}
+        onShouldShowIOSInstallInstructions={() => setIsIOSInstallModalOpen(true)}
+      />
+
+      {/* Email Onboarding Modal */}
+      <EmailOnboardingModal 
+        isOpen={isOnboardingOpen && signupMethod === SignupMethod.Email}
+        userProfile={profile}
+        onComplete={handleOnboardingComplete}
         onShouldShowIOSInstallInstructions={() => setIsIOSInstallModalOpen(true)}
       />
 
@@ -121,6 +145,7 @@ function App() {
           setIsIOSInstallModalOpen(false);
           setIsOnboardingOpen(false);
           localStorage.removeItem('onboardingInProgress');
+          localStorage.removeItem('lastSignupMethod');
           clearOnboardingInProgress();
           console.log('IOS PWA Install Modal closed, onboarding finalized.');
         }}

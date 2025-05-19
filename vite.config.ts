@@ -185,7 +185,7 @@ export default defineConfig({
         comments: false
       },
       compress: {
-        drop_console: false
+        drop_console: true
       }
     }
   }

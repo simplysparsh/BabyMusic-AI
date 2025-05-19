@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { supabase, supabaseWithRetry, stopTokenRefresh, clearSupabaseStorage } from '../lib/supabase';
-import { useSongStore } from './songStore';
 import { useErrorStore } from './errorStore';
 import { ProfileService } from '../services/profileService';
 import { SongService } from '../services/songService';

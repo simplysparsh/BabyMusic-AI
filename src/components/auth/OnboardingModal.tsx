@@ -49,7 +49,7 @@ export default function OnboardingModal({ isOpen, onComplete, userProfile, onSho
   const [birthDateError, setBirthDateError] = useState<string | null>(null);
   const [babyNameError, setBabyNameError] = useState<string | null>(null);
   const [genderError, setGenderError] = useState<string | null>(null);
-  const { user, updateProfile, clearOnboardingInProgress, finalizeNewUserSetup } = useAuthStore();
+  const { user, clearOnboardingInProgress, finalizeNewUserSetup } = useAuthStore();
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>('infoCollection');
   const { canInstall, isInstalled, isIOS } = usePWAInstall();
   const [showPwaInstallMessage, setShowPwaInstallMessage] = useState(false);

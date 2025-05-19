@@ -9,10 +9,14 @@ export default function SocialAuthButtons({ mode = 'signin' }: SocialAuthButtons
   
   const buttonText = mode === 'signup' ? 'Signup with Google' : 'Continue with Google';
 
+  const handleGoogleClick = () => {
+    signInWithGoogle(mode === 'signup');
+  };
+
   return (
     <div className="flex flex-col gap-3 w-full">
       <button
-        onClick={signInWithGoogle}
+        onClick={handleGoogleClick}
         className={googleButtonStyles}
         aria-label={buttonText}
       >

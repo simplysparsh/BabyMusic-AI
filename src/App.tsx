@@ -14,11 +14,15 @@ import { usePWAInstall } from './hooks/usePWAInstall';
 import IOSInstallModal from './components/common/IOSInstallModal';
 
 function App() {
-  const { user, initialized, profile, showPostOAuthOnboarding, showPostSignupOnboarding, hidePostOAuthOnboarding, hidePostSignupOnboarding, signOut, clearOnboardingInProgress } = useAuthStore();
+  const { user, initialized, profile, signOut, clearOnboardingInProgress } = useAuthStore();
   const loadSongs = useSongStore(state => state.loadSongs);
   const setupSubscription = useSongStore(state => state.setupSubscription);
   const [path, setPath] = useState(window.location.pathname);
   const [isIOSInstallModalOpen, setIsIOSInstallModalOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => {
+    // Check onboardingInProgress in localStorage
+    return localStorage.getItem('onboardingInProgress') === 'true';
+  });
 
   // Mount usePWAInstall at the top level to always capture beforeinstallprompt
   usePWAInstall();
@@ -67,6 +71,13 @@ function App() {
     };
   }, [user]);
 
+  // Show onboarding modal after signup or OAuth if onboardingInProgress is set
+  useEffect(() => {
+    if (user && localStorage.getItem('onboardingInProgress') === 'true') {
+      setIsOnboardingOpen(true);
+    }
+  }, [user]);
+
   // Show loading spinner while auth state is initializing
   if (!initialized) {
     return (
@@ -94,16 +105,12 @@ function App() {
       </Suspense>
       
       <OnboardingModal 
-        isOpen={showPostOAuthOnboarding || showPostSignupOnboarding}
+        isOpen={isOnboardingOpen}
         userProfile={profile}
         onComplete={() => {
-          if (showPostOAuthOnboarding) {
-            console.log('Onboarding complete callback in App.tsx (OAuth flow)');
-            hidePostOAuthOnboarding();
-          } else if (showPostSignupOnboarding) {
-            console.log('Onboarding complete callback in App.tsx (Email flow)');
-            hidePostSignupOnboarding();
-          }
+          setIsOnboardingOpen(false);
+          localStorage.removeItem('onboardingInProgress');
+          clearOnboardingInProgress();
         }}
         onShouldShowIOSInstallInstructions={() => setIsIOSInstallModalOpen(true)}
       />
@@ -112,8 +119,8 @@ function App() {
         isOpen={isIOSInstallModalOpen}
         onClose={() => {
           setIsIOSInstallModalOpen(false);
-          if (showPostOAuthOnboarding) hidePostOAuthOnboarding();
-          if (showPostSignupOnboarding) hidePostSignupOnboarding();
+          setIsOnboardingOpen(false);
+          localStorage.removeItem('onboardingInProgress');
           clearOnboardingInProgress();
           console.log('IOS PWA Install Modal closed, onboarding finalized.');
         }}

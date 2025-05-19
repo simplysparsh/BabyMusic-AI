@@ -20,8 +20,6 @@ interface AuthState {
   profile: UserProfile | null;
   initialized: boolean;
   isLoading: boolean;
-  showPostSignupOnboarding: boolean;
-  showPostOAuthOnboarding: boolean;
   error: string | null;
   
   loadProfile: () => Promise<void>;
@@ -39,8 +37,6 @@ interface AuthState {
   signUp: (email: string, password: string, babyName: string, gender: string) => Promise<void>;
   signOut: () => Promise<void>;
   loadUser: () => Promise<void | (() => void)>;
-  hidePostSignupOnboarding: () => void;
-  hidePostOAuthOnboarding: () => void;
   incrementPlayCount: () => Promise<void>;
   clearOnboardingInProgress: () => void;
 }
@@ -50,8 +46,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   profile: null,
   initialized: false,
   isLoading: false,
-  showPostSignupOnboarding: false,
-  showPostOAuthOnboarding: false,
   error: null,
   
   loadProfile: async () => {
@@ -146,39 +140,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             };
           
             set({ profile: userProfile });
-            
-            // --- Robust Onboarding Modal Logic ---
-            const isProfileIncomplete = !userProfile.babyName || !userProfile.gender || !userProfile.birthMonth || !userProfile.birthYear;
-            const isOAuthUser = user?.app_metadata?.provider && user.app_metadata.provider !== 'email';
-            const onboardingInProgress = localStorage.getItem('onboardingInProgress') === 'true';
-            // Fallback: user is new if created_at within 5 min
-            let isUserNew = false;
-            if (profileData.created_at) {
-              const createdAt = new Date(profileData.created_at).getTime();
-              const now = Date.now();
-              isUserNew = (now - createdAt) < 5 * 60 * 1000;
-            }
-            // If onboardingInProgress flag is set and profile is incomplete, force modal open
-            if (onboardingInProgress && isProfileIncomplete) {
-              set({ showPostOAuthOnboarding: true });
-            } else if (!onboardingInProgress && isProfileIncomplete && isOAuthUser && isUserNew) {
-              // Fallback: OAuth, incomplete, new user, no flag (e.g. iOS localStorage wiped)
-              set({ showPostOAuthOnboarding: true });
-              localStorage.setItem('onboardingInProgress', 'true');
-            } else if (get().showPostOAuthOnboarding && !isProfileIncomplete) {
-              // If modal is open but profile is now complete, close it
-              set({ showPostOAuthOnboarding: false });
-            }
-            // For email signup, show post-signup onboarding if birth info is missing and onboardingInProgress is set
-            if (onboardingInProgress && (!userProfile.birthMonth || !userProfile.birthYear) && !isOAuthUser) {
-              set({ showPostSignupOnboarding: true });
-            } else if (get().showPostSignupOnboarding && userProfile.birthMonth && userProfile.birthYear) {
-              set({ showPostSignupOnboarding: false });
-            }
-            // If profile is now complete, clear onboardingInProgress
-            if (!isProfileIncomplete && onboardingInProgress) {
-              localStorage.removeItem('onboardingInProgress');
-            }
             set({ error: null });
             return;
           } else {
@@ -239,8 +200,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 timezone: userTimeZone
               };
               const lastSignupMethod = (localStorage.getItem('lastSignupMethod') as SignupMethod | null) ?? SignupMethod.None;
-              set({ profile: userProfile, showPostOAuthOnboarding: lastSignupMethod === SignupMethod.OAuth });
-              console.log('Created minimal profile and set showPostOAuthOnboarding flag:', lastSignupMethod === SignupMethod.OAuth);
+              set({ profile: userProfile });
+              console.log('Created minimal profile for OAuth onboarding.');
               return;
             } catch (profileCreateErr) {
               console.error('Error in profile creation:', profileCreateErr);
@@ -255,8 +216,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           if (retryCount === MAX_RETRIES) {
             console.error('Max retries reached for loading profile. Signing out.');
             await supabase.auth.signOut();
-            set({ user: null, profile: null, initialized: true, showPostSignupOnboarding: false, showPostOAuthOnboarding: false }); 
-            set({ error: err instanceof Error ? err.message : 'Failed to load profile.' });
+            set({ user: null, profile: null, initialized: true, error: err instanceof Error ? err.message : 'Failed to load profile.' });
             return;
           }
         }
@@ -296,12 +256,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.log('Profile updated successfully:', updatedProfileData);
 
       set({ profile: updatedProfileData });
-
-      // This logic is for UI state (closing onboarding modal), not song regeneration.
-      // It should remain if still relevant.
-      if (get().showPostOAuthOnboarding && updatedProfileData.babyName && updatedProfileData.gender && updatedProfileData.birthMonth && updatedProfileData.birthYear) {
-        set({ showPostOAuthOnboarding: false });
-      }
 
       return updatedProfileData;
     } catch (error) {
@@ -371,8 +325,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Load profile after setup to ensure it's up-to-date for UI
       await get().loadProfile(); 
 
-      set({ showPostSignupOnboarding: true });
-      
     } catch (error: any) {
       console.error("Signup failed:", error);
       const message = error.message || 'An unknown sign-up error occurred.';
@@ -388,7 +340,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await supabase.auth.signOut();
       stopTokenRefresh(); 
       clearSupabaseStorage();
-      set({ user: null, profile: null, initialized: false, showPostSignupOnboarding: false, showPostOAuthOnboarding: false, error: null });
+      set({ user: null, profile: null, initialized: false, error: null });
     } catch (error: any) {
       console.error("Sign-out error:", error);
       const message = error.message || 'An unknown sign-out error occurred.';
@@ -434,7 +386,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           set({ user: null, profile: null });
         }
       } else if (event === 'SIGNED_OUT') {
-        set({ user: null, profile: null, showPostSignupOnboarding: false, showPostOAuthOnboarding: false, error: null });
+        set({ user: null, profile: null, error: null });
       }
       set({ isLoading: false, initialized: true });
     });
@@ -445,9 +397,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     };
   },
-
-  hidePostSignupOnboarding: () => set({ showPostSignupOnboarding: false }),
-  hidePostOAuthOnboarding: () => set({ showPostOAuthOnboarding: false }),
 
   incrementPlayCount: async () => {
     const user = get().user;
@@ -471,6 +420,5 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   clearOnboardingInProgress: () => {
     localStorage.removeItem('onboardingInProgress');
-    set({ showPostOAuthOnboarding: false, showPostSignupOnboarding: false });
   }
 }));

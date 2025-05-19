@@ -125,9 +125,9 @@ export default function OAuthOnboardingModal({ isOpen, onComplete, userProfile, 
       
       if (user && user.id) {
         await updateProfile(profileUpdates);
-        // OAuth specific: generate preset songs
-        await SongService.regeneratePresetSongs(user.id, profileUpdates.babyName, profileUpdates.gender, true);
         setOnboardingStep('pwaInstallPrompt');
+        // Fire-and-forget: generate preset songs in the background
+        SongService.regeneratePresetSongs(user.id, profileUpdates.babyName, profileUpdates.gender, true);
       } else {
         console.error('User ID not available in OAuthOnboardingModal for updateProfile');
         setError('User session error. Please try again.');

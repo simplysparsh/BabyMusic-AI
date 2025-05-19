@@ -313,8 +313,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         console.error('Error creating/updating profile entry:', upsertError);
         throw new Error('Failed to create or update user profile after authentication.');
       }
-      await SongService.regeneratePresetSongs(data.user.id, babyName.trim(), gender, true);
       await get().loadProfile(); 
+      // Fire-and-forget: generate preset songs in the background
+      SongService.regeneratePresetSongs(data.user.id, babyName.trim(), gender, true);
     } catch (error: any) {
       console.error("Signup failed:", error);
       const message = error.message || 'An unknown sign-up error occurred.';

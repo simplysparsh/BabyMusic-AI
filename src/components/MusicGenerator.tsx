@@ -7,7 +7,7 @@ import ThemeSelector from './music-generator/ThemeSelector';
 import VoiceSelector from './music-generator/VoiceSelector';
 import CustomOptions from './music-generator/CustomOptions';
 import LyricsInput from './music-generator/LyricsInput';
-import GenerationProgress from './music-generator/GenerationProgress';
+import SoundThreadAnimation from './music-generator/SoundThreadAnimation';
 import { SongPromptService } from '../services/songPromptService';
 import { useSongGenerationTimer } from '../hooks/useSongGenerationTimer';
 import { GENERATION_LIMIT } from '../config/limits';
@@ -74,7 +74,7 @@ export default function MusicGenerator() {
   const isButtonActuallyDisabled = isSubmitting || isCreateButtonDisabled();
 
   // Use the centralized timer hook, only activating it when a non-preset song is generating
-  const { timeLeft, totalTime, formattedTime, progress } = useSongGenerationTimer(
+  const { timeLeft, totalTime, progress } = useSongGenerationTimer(
     isNonPresetGenerating,
     generatingNonPresetSong?.id
   );
@@ -315,11 +315,11 @@ export default function MusicGenerator() {
 
         {/* Only show progress for non-preset songs */}
         {isNonPresetGenerating && (
-          <GenerationProgress
+          <SoundThreadAnimation
+            isGenerating={isNonPresetGenerating}
+            progress={progress}
             timeLeft={timeLeft}
             totalTime={totalTime}
-            formattedTime={formattedTime}
-            progress={progress}
           />
         )}
       </div>

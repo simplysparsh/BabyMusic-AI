@@ -1,0 +1,422 @@
+/* Sound Thread Animation Container */
+.sound-thread-container {
+  width: 100%;
+  max-width: 24rem; /* 384px */
+}
+
+/* Main animation box */
+.sound-thread-box {
+  position: relative;
+  height: 13rem; /* 208px */
+  border-radius: 1rem;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background-image: linear-gradient(to bottom right, 
+    rgba(147, 51, 234, 0.1), 
+    rgba(59, 130, 246, 0.1), 
+    rgba(236, 72, 153, 0.1)
+  );
+}
+
+/* Sound threads container */
+.sound-threads {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Individual thread styling */
+.thread {
+  position: absolute;
+  width: 100%;
+  height: 3px;
+  left: 0;
+  transform-origin: center;
+  filter: blur(1px);
+  opacity: 0.8;
+  mix-blend-mode: screen;
+}
+
+/* Thread wave animation keyframes */
+@keyframes threadWave1 {
+  0%, 100% {
+    transform: translateY(100px) scaleY(1) translateX(0);
+  }
+  25% {
+    transform: translateY(80px) scaleY(1.5) translateX(-20px);
+  }
+  50% {
+    transform: translateY(100px) scaleY(0.8) translateX(10px);
+  }
+  75% {
+    transform: translateY(120px) scaleY(1.2) translateX(-10px);
+  }
+}
+
+@keyframes threadWave2 {
+  0%, 100% {
+    transform: translateY(90px) scaleY(1) translateX(0);
+  }
+  33% {
+    transform: translateY(110px) scaleY(1.3) translateX(15px);
+  }
+  66% {
+    transform: translateY(85px) scaleY(0.9) translateX(-15px);
+  }
+}
+
+@keyframes threadWave3 {
+  0%, 100% {
+    transform: translateY(105px) scaleY(1) translateX(0);
+  }
+  50% {
+    transform: translateY(95px) scaleY(1.4) translateX(-25px);
+  }
+}
+
+/* Thread specific animations and colors */
+.thread-1 {
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    #FF6B6B 20%, 
+    #FF6B6B 50%, 
+    #FF6B6B 80%, 
+    transparent 100%
+  );
+  animation: threadWave1 4s ease-in-out infinite;
+  box-shadow: 0 0 20px #FF6B6B;
+}
+
+.thread-2 {
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    #4ECDC4 20%, 
+    #4ECDC4 50%, 
+    #4ECDC4 80%, 
+    transparent 100%
+  );
+  animation: threadWave2 4.5s ease-in-out infinite;
+  animation-delay: 0.2s;
+  box-shadow: 0 0 20px #4ECDC4;
+}
+
+.thread-3 {
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    #FFE66D 20%, 
+    #FFE66D 50%, 
+    #FFE66D 80%, 
+    transparent 100%
+  );
+  animation: threadWave3 3.8s ease-in-out infinite;
+  animation-delay: 0.4s;
+  box-shadow: 0 0 20px #FFE66D;
+}
+
+.thread-4 {
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    #A8E6CF 20%, 
+    #A8E6CF 50%, 
+    #A8E6CF 80%, 
+    transparent 100%
+  );
+  animation: threadWave1 4.2s ease-in-out infinite reverse;
+  animation-delay: 0.6s;
+  box-shadow: 0 0 20px #A8E6CF;
+}
+
+.thread-5 {
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    #C7CEEA 20%, 
+    #C7CEEA 50%, 
+    #C7CEEA 80%, 
+    transparent 100%
+  );
+  animation: threadWave2 5s ease-in-out infinite;
+  animation-delay: 0.8s;
+  box-shadow: 0 0 20px #C7CEEA;
+}
+
+/* Particles */
+.particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  opacity: 0;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+}
+
+@keyframes particleFloat {
+  0% {
+    transform: translateY(200px) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-20px) translateX(var(--drift));
+    opacity: 0;
+  }
+}
+
+.particle-1 {
+  left: 10%;
+  --drift: 20px;
+  animation: particleFloat 3s ease-out infinite;
+}
+
+.particle-2 {
+  left: 25%;
+  --drift: -15px;
+  animation: particleFloat 3.5s ease-out infinite;
+  animation-delay: 0.5s;
+}
+
+.particle-3 {
+  left: 40%;
+  --drift: 10px;
+  animation: particleFloat 4s ease-out infinite;
+  animation-delay: 1s;
+}
+
+.particle-4 {
+  left: 55%;
+  --drift: -20px;
+  animation: particleFloat 3.2s ease-out infinite;
+  animation-delay: 1.5s;
+}
+
+.particle-5 {
+  left: 70%;
+  --drift: 15px;
+  animation: particleFloat 3.8s ease-out infinite;
+  animation-delay: 2s;
+}
+
+.particle-6 {
+  left: 80%;
+  --drift: -10px;
+  animation: particleFloat 3.5s ease-out infinite;
+  animation-delay: 2.5s;
+}
+
+.particle-7 {
+  left: 90%;
+  --drift: 25px;
+  animation: particleFloat 4.2s ease-out infinite;
+  animation-delay: 0.3s;
+}
+
+.particle-8 {
+  left: 15%;
+  --drift: -25px;
+  animation: particleFloat 3.7s ease-out infinite;
+  animation-delay: 1.8s;
+}
+
+/* Center content */
+.thread-center-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Musical note animation */
+.musical-note {
+  margin-bottom: 0.75rem;
+}
+
+.note-icon {
+  font-size: 2.25rem;
+  display: inline-block;
+  animation: noteFloat 4s ease-in-out infinite;
+}
+
+@keyframes noteFloat {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  50% {
+    transform: scale(1) rotate(-5deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(0deg);
+  }
+}
+
+/* Status text */
+.status-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  animation: textPulse 2s ease-in-out infinite;
+}
+
+@keyframes textPulse {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Time display */
+.time-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+}
+
+.time-indicator {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: #4ade80;
+  border-radius: 50%;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+.time-text {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.75rem;
+  font-family: monospace;
+}
+
+/* Progress bar */
+.thread-progress-bar {
+  margin-top: 1rem;
+  height: 0.375rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 9999px;
+  overflow: hidden;
+  backdrop-filter: blur(4px);
+}
+
+.thread-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6);
+  background-size: 200% 100%;
+  transition: width 0.3s ease;
+  animation: progressShimmer 3s linear infinite;
+}
+
+@keyframes progressShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+/* Progress message */
+.thread-message {
+  text-align: center;
+  margin-top: 0.75rem;
+  animation: messageFade 4s ease-in-out infinite;
+}
+
+.thread-message p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+}
+
+@keyframes messageFade {
+  0%, 10%, 90%, 100% {
+    opacity: 0;
+  }
+  20%, 80% {
+    opacity: 1;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .sound-thread-box {
+    height: 11rem;
+  }
+  
+  .thread {
+    height: 2px;
+  }
+  
+  .particle {
+    width: 3px;
+    height: 3px;
+  }
+  
+  .note-icon {
+    font-size: 1.875rem;
+  }
+  
+  .status-text {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Performance optimizations for low-end devices */
+@media (prefers-reduced-motion: reduce) {
+  .thread,
+  .particle,
+  .note-icon,
+  .status-text,
+  .time-indicator,
+  .thread-progress-fill {
+    animation: none !important;
+  }
+  
+  .thread {
+    opacity: 0.6;
+  }
+  
+  .particle {
+    display: none;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .sound-thread-box {
+    background: rgba(0, 0, 0, 0.3);
+  }
+} 

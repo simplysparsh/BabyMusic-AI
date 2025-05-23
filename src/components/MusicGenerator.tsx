@@ -74,7 +74,7 @@ export default function MusicGenerator() {
   const isButtonActuallyDisabled = isSubmitting || isCreateButtonDisabled();
 
   // Use the centralized timer hook, only activating it when a non-preset song is generating
-  const { timeLeft, totalTime, progress } = useSongGenerationTimer(
+  const { timeLeft, progress } = useSongGenerationTimer(
     isNonPresetGenerating,
     generatingNonPresetSong?.id
   );
@@ -284,12 +284,12 @@ export default function MusicGenerator() {
         </div>
 
         {/* Generate Button */}
-        <div className="flex justify-center pt-4">
+        <div className="pt-4">
           <button
             onClick={handleGenerate}
             disabled={isButtonActuallyDisabled}
-            className="flex items-center space-x-3 min-h-[48px] bg-gradient-to-r from-primary to-secondary
-                     text-black font-medium px-8 py-4 rounded-xl hover:opacity-90 transition-all duration-300
+            className="w-full flex items-center justify-center space-x-3 min-h-[48px] bg-gradient-to-r from-primary to-secondary
+                     text-black font-medium px-8 py-3 rounded-xl hover:opacity-90 transition-all duration-300
                      disabled:opacity-50 shadow-lg shadow-primary/25 group active:scale-95 active:shadow-md"
           >
             <Wand2 className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />

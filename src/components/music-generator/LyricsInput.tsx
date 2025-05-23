@@ -27,15 +27,15 @@ export default function LyricsInput({ value, onChange, isFromScratch = false, on
 
   return (
     <div>
-      <label className="block text-lg font-medium text-white/90 mb-2">
+      <label className="block text-xl font-semibold text-white/90 mb-3 text-center">
         {isFromScratch ? 'Enter Your Song Ideas' : 'Customize Your Song'}
         <span className="text-white/60 text-sm ml-2">
-          {(isFromScratch || showCustomInput) && `(${MAX_INPUT_LENGTH} characters max)`}
+          {(isFromScratch || showCustomInput) && `(${MAX_INPUT_LENGTH} chars max)`}
         </span>
       </label>
       <div className="space-y-3">
         {!isFromScratch && (
-          <div className="flex gap-3">
+          <div className="flex gap-3 justify-center">
             <button
               onClick={() => {
                 handleCustomInputChange(false);

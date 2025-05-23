@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trash2, Music2, LockKeyhole, Sparkles } from 'lucide-react';
+import { Trash2, Music2, Sparkles } from 'lucide-react';
 import { useSongStore } from '../store/songStore';
 import { useAuthStore } from '../store/authStore';
 import { useAudioStore } from '../store/audioStore';
@@ -216,9 +216,9 @@ export default function SongList() {
             )}
             
             <div className="space-y-4">
-              {sortedSongs.map(song => (
+              {sortedSongs.map((song, index) => (
                 <SongItem
-                  key={song.id}
+                  key={`${song.id}-${index}`}
                   song={song}
                   currentSong={currentUrl}
                   isPlaying={isPlaying}

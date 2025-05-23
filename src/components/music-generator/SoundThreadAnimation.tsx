@@ -6,7 +6,6 @@ interface SoundThreadAnimationProps {
   isGenerating: boolean;
   progress: number;
   timeLeft: number;
-  totalTime: number;
 }
 
 interface ThreadPath {
@@ -21,13 +20,28 @@ interface ThreadPath {
 export default function SoundThreadAnimation({
   isGenerating,
   progress,
-  timeLeft,
-  totalTime
+  timeLeft
 }: SoundThreadAnimationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const controls = useAnimation();
   const [isMobile, setIsMobile] = useState(false);
   
+  // Generate thread configurations - moved before any early returns
+  const threads: ThreadPath[] = useMemo(() => [
+    { id: 1, color: '#FF6B6B', amplitude: 30, frequency: 2, phase: 0, thickness: 3 },
+    { id: 2, color: '#4ECDC4', amplitude: 25, frequency: 2.5, phase: Math.PI / 3, thickness: 2.5 },
+    { id: 3, color: '#FFE66D', amplitude: 35, frequency: 1.8, phase: Math.PI / 2, thickness: 2.8 },
+    { id: 4, color: '#A8E6CF', amplitude: 28, frequency: 2.2, phase: Math.PI / 4, thickness: 2.3 },
+    { id: 5, color: '#C7CEEA', amplitude: 32, frequency: 2.7, phase: Math.PI / 6, thickness: 2.6 }
+  ], []);
+
+  // Calculate time display - moved before any early returns
+  const displayTime = useMemo(() => {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }, [timeLeft]);
+
   // Check if on mobile device or small screen
   useEffect(() => {
     const checkMobile = () => {
@@ -38,6 +52,70 @@ export default function SoundThreadAnimation({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Animate threads based on generation state
+  useEffect(() => {
+    if (isGenerating && !isMobile) {
+      controls.start({
+        opacity: 1,
+        transition: { duration: 0.5 }
+      });
+    } else if (!isMobile) {
+      controls.start({
+        opacity: 0,
+        transition: { duration: 0.5 }
+      });
+    }
+  }, [isGenerating, controls, isMobile]);
+
+  // Generate wave path with proper error handling
+  const generateWavePath = useMemo(() => {
+    return (thread: ThreadPath, progressOffset: number): string => {
+      const width = 300;
+      const height = 200;
+      const centerY = height / 2;
+      
+      try {
+        // Validate input parameters
+        if (!thread || typeof progressOffset !== 'number') {
+          return `M 0,${centerY} L ${width},${centerY}`;
+        }
+        
+        const points: string[] = [];
+
+        for (let x = 0; x <= width; x += 4) { // Increased step for simpler paths
+          const normalizedX = x / width;
+          const waveY = Math.sin(
+            (normalizedX * Math.PI * thread.frequency) + 
+            thread.phase + 
+            (progressOffset * Math.PI * 2)
+          ) * thread.amplitude;
+          
+          // Add some randomness for organic feel
+          const noise = Math.sin(normalizedX * 50) * 2;
+          const y = centerY + waveY + noise;
+          
+          // Ensure valid coordinates
+          if (isFinite(x) && isFinite(y)) {
+            points.push(`${x},${y}`);
+          }
+        }
+
+        return points.length > 0 ? `M ${points.join(' L ')}` : `M 0,${centerY} L ${width},${centerY}`;
+      } catch (error) {
+        console.warn('Error generating wave path:', error);
+        // Fallback to straight line
+        return `M 0,${centerY} L ${width},${centerY}`;
+      }
+    };
+  }, []);
+
+  // Generate static base paths for each thread
+  const getBasePath = useMemo(() => {
+    return (thread: ThreadPath): string => {
+      return generateWavePath(thread, 0);
+    };
+  }, [generateWavePath]);
   
   // Use mobile version for better performance on mobile devices
   if (isMobile) {
@@ -49,62 +127,6 @@ export default function SoundThreadAnimation({
       />
     );
   }
-  
-  // Generate thread configurations
-  const threads: ThreadPath[] = useMemo(() => [
-    { id: 1, color: '#FF6B6B', amplitude: 30, frequency: 2, phase: 0, thickness: 3 },
-    { id: 2, color: '#4ECDC4', amplitude: 25, frequency: 2.5, phase: Math.PI / 3, thickness: 2.5 },
-    { id: 3, color: '#FFE66D', amplitude: 35, frequency: 1.8, phase: Math.PI / 2, thickness: 2.8 },
-    { id: 4, color: '#A8E6CF', amplitude: 28, frequency: 2.2, phase: Math.PI / 4, thickness: 2.3 },
-    { id: 5, color: '#C7CEEA', amplitude: 32, frequency: 2.7, phase: Math.PI / 6, thickness: 2.6 }
-  ], []);
-
-  // Calculate time display
-  const displayTime = useMemo(() => {
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  }, [timeLeft]);
-
-  // Animate threads based on generation state
-  useEffect(() => {
-    if (isGenerating) {
-      controls.start({
-        opacity: 1,
-        transition: { duration: 0.5 }
-      });
-    } else {
-      controls.start({
-        opacity: 0,
-        transition: { duration: 0.5 }
-      });
-    }
-  }, [isGenerating, controls]);
-
-  // Generate wave path
-  const generateWavePath = (thread: ThreadPath, progressOffset: number) => {
-    const width = 300;
-    const height = 200;
-    const centerY = height / 2;
-    const points: string[] = [];
-
-    for (let x = 0; x <= width; x += 2) {
-      const normalizedX = x / width;
-      const waveY = Math.sin(
-        (normalizedX * Math.PI * thread.frequency) + 
-        thread.phase + 
-        (progressOffset * Math.PI * 2)
-      ) * thread.amplitude;
-      
-      // Add some randomness for organic feel
-      const noise = Math.sin(normalizedX * 50) * 2;
-      const y = centerY + waveY + noise;
-      
-      points.push(`${x},${y}`);
-    }
-
-    return `M ${points.join(' L ')}`;
-  };
 
   return (
     <motion.div
@@ -146,34 +168,49 @@ export default function SoundThreadAnimation({
             ))}
           </defs>
 
-          {/* Animated sound threads */}
+          {/* Animated sound threads - using transforms instead of path animation */}
           {threads.map((thread, index) => (
-            <motion.path
+            <motion.g
               key={thread.id}
-              d={generateWavePath(thread, 0)}
-              stroke={`url(#gradient-${thread.id})`}
-              strokeWidth={thread.thickness}
-              fill="none"
-              filter="url(#glow)"
               animate={{
-                d: [
-                  generateWavePath(thread, 0),
-                  generateWavePath(thread, 0.25),
-                  generateWavePath(thread, 0.5),
-                  generateWavePath(thread, 0.75),
-                  generateWavePath(thread, 1)
-                ]
+                x: [0, 5, -5, 3, 0],
+                y: [0, 2, -2, 1, 0]
               }}
               transition={{
                 duration: 4 + (index * 0.5),
                 repeat: Infinity,
-                ease: "linear"
+                ease: "easeInOut"
               }}
-              style={{
-                opacity: 0.8,
-                mixBlendMode: 'screen'
-              }}
-            />
+            >
+              <path
+                d={getBasePath(thread)}
+                stroke={`url(#gradient-${thread.id})`}
+                strokeWidth={thread.thickness}
+                fill="none"
+                filter="url(#glow)"
+                style={{
+                  opacity: 0.8,
+                  mixBlendMode: 'screen'
+                }}
+              />
+              {/* Additional animated elements for more dynamic effect */}
+              <motion.path
+                d={getBasePath(thread)}
+                stroke={thread.color}
+                strokeWidth={1}
+                fill="none"
+                opacity={0.3}
+                animate={{
+                  pathLength: [0, 1, 0],
+                  strokeDasharray: ["0 100", "50 50", "100 0"]
+                }}
+                transition={{
+                  duration: 3 + (index * 0.3),
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+              />
+            </motion.g>
           ))}
 
           {/* Progress indicator line */}

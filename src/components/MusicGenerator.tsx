@@ -319,7 +319,6 @@ export default function MusicGenerator() {
             isGenerating={isNonPresetGenerating}
             progress={progress}
             timeLeft={timeLeft}
-            totalTime={totalTime}
           />
         )}
       </div>

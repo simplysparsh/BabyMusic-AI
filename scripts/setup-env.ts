@@ -106,7 +106,7 @@ function createEnvFile(envVars: Record<string, string>): void {
 
 // Main function
 async function main() {
-  console.log('Welcome to the BabyMusic-AI environment setup!');
+  console.log('Welcome to the TuneLoom environment setup!');
   console.log('This script will help you set up your .env.local file with the required environment variables.');
   console.log('');
 

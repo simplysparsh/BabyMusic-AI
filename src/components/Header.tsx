@@ -55,11 +55,11 @@ export default function Header({ onShowIOSInstructions }) {
             <a href="/" className="flex items-center space-x-2 relative hover:opacity-80 transition-opacity">
               <img 
                 src="/logo.png" 
-                alt="BabyMusic AI Logo" 
+                alt="TuneLoom Logo" 
                 className="w-8 h-8 sm:w-12 sm:h-12 rounded-full transition-transform duration-300 ease-in-out hover:scale-105"
               /> 
               <span className="text-base sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                BabyMusic AI
+                TuneLoom
               </span>
             </a>
             <nav className="flex items-center space-x-1 sm:space-x-3 md:space-x-4 relative">

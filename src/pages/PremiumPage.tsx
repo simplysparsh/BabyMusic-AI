@@ -85,7 +85,7 @@ const PremiumPage: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12 sm:mb-16">
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold mb-4 bg-gradient-to-r from-primary to-secondary text-transparent bg-clip-text">
-            Unlock BabyMusic Premium
+            Unlock TuneLoom Premium
           </h1>
           <p className="text-base sm:text-xl text-white/70 max-w-2xl mx-auto">
             Get unlimited access to all features and create endless musical moments for your little one.

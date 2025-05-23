@@ -79,7 +79,7 @@ export default function SongItem({
     const link = document.createElement('a');
     link.href = song.audio_url;
     // Use song name for filename, sanitize if needed
-    const filename = `${song.name || 'baby-music-ai-song'}.mp3`; 
+    const filename = `${song.name || 'tuneloom-song'}.mp3`; 
     link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();

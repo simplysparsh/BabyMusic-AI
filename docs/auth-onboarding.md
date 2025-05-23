@@ -119,7 +119,7 @@ SongService.regeneratePresetSongs(user.id, babyName)
 
 ### 4. PWA Installation Prompt
 
-Following the successful collection of baby profile information, the onboarding flow includes a step to encourage users to install the BabyMusic AI application as a Progressive Web App (PWA). This offers benefits such as quick home screen access, a smoother app-like experience, and offline capabilities.
+Following the successful collection of baby profile information, the onboarding flow includes a step to encourage users to install the TuneLoom application as a Progressive Web App (PWA). This offers benefits such as quick home screen access, a smoother app-like experience, and offline capabilities.
 
 - Users are presented with an "Unlock Full Experience" button.
 - On compatible devices (Android, Desktop Chrome), this triggers the native browser installation prompt.

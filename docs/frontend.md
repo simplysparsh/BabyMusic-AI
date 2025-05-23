@@ -138,4 +138,4 @@ The frontend is enhanced with PWA capabilities to provide a more native app-like
     - For iOS devices, where direct prompting isn't available, these buttons trigger a modal (`IOSInstallModal.tsx`) that provides clear instructions on how to use Safari's "Add to Home Screen" feature.
     - The `usePWAInstall.ts` custom hook encapsulates the logic for detecting installability, handling the `beforeinstallprompt` event, and managing installation state.
 
-These features contribute to making BabyMusic AI installable and more accessible, behaving more like a native application on users' devices.
+These features contribute to making TuneLoom installable and more accessible, behaving more like a native application on users' devices.

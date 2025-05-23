@@ -1,12 +1,12 @@
-# 🎵 Baby Music AI
+# 🎵 TuneLoom
 
-> AI-powered music generation for your little one's special moments.
+> Personalized music generation for your little one's special moments.
 
-Baby Music AI is an innovative web application that creates personalized lullabies and learning songs for children using advanced AI technology. Create unique melodies for every moment of your baby's day, from playtime to bedtime.
+TuneLoom is an innovative web application that creates personalized lullabies and learning songs for children using advanced music technology. Create unique melodies for every moment of your baby's day, from playtime to bedtime.
 
 ## ✨ Features
 
-- 🎹 **AI Music Generation** - Create unique, personalized songs with multiple variations.
+- 🎹 **Music Generation** - Create unique, personalized songs with multiple variations.
 - 🌙 **Special Moments** - Dedicated songs for playtime, mealtime, bedtime, and more.
 - 🎨 **Customization** - Choose from various moods, instruments, and styles.
 - 💫 **Real-time Updates** - Watch your melodies come to life with live generation status.
@@ -20,7 +20,7 @@ To get a local copy up and running, follow these simple steps:
 1.  **Clone the repository:**
     ```sh
     git clone <repository-url-here>
-    cd babymusic-ai
+    cd tuneloom
     ```
 
 2.  **Install NPM packages:**
@@ -56,10 +56,10 @@ For detailed information about the project's architecture, frontend components, 
 
 ## 🌐 API Integration
 
-Baby Music AI integrates with two external APIs to provide advanced music and lyric generation capabilities:
+TuneLoom integrates with two external APIs to provide advanced music and lyric generation capabilities:
 
 - **PIAPI.ai**: A music generation API that creates unique, personalized songs
-- **Anthropic Claude**: An AI-powered API for generating song lyrics based on themes and moods
+- **Anthropic Claude**: For generating song lyrics based on themes and moods
 
 For more details on how these APIs are integrated into the application, see the [API Integration](./docs/api-integration.md) documentation.
 
@@ -94,6 +94,6 @@ For detailed guidelines on how to contribute to the project, please refer to the
 ## 🙏 Acknowledgments
 
 - [PIAPI.ai](https://piapi.ai) for music generation
-- [Anthropic Claude](https://anthropic.com) for AI-powered lyric generation
+- [Anthropic Claude](https://anthropic.com) for lyric generation
 - [Supabase](https://supabase.com) for backend services
 - [Unsplash](https://unsplash.com) for beautiful images

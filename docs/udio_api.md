@@ -323,7 +323,7 @@ These limits are generally enforced by `src/lib/piapi.ts` before sending data to
 
 ## Notes
 
--   The `song_type` from BabyMusic AI's internal logic (`preset`, `theme`, `theme-with-input`, `from-scratch`) influences the `lyrics_type` and content of `gpt_description_prompt` / `lyrics` sent to PiAPI.
+-   The `song_type` from TuneLoom's internal logic (`preset`, `theme`, `theme-with-input`, `from-scratch`) influences the `lyrics_type` and content of `gpt_description_prompt` / `lyrics` sent to PiAPI.
 -   User input from `LyricsInput.tsx` (max 180 characters) serves as a hint for `LyricGenerationService` (Claude API) when `lyrics_type` implies AI lyric generation.
 -   The PiAPI documentation also mentions a `task_type` of `generate_music_custom`, but current implementation uses `generate_music`.
 -   Song extension capability (`continue_song_id`, `continue_at`) exists in PiAPI but is not currently used by `createMusicGenerationTask`.

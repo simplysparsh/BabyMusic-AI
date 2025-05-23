@@ -117,7 +117,7 @@ To enhance user experience and provide app-like capabilities, Baby Music AI is c
 
 *   **Web App Manifest (`manifest.webmanifest`):**
     *   Configured via `vite-plugin-pwa` in `vite.config.ts`.
-    *   Defines app name (`BabyMusic AI`), short name (`BabyMusic`), start URL (`/`), display mode (`standalone`), theme colors, and icons.
+    *   Defines app name (`TuneLoom`), short name (`TuneLoom`), start URL (`/`), display mode (`standalone`), theme colors, and icons.
     *   Includes icons of various sizes generated from `public/logo.svg` by `@vite-pwa/assets-generator`.
     *   Specifies screenshots for a richer installation UI on supported platforms.
 *   **Service Worker:**

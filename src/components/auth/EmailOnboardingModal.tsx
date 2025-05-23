@@ -248,9 +248,8 @@ export default function EmailOnboardingModal({ isOpen, onComplete, userProfile, 
               <div className="absolute inset-0 rounded-full border-2 border-primary/50 animate-ping opacity-50 group-hover:opacity-75 transition-opacity"></div>
             </div>
             <h3 className="text-xl sm:text-2xl font-bold text-white">iOS App Experience</h3>
-            <p className="text-white/70 max-w-xs sm:max-w-sm mx-auto text-sm sm:text-base">
-              For the best experience on iOS, add BabyMusic AI to your Home Screen. Instructions will appear separately.
-              If you don't see them, you can always do this later from the browser menu.
+            <p className="text-gray-300 text-sm text-center">
+              For the best experience on iOS, add TuneLoom to your Home Screen. Instructions will appear separately.
             </p>
             <button
               onClick={handleFinishOnboarding}
@@ -270,8 +269,8 @@ export default function EmailOnboardingModal({ isOpen, onComplete, userProfile, 
             <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-500" />
           </div>
           <h3 className="text-xl sm:text-2xl font-bold text-white">App Already Installed!</h3>
-          <p className="text-white/70 max-w-xs sm:max-w-sm mx-auto text-sm sm:text-base">
-            Awesome! You've already got BabyMusic AI on your device for the best experience.
+          <p className="text-green-300 text-sm text-center font-medium">
+            Awesome! You've already got TuneLoom on your device for the best experience.
           </p>
           <button
             onClick={handleFinishOnboarding}
@@ -299,11 +298,8 @@ export default function EmailOnboardingModal({ isOpen, onComplete, userProfile, 
           <h3 className="text-xl sm:text-2xl font-bold text-white">
             {pwaInstallOutcome === 'success' ? 'Installation Started!' : 'No Problem!'}
           </h3>
-          <p className="text-white/70 max-w-xs sm:max-w-sm mx-auto text-sm sm:text-base">
-            {pwaInstallOutcome === 'success' 
-              ? "Great! The app is being added to your home screen for easy access."
-              : "You can always install the app later from the menu if you change your mind."
-            }
+          <p className="text-white/80 text-sm leading-relaxed">
+            Install TuneLoom to your phone for one-tap instant access, a silky-smooth experience, and offline listening. Don't miss out! <strong className="text-white">It's free & takes just a moment!</strong>
           </p>
           <button
             onClick={handleFinishOnboarding}
@@ -324,7 +320,7 @@ export default function EmailOnboardingModal({ isOpen, onComplete, userProfile, 
         <div>
           <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">One Last Step for the Best Experience!</h3>
           <p className="text-white/70 max-w-xs sm:max-w-md mx-auto leading-relaxed text-sm sm:text-base">
-            Install BabyMusic to your phone for one-tap instant access, a silky-smooth experience, and offline listening. Don't miss out! <strong className="text-white">It's free & takes just a moment!</strong>
+            Install TuneLoom to your phone for one-tap instant access, a silky-smooth experience, and offline listening. Don't miss out! <strong className="text-white">It's free & takes just a moment!</strong>
           </p>
         </div>
         

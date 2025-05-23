@@ -1,5 +1,3 @@
-
-
 export default function ProblemSolution() {
   return (
     <section className="py-24 relative bg-gradient-to-b from-background-dark/50 to-background-dark">
@@ -67,7 +65,7 @@ export default function ProblemSolution() {
                 </div>
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-white mb-3 text-center">BabyMusic AI Solution</h3>
+            <h3 className="text-2xl font-bold text-white mb-3 text-center">TuneLoom Solution</h3>
             <p className="text-white text-center mb-6">Designed for cognitive and emotional well-being</p>
             <ul className="space-y-4">
               <li className="flex items-start gap-3 text-green-400">

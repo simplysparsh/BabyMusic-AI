@@ -38,7 +38,7 @@ export default function CTASection({ onOpenAuth }: CTASectionProps) {
               Start Your Musical Journey Today
             </h2>
             <p className="text-base sm:text-lg text-white/70 mb-6 sm:mb-8 max-w-2xl mx-auto group-hover:text-white/80 transition-colors duration-500">
-              Create magical moments with your little one through the power of AI-crafted melodies. Your peaceful parenting journey starts here.
+              Create magical moments with your little one through personalized melodies. Your peaceful parenting journey starts here.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button 

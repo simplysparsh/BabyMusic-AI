@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['logo.svg'], // Make sure your logo is included
       manifest: {
-        name: 'BabyMusic AI',
-        short_name: 'BabyMusic',
-        description: 'AI-powered music generation for your little one\'s special moments.', // You can refine this
+        name: 'TuneLoom',
+        short_name: 'TuneLoom',
+        description: 'Personalized music generation for your little one\'s special moments.',
         start_url: '/',
         display: 'standalone',
         theme_color: '#2A2D3E',
@@ -47,14 +47,14 @@ export default defineConfig({
             sizes: '2458x1804', // Updated dimensions
             type: 'image/png',
             form_factor: 'wide',
-            label: 'BabyMusic AI Desktop View'
+            label: 'TuneLoom Desktop View'
           },
           {
             src: 'screenshots/mobile-view.png',
             sizes: '742x1460', // Updated dimensions
             type: 'image/png',
             form_factor: 'narrow',
-            label: 'BabyMusic AI Mobile View'
+            label: 'TuneLoom Mobile View'
           }
         ]
       },

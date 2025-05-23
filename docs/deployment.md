@@ -205,8 +205,8 @@ By setting up these tools and configuring appropriate alerts, you can proactivel
 
 ## Key URLs
 
-- Production site: https://www.babymusic.ai
-- Netlify dashboard: https://app.netlify.com/sites/babymusic
+- Production site: https://www.tuneloom.com
+- Netlify dashboard: https://app.netlify.com/sites/tuneloom
 - Supabase dashboard: https://supabase.com/dashboard/project/ustflrmqamppbghixjyl
 
 ## Conclusion

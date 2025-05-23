@@ -10,7 +10,7 @@ const TermsOfService: React.FC = () => {
         <p className="mb-8">Last Updated: [May 12, 2025]</p>
 
         <p className="mb-4">
-          Welcome to Baby Music AI! By using this app or website ("Service"), you agree to the following terms.
+          Welcome to TuneLoom! By using this app or website ("Service"), you agree to the following terms.
         </p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-accent">1. Acceptance of Terms</h2>
@@ -77,7 +77,7 @@ const TermsOfService: React.FC = () => {
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-accent">12. Contact</h2>
         <p>
-          📧 Email: <a href="mailto:contact@babymusic.ai" className="text-primary hover:underline">contact@babymusic.ai</a>
+          📧 Email: <a href="mailto:contact@tuneloom.com" className="text-primary hover:underline">contact@tuneloom.com</a>
         </p>
       </div>
     </div>

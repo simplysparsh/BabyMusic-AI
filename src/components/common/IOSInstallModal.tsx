@@ -21,11 +21,11 @@ export default function IOSInstallModal({ isOpen, onClose }: IOSInstallModalProp
 
         <div className="text-center">
           <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-2xl flex items-center justify-center border border-white/10 shadow-lg">
-            <img src="/logo.png" alt="BabyMusic AI Logo" className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg"/>
+            <img src="/logo.png" alt="TuneLoom Logo" className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg"/>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-3">Unlock the Full App Experience</h2>
-          <p className="text-white/70 text-sm sm:text-base mb-6 sm:mb-8">
-            Add BabyMusic AI to your Home Screen for instant one-tap access, a smoother app experience, and offline listening.
+          <h2 className="text-lg sm:text-xl font-bold text-white mb-3">Install TuneLoom!</h2>
+          <p className="text-white/80 text-sm sm:text-base leading-relaxed px-2">
+            Add TuneLoom to your Home Screen for instant one-tap access, a smoother app experience, and offline listening.
           </p>
           
           <p className="text-white/80 text-sm sm:text-base mb-4 font-medium">Here's how:</p>

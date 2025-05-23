@@ -10,7 +10,7 @@ const PrivacyPolicy: React.FC = () => {
         <p className="mb-8">Last Updated: [May 12, 2025]</p>
 
         <p className="mb-4">
-          Thank you for using Baby Music AI ("we", "our", or "us"). We care about your privacy and want you to understand how we collect, use, and protect your data.
+          Thank you for using TuneLoom ("we", "our", or "us"). We care about your privacy and want you to understand how we collect, use, and protect your data.
           <span className="block mt-2">If you sign in using Google, please see the dedicated section below detailing how we handle Google user data.</span>
         </p>
 
@@ -19,7 +19,7 @@ const PrivacyPolicy: React.FC = () => {
           If you choose to sign in using Google, we utilize Google OAuth facilitated by our authentication provider (Supabase) to access your basic profile information. Specifically, we access your email address and name as provided by Google, based on standard `openid`, `email`, and `profile` scopes.
         </p>
         <p className="mb-4">
-          This information is used solely for the purpose of authenticating your identity and creating or linking your Baby Music AI account. We store this data securely within our user database. We do not use this Google data for any other purpose, nor do we share it with any third parties beyond the necessary service providers involved in the authentication process (Google and Supabase).
+          This information is used solely for the purpose of authenticating your identity and creating or linking your TuneLoom account. We store this data securely within our user database. We do not use this Google data for any other purpose, nor do we share it with any third parties beyond the necessary service providers involved in the authentication process (Google and Supabase).
         </p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-accent">1. Information We Collect</h2>
@@ -53,7 +53,7 @@ const PrivacyPolicy: React.FC = () => {
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-accent">4. Data Retention</h2>
         <p className="mb-4">
-          We retain data only as long as necessary to provide services and meet legal obligations. You may request deletion of your data by contacting us at <a href="mailto:contact@babymusic.ai" className="text-primary hover:underline">contact@babymusic.ai</a>.
+          We retain data only as long as necessary to provide services and meet legal obligations. You may request deletion of your data by contacting us at <a href="mailto:contact@tuneloom.com" className="text-primary hover:underline">contact@tuneloom.com</a>.
         </p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-accent">5. Security Practices</h2>
@@ -82,7 +82,7 @@ const PrivacyPolicy: React.FC = () => {
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-accent">9. Contact Us</h2>
         <p className="mb-4">For privacy-related questions:</p>
         <p>
-          📧 Email: <a href="mailto:contact@babymusic.ai" className="text-primary hover:underline">contact@babymusic.ai</a>
+          📧 Email: <a href="mailto:contact@tuneloom.com" className="text-primary hover:underline">contact@tuneloom.com</a>
         </p>
       </div>
     </div>

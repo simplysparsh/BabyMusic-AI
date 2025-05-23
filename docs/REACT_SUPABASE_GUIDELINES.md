@@ -98,7 +98,7 @@ await supabase.from('songs').update({
 }).eq('id', songId);
 ```
 
-## 6. Special Case: Song State Transitions in BabyMusic-AI
+## 6. Special Case: Song State Transitions in TuneLoom
 
 For the song generation workflow:
 

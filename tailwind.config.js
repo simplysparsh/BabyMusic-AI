@@ -34,7 +34,7 @@ export default {
   daisyui: {
     themes: [
       {
-        babymusic: {
+        tuneloom: {
           "primary": "#FF9DD5",
           "secondary": "#B5DEFF",
           "accent": "#AFF6D6",

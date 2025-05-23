@@ -73,7 +73,7 @@ export const handler: Handler = async (event) => {
         utm_source: 'website_waitlist',
         utm_medium: 'organic',
         utm_campaign: 'waitlist_signup',
-        referring_site: 'babymusic.ai'
+        referring_site: 'tuneloom.com'
       };
       
       const response = await fetch(apiUrl, {

@@ -5,6 +5,7 @@ import type { Song } from '../types';
 import { useSongStore } from '../store/songStore';
 import { useAuthStore } from '../store/authStore';
 import { useErrorStore } from '../store/errorStore';
+import { useAudioStore } from '../store/audioStore';
 import SongGenerationTimer from './common/SongGenerationTimer';
 import { supabaseWithRetry, forceTokenRefresh } from '../lib/supabase';
 import { SongService } from '../services/songService';
@@ -32,6 +33,7 @@ export default function SongItem({
     user: state.user, 
     profile: state.profile 
   }));
+  const { stopAllAudio } = useAudioStore();
   const isPremium = profile?.isPremium ?? false;
   const globalError = useErrorStore((state) => state.error);
   const setGlobalError = useErrorStore((state) => state.setError);
@@ -73,6 +75,9 @@ export default function SongItem({
   // Handle variation navigation
   const handleVariationChange = (direction: 'prev' | 'next') => {
     if (!showVariationControls) return;
+    
+    // Stop currently playing audio when switching variations
+    stopAllAudio();
     
     if (direction === 'next') {
       setCurrentVariationIndex((prev) => (prev + 1) % totalVariations);

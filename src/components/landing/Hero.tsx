@@ -377,11 +377,10 @@ export default function Hero({ onOpenAuth }: HeroProps) {
                     disabled={isSubmitting}
                     className="btn-primary text-sm sm:text-base px-8 py-4 sm:py-3 rounded-2xl
                             flex items-center justify-center gap-2 max-w-xs mx-auto sm:mx-0
-                            shadow-lg shadow-pink-500/20 hover:shadow-xl hover:shadow-pink-500/30 relative z-10
-                            bg-gradient-to-r from-pink-400 to-orange-400 hover:from-pink-300 hover:to-orange-300
+                            shadow-lg shadow-pink-500/20 relative z-10
+                            bg-gradient-to-r from-pink-400 to-orange-400
                             transition-all duration-150 text-white font-medium transform-gpu"
                     whileTap={{ scale: 0.98, transition: { duration: 0.1 } }}
-                    whileHover={{ y: -1, transition: { duration: 0.15 } }}
                   >
                     {isSubmitting ? (
                       <>
@@ -411,11 +410,9 @@ export default function Hero({ onOpenAuth }: HeroProps) {
               <motion.button 
                 onClick={onOpenAuth}
                 className="btn-primary text-sm sm:text-base px-8 py-4 sm:py-3 rounded-2xl
-                        shadow-lg shadow-pink-500/20 hover:shadow-xl hover:shadow-pink-500/30 
-                        relative z-10 bg-gradient-to-r from-pink-400 to-orange-400 hover:from-pink-300 hover:to-orange-300
+                        shadow-lg shadow-pink-500/20 relative z-10 bg-gradient-to-r from-pink-400 to-orange-400
                         transition-all duration-150 text-white font-medium flex items-center gap-3 transform-gpu"
                 whileTap={{ scale: 0.98, transition: { duration: 0.1 } }}
-                whileHover={{ y: -1, transition: { duration: 0.15 } }}
               >
                 <Heart size={20} weight="duotone" />
                 Get Started Free
@@ -423,7 +420,7 @@ export default function Hero({ onOpenAuth }: HeroProps) {
               </motion.button>
               <a 
                 href="/premium"
-                className="text-sm sm:text-base text-white/80 hover:text-pink-300 transition-colors duration-300 
+                className="text-sm sm:text-base text-white/80 transition-colors duration-300 
                         underline underline-offset-4 drop-shadow-sm relative z-10 flex items-center gap-2"
               >
                 <Sparkle size={16} weight="duotone" />

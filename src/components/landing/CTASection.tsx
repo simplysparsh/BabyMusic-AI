@@ -94,23 +94,12 @@ export default function CTASection({ onOpenAuth }: CTASectionProps) {
           style={{
             background: 'linear-gradient(135deg, rgba(255, 182, 193, 0.12), rgba(255, 218, 185, 0.10), rgba(173, 216, 230, 0.08))'
           }}
-          whileHover={{ y: -1, transition: { duration: 0.15 } }}
         >
           {/* Enhanced warm gradient overlays */}
-          <motion.div 
-            className="absolute inset-0 rounded-3xl"
-            style={{
-              background: 'linear-gradient(135deg, rgba(255, 192, 203, 0.15), rgba(255, 218, 185, 0.12), rgba(173, 216, 230, 0.10))'
-            }}
-            initial={{ opacity: 0 }}
-            whileHover={{ opacity: 1, transition: { duration: 0.2 } }}
-          />
-          
-          {/* Additional warm color layer */}
           <div 
             className="absolute inset-0 rounded-3xl opacity-60"
             style={{
-              background: 'radial-gradient(circle at 30% 40%, rgba(255, 182, 193, 0.08) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(255, 218, 185, 0.08) 0%, transparent 50%)'
+              background: 'linear-gradient(135deg, rgba(255, 192, 203, 0.15), rgba(255, 218, 185, 0.12), rgba(173, 216, 230, 0.10))'
             }}
           />
           
@@ -189,7 +178,7 @@ export default function CTASection({ onOpenAuth }: CTASectionProps) {
             </div>
             
             <p className="text-base sm:text-lg text-white/85 mb-8 sm:mb-10 max-w-2xl mx-auto 
-                       group-hover:text-white/90 transition-colors duration-500
+                       transition-colors duration-500
                        drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
               Create magical moments with your little one through personalized melodies. Your peaceful parenting journey starts here.
             </p>
@@ -227,13 +216,12 @@ export default function CTASection({ onOpenAuth }: CTASectionProps) {
               <motion.button 
                 onClick={onOpenAuth}
                 className="relative inline-flex items-center text-sm sm:text-base px-8 py-4 sm:py-3 rounded-2xl
-                          w-full sm:w-auto text-white font-semibold shadow-xl shadow-pink-500/30 hover:shadow-2xl hover:shadow-pink-500/40
+                          w-full sm:w-auto text-white font-semibold shadow-xl shadow-pink-500/30
                           transition-all duration-150 gap-3 border border-pink-300/30 transform-gpu"
                 style={{
                   background: 'linear-gradient(135deg, rgba(255, 105, 180, 0.9), rgba(255, 140, 105, 0.9))'
                 }}
                 whileTap={{ scale: 0.98, transition: { duration: 0.1 } }}
-                whileHover={{ y: -1, transition: { duration: 0.15 } }}
               >
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-pink-400/20 to-orange-400/20 blur-sm"></div>
                 <Heart size={20} weight="duotone" className="relative z-10" />
@@ -245,14 +233,13 @@ export default function CTASection({ onOpenAuth }: CTASectionProps) {
                 href="/methodology" 
                 onClick={handleMethodologyClick}
                 className="relative inline-flex items-center justify-center text-sm sm:text-base px-6 py-4 sm:py-3
-                          border border-white/40 rounded-2xl text-white hover:text-pink-200 hover:border-pink-200/50
+                          border border-white/40 rounded-2xl text-white
                           transition-all duration-150 w-full sm:w-auto backdrop-blur-md
-                          hover:bg-white/10 drop-shadow-sm gap-2 font-medium transform-gpu"
+                          drop-shadow-sm gap-2 font-medium transform-gpu"
                 style={{
                   background: 'rgba(255, 255, 255, 0.08)'
                 }}
                 whileTap={{ scale: 0.98, transition: { duration: 0.1 } }}
-                whileHover={{ y: -1, transition: { duration: 0.15 } }}
               >
                 <Brain size={18} weight="duotone" className="text-purple-300" />
                 <span>View Our Methodology</span>

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import './SoundThreadAnimation.css';
 
 interface SoundThreadAnimationMobileProps {
@@ -12,20 +12,42 @@ export default function SoundThreadAnimationMobile({
   progress,
   timeLeft
 }: SoundThreadAnimationMobileProps) {
+  const [animationCycles, setAnimationCycles] = useState(0);
+
   // Calculate time display
   const displayTime = useMemo(() => {
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${seconds.toString().padStart(2, '0')} min left`;
   }, [timeLeft]);
 
-  // Get progress message
+  // Progress messages that cycle through all options
+  const progressMessages = [
+    "✨ Gathering stardust melodies...",
+    "🎨 Painting with sound colors...", 
+    "🌙 Adding moonlight harmonies...",
+    "🎁 Wrapping your musical gift...",
+    "🌟 Weaving magical notes...",
+    "🦋 Dancing with melodies..."
+  ];
+
+  // Get progress message based on animation cycles (changes every 3 cycles)
   const progressMessage = useMemo(() => {
-    if (progress < 25) return "✨ Gathering stardust melodies...";
-    if (progress < 50) return "🎨 Painting with sound colors...";
-    if (progress < 75) return "🌙 Adding moonlight harmonies...";
-    return "🎁 Wrapping your musical gift...";
-  }, [progress]);
+    const messageIndex = Math.floor(animationCycles / 3) % progressMessages.length;
+    return progressMessages[messageIndex];
+  }, [animationCycles, progressMessages]);
+
+  // Reset animation cycles when generation starts
+  useEffect(() => {
+    if (isGenerating) {
+      setAnimationCycles(0);
+    }
+  }, [isGenerating]);
+
+  // Handle animation iteration events
+  const handleAnimationIteration = () => {
+    setAnimationCycles(prev => prev + 1);
+  };
 
   if (!isGenerating) return null;
 
@@ -51,9 +73,11 @@ export default function SoundThreadAnimationMobile({
         {/* Center content */}
         <div className="thread-center-content">
           <div className="musical-note">
-            <span className="note-icon">🎵</span>
+            <span 
+              className="note-icon"
+              onAnimationIteration={handleAnimationIteration}
+            >🎵</span>
           </div>
-          <p className="status-text">Weaving your melody</p>
           <div className="time-display">
             <div className="time-indicator" />
             <span className="time-text">{displayTime}</span>

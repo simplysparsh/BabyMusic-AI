@@ -268,33 +268,16 @@
   }
 }
 
-/* Status text */
-.status-text {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-  animation: textPulse 2s ease-in-out infinite;
-}
-
-@keyframes textPulse {
-  0%, 100% {
-    opacity: 0.7;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
 /* Time display */
 .time-display {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
-  padding: 0.25rem 0.75rem;
+  padding: 0.375rem 0.75rem;
   border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .time-indicator {
@@ -317,19 +300,21 @@
 }
 
 .time-text {
-  color: rgba(255, 255, 255, 0.8);
+  color: white;
   font-size: 0.75rem;
   font-family: monospace;
+  font-weight: 500;
 }
 
 /* Progress bar */
 .thread-progress-bar {
   margin-top: 1rem;
   height: 0.375rem;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 9999px;
   overflow: hidden;
   backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .thread-progress-fill {
@@ -352,13 +337,21 @@
 /* Progress message */
 .thread-message {
   text-align: center;
-  margin-top: 0.75rem;
+  margin-top: 1rem;
   animation: messageFade 4s ease-in-out infinite;
 }
 
 .thread-message p {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.75rem;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: inline-block;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
 @keyframes messageFade {
@@ -388,10 +381,6 @@
   .note-icon {
     font-size: 1.875rem;
   }
-  
-  .status-text {
-    font-size: 0.8125rem;
-  }
 }
 
 /* Performance optimizations for low-end devices */
@@ -399,7 +388,6 @@
   .thread,
   .particle,
   .note-icon,
-  .status-text,
   .time-indicator,
   .thread-progress-fill {
     animation: none !important;

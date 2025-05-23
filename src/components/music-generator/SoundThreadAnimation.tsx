@@ -25,6 +25,7 @@ export default function SoundThreadAnimation({
   const containerRef = useRef<HTMLDivElement>(null);
   const controls = useAnimation();
   const [isMobile, setIsMobile] = useState(false);
+  const [animationCycles, setAnimationCycles] = useState(0);
   
   // Generate thread configurations - moved before any early returns
   const threads: ThreadPath[] = useMemo(() => [
@@ -39,8 +40,31 @@ export default function SoundThreadAnimation({
   const displayTime = useMemo(() => {
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${seconds.toString().padStart(2, '0')} min left`;
   }, [timeLeft]);
+
+  // Progress messages that cycle through all options
+  const progressMessages = [
+    "✨ Gathering stardust melodies...",
+    "🎨 Painting with sound colors...", 
+    "🌙 Adding moonlight harmonies...",
+    "🎁 Wrapping your musical gift...",
+    "🌟 Weaving magical notes...",
+    "🦋 Dancing with melodies..."
+  ];
+
+  // Get current message based on animation cycles (changes every 3 cycles)
+  const getCurrentMessage = useMemo(() => {
+    const messageIndex = Math.floor(animationCycles / 3) % progressMessages.length;
+    return progressMessages[messageIndex];
+  }, [animationCycles, progressMessages]);
+
+  // Reset animation cycles when generation starts
+  useEffect(() => {
+    if (isGenerating) {
+      setAnimationCycles(0);
+    }
+  }, [isGenerating]);
 
   // Check if on mobile device or small screen
   useEffect(() => {
@@ -281,37 +305,23 @@ export default function SoundThreadAnimation({
               repeat: Infinity,
               ease: "easeInOut"
             }}
-            className="mb-3"
+            onAnimationComplete={() => setAnimationCycles(prev => prev + 1)}
+            className="mb-4"
           >
             <div className="text-4xl">🎵</div>
           </motion.div>
 
-          {/* Status text */}
-          <motion.p
-            className="text-white/90 text-sm font-medium mb-1"
-            animate={{
-              opacity: [0.7, 1, 0.7]
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          >
-            Weaving your melody
-          </motion.p>
-
           {/* Time display */}
-          <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full">
+          <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            <span className="text-white/80 text-xs font-mono">{displayTime}</span>
+            <span className="text-white text-xs font-mono font-medium">{displayTime}</span>
           </div>
         </div>
       </div>
 
       {/* Progress bar */}
       <div className="mt-4">
-        <div className="h-1.5 bg-black/20 rounded-full overflow-hidden backdrop-blur-sm">
+        <div className="h-1.5 bg-black/30 rounded-full overflow-hidden backdrop-blur-sm border border-white/10">
           <motion.div
             className="h-full bg-gradient-to-r from-primary via-secondary to-primary bg-[length:200%_100%]"
             style={{ width: `${progress}%` }}
@@ -329,22 +339,19 @@ export default function SoundThreadAnimation({
 
       {/* Fun messages */}
       <motion.div
-        className="text-center mt-3"
-        animate={{
-          opacity: [0, 1, 1, 0]
-        }}
-        transition={{
-          duration: 4,
-          repeat: Infinity,
-          times: [0, 0.1, 0.9, 1]
-        }}
+        className="text-center mt-4"
+        key={getCurrentMessage} // Force re-render when message changes
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
       >
-        <p className="text-white/60 text-xs">
-          {progress < 25 && "✨ Gathering stardust melodies..."}
-          {progress >= 25 && progress < 50 && "🎨 Painting with sound colors..."}
-          {progress >= 50 && progress < 75 && "🌙 Adding moonlight harmonies..."}
-          {progress >= 75 && "🎁 Wrapping your musical gift..."}
-        </p>
+        <div className="bg-black/50 backdrop-blur-sm px-4 py-2 rounded-lg inline-block border border-white/10">
+          <p className="text-white text-sm font-medium" style={{
+            textShadow: '0 1px 4px rgba(0, 0, 0, 0.8)'
+          }}>
+            {getCurrentMessage}
+          </p>
+        </div>
       </motion.div>
     </motion.div>
   );

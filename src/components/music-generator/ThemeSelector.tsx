@@ -24,13 +24,14 @@ export default function ThemeSelector({ selectedTheme, onThemeSelect }: ThemeSel
 
   return (
     <div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Mobile-optimized 2-column grid: 2x2 for free (4 themes), 2x3 for premium (6 themes) */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         {availableThemes.map(({ type, title, description, icon: Icon }) => (
           <button
             key={type}
             onClick={() => onThemeSelect(type)}
-            className={`p-6 rounded-2xl text-left transition-all duration-500 flex items-start gap-4 relative overflow-hidden
-                      group hover:scale-[1.02] backdrop-blur-sm
+            className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl text-left transition-all duration-300 flex flex-col relative overflow-hidden
+                      group hover:scale-[1.02] backdrop-blur-sm touch-manipulation min-h-[120px] sm:min-h-[140px]
                      ${selectedTheme === type
                        ? 'bg-black/90 text-white shadow-xl shadow-primary/10'
                        : 'bg-black/80 text-white/90 hover:bg-black/70'}`}
@@ -40,50 +41,56 @@ export default function ThemeSelector({ selectedTheme, onThemeSelect }: ThemeSel
                 : 'linear-gradient(to bottom right, rgba(0,0,0,0.9), rgba(0,0,0,0.85))'
             }}
           >
-            {/* Dynamic background gradients - Stronger opacity for mobile */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-transparent to-transparent opacity-50 
-                         group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div className="absolute inset-0 bg-gradient-to-tl from-secondary/30 via-transparent to-transparent opacity-50 
-                         group-hover:opacity-100 transition-opacity duration-500" style={{ animationDelay: '150ms' }}></div>
+            {/* Single subtle background gradient - Simplified for better readability */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-secondary/10 opacity-30 
+                         group-hover:opacity-50 transition-opacity duration-300"></div>
             
-            {/* Selected state overlay - Enhanced for mobile */}
-            <div className={`absolute inset-0 bg-gradient-to-br transition-opacity duration-500
+            {/* Selected state overlay - Reduced opacity */}
+            <div className={`absolute inset-0 bg-gradient-to-br transition-opacity duration-300
                           ${selectedTheme === type 
-                            ? 'from-primary/40 via-secondary/30 to-transparent opacity-100'
+                            ? 'from-primary/20 via-secondary/10 to-transparent opacity-100'
                             : 'opacity-0'}`} />
             
-            {/* Icon container - Enhanced background for mobile */}
-            <div className={`relative w-12 h-12 rounded-xl flex items-center justify-center
-                          transition-all duration-700 group-hover:scale-110 group-hover:rotate-[360deg]
-                          ${selectedTheme === type 
-                            ? 'bg-primary/40' 
-                            : 'bg-white/[0.15] group-hover:bg-white/[0.2]'}`}>
-              <Icon className={`w-6 h-6 transition-colors duration-300
+            {/* Header row: Icon + Title */}
+            <div className="relative z-10 flex items-center gap-3 sm:gap-4 mb-2 sm:mb-3">
+              {/* Icon container */}
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0
+                            transition-all duration-300 group-hover:scale-110
                             ${selectedTheme === type 
-                              ? 'text-primary' 
-                              : 'text-white/90 group-hover:text-white'}`} />
+                              ? 'bg-primary/40' 
+                              : 'bg-white/[0.15] group-hover:bg-white/[0.25]'}`}>
+                <Icon className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300
+                              ${selectedTheme === type 
+                                ? 'text-primary' 
+                                : 'text-white/90 group-hover:text-white'}`} />
+              </div>
+              
+              {/* Title next to icon */}
+              <div className="font-medium text-sm sm:text-lg group-hover:text-white transition-colors leading-tight flex-grow">
+                {title}
+              </div>
             </div>
             
-            <div className="relative z-10">
-              <div className="font-medium text-lg mb-1 group-hover:text-white transition-colors">{title}</div>
-              <div className="text-sm text-white/80 group-hover:text-white/90 transition-colors">{description}</div>
+            {/* Description with full space */}
+            <div className="relative z-10 flex-grow">
+              <div className="text-xs sm:text-sm text-white/80 group-hover:text-white/95 transition-colors leading-relaxed">
+                {description}
+              </div>
             </div>
             
-            {/* Enhanced decorative corner gradient - darker for mobile */}
-            <div className="absolute bottom-0 right-0 w-36 h-36 
-                         bg-gradient-radial from-white/15 to-transparent 
-                         rounded-full -mr-12 -mb-12 
-                         group-hover:scale-150 transition-transform duration-700"></div>
+            {/* Subtle decorative element - Keep minimal */}
+            <div className="absolute bottom-0 right-0 w-16 h-16 sm:w-24 sm:h-24
+                         bg-gradient-radial from-white/8 to-transparent 
+                         rounded-full -mr-6 -mb-6 sm:-mr-8 sm:-mb-8
+                         group-hover:scale-125 transition-transform duration-500"></div>
           </button>
         ))}
       </div>
       
-      {/* Subtle hint for premium themes - Restyled */} 
+      {/* Premium themes hint */} 
       {userLoaded && !isPremium && (
-        // Use a slightly different but related gradient/border style
         <div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10 text-center border border-primary/20 shadow-inner">
           <a href="/premium" className="group inline-flex items-center justify-center gap-2">
-             {/* Changed icon to Sparkles */}
             <Sparkles className="w-4 h-4 text-primary/80 group-hover:text-primary transition-colors duration-300" />
             <span className="text-sm text-white/70 group-hover:text-white transition-colors">
               Unlock <strong>Indian Ragas</strong> & <strong>Western Classical</strong> themes with <strong className="font-semibold text-primary underline group-hover:text-secondary transition-colors">Premium!</strong>

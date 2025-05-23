@@ -1,4 +1,3 @@
-
 import { ArrowRight, Star, Brain, Heart } from 'lucide-react';
 
 const INSTITUTIONS = [
@@ -13,7 +12,7 @@ export default function ResearchInstitutions() {
   return (
     <section className="py-24 relative bg-gradient-to-b from-[#FFD700]/[0.08] to-background-dark">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#FFD700]/[0.03] via-transparent to-transparent opacity-30"></div>
-      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 className="text-2xl sm:text-4xl font-bold text-white text-center mb-4 sm:mb-6">
           Research is Clear: Music Shapes Your Baby's Mind
           <span className="block text-base sm:text-xl font-normal text-white/60 mt-2">

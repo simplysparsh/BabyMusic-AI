@@ -1,5 +1,6 @@
 import { Flame } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { getStreakMessage } from '../../utils/streakMessages';
 
 interface MiniStreakProps {
   streakDays: number;
@@ -21,6 +22,9 @@ export default function MiniStreak({ streakDays, isLoading }: MiniStreakProps) {
   const displayStreak = isLoading && lastValidStreakRef.current !== null
     ? lastValidStreakRef.current
     : isLoading ? '--' : streakDays;
+
+  // Get meaningful message based on current streak
+  const streakMessage = getStreakMessage(displayStreak === '--' ? 0 : displayStreak);
 
   return (
     <div className="w-full max-w-lg mx-auto relative">
@@ -66,9 +70,9 @@ export default function MiniStreak({ streakDays, isLoading }: MiniStreakProps) {
           {/* Enhanced divider */}
           <div className="w-px h-4 sm:h-5 bg-gradient-to-b from-transparent via-white/20 to-transparent"></div>
           
-          <div className="text-white/60 text-xs sm:text-sm font-medium">
-            <span className="hidden sm:inline">Visit daily to maintain</span>
-            <span className="sm:hidden">Daily visits</span>
+          <div className="text-white/80 text-sm sm:text-sm font-medium">
+            <span className="hidden sm:inline">{streakMessage.desktop}</span>
+            <span className="sm:hidden">{streakMessage.mobile}</span>
           </div>
         </div>
         

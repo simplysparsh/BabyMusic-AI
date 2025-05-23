@@ -1,5 +1,6 @@
 import { Flame, Star, Music2, Sparkles, Heart, Zap } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { getStreakMessage } from '../../utils/streakMessages';
 
 interface DetailedStreakProps {
   streakDays: number;
@@ -23,6 +24,9 @@ export default function DetailedStreak({ streakDays, isLoading, dailyGoal, songs
   const displayStreak = isLoading && lastValidStreakRef.current !== null
     ? lastValidStreakRef.current
     : isLoading ? '--' : streakDays;
+
+  // Get meaningful message based on current streak
+  const streakMessage = getStreakMessage(displayStreak === '--' ? 0 : displayStreak);
     
   return (
     <div className="relative overflow-hidden group rounded-3xl bg-gradient-to-br from-[#34D399] via-[#F59E0B] to-[#EC4899]
@@ -53,7 +57,7 @@ export default function DetailedStreak({ streakDays, isLoading, dailyGoal, songs
                       {displayStreak} Day Streak
                       {!isLoading && <Sparkles className="w-5 h-5 text-[#F59E0B] animate-sparkle" />}
                     </h3>
-                    <p className="text-white/60 text-sm">Play songs daily to keep your streak</p>
+                    <p className="text-white/60 text-sm">{streakMessage.detailed}</p>
                   </div>
                 </div>
               </div>

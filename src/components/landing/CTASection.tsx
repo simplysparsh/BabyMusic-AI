@@ -208,7 +208,8 @@ export default function CTASection({ onOpenAuth }: CTASectionProps) {
                           w-full sm:w-auto text-white font-semibold shadow-xl shadow-pink-500/30
                           transition-all duration-150 gap-3 border border-pink-300/30 transform-gpu"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(255, 105, 180, 0.9), rgba(255, 140, 105, 0.9))'
+                  background: 'linear-gradient(135deg, rgba(255, 105, 180, 0.9), rgba(255, 140, 105, 0.9))',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)'
                 }}
                 whileTap={{ scale: 0.98, transition: { duration: 0.1 } }}
               >

@@ -413,6 +413,7 @@ export default function Hero({ onOpenAuth }: HeroProps) {
                         shadow-lg shadow-pink-500/20 relative z-10 bg-gradient-to-r from-pink-400 to-orange-400
                         transition-all duration-150 text-white font-medium flex items-center gap-3 transform-gpu"
                 whileTap={{ scale: 0.98, transition: { duration: 0.1 } }}
+                style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)' }}
               >
                 <Heart size={20} weight="duotone" />
                 Get Started Free

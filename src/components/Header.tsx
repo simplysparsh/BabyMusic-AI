@@ -66,7 +66,7 @@ export default function Header({ onShowIOSInstructions }) {
               {user ? (
                 <>
                   <InstallPWAButton 
-                    className="text-indigo-400 hover:text-indigo-300 transition-all duration-300 px-2.5 py-1.5 sm:px-3 sm:py-2 hover:bg-white/10 rounded-lg text-sm active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 -mr-1"
+                    className="bg-transparent border border-primary/50 text-primary/90 hover:bg-primary/10 hover:text-primary hover:border-primary text-xs sm:text-sm px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg flex items-center gap-1.5 sm:gap-2 transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md hover:shadow-primary/20"
                     buttonText="Get App"
                     showIcon={true}
                     onShowIOSInstructions={onShowIOSInstructions}
@@ -90,9 +90,9 @@ export default function Header({ onShowIOSInstructions }) {
                   <button
                     onClick={() => setIsProfileModalOpen(true)}
                     className="fixed-button w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full
-                             bg-white/10 text-white/80 hover:text-white hover:bg-white/20 
-                             transition-all duration-300 hover:scale-105 shadow-lg shadow-black/5
-                             relative z-[101]"
+                             bg-gradient-to-r from-primary/20 to-secondary/20 text-white/80 hover:text-white 
+                             hover:from-primary/30 hover:to-secondary/30 transition-all duration-300 hover:scale-105 
+                             shadow-lg shadow-black/10 relative z-[101] border border-white/10"
                   >
                     <Settings className="w-5 h-5" />
                   </button>
@@ -100,7 +100,7 @@ export default function Header({ onShowIOSInstructions }) {
               ) : (
                 <>
                   <InstallPWAButton 
-                    className="bg-transparent border border-primary/70 text-primary/90 hover:bg-primary/10 hover:text-primary hover:border-primary text-xs sm:text-sm px-2 py-1.5 sm:px-4 sm:py-[7px] rounded-lg flex items-center gap-1 transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md hover:shadow-primary/20"
+                    className="bg-transparent border border-primary/50 text-primary/90 hover:bg-primary/10 hover:text-primary hover:border-primary text-xs sm:text-sm px-2 py-1.5 sm:px-4 sm:py-[7px] rounded-lg flex items-center gap-1 transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md hover:shadow-primary/20"
                     buttonText="Get App"
                     showIcon={true}
                     IconComponent={Smartphone}
@@ -109,7 +109,7 @@ export default function Header({ onShowIOSInstructions }) {
                   {isSignupDisabled ? (
                     <button
                       onClick={handleOpenEmailSignup}
-                      className="btn-primary text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3"
+                      className="bg-gradient-to-r from-pink-400 to-orange-400 text-white text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3 rounded-xl font-medium transition-all duration-300 hover:opacity-90 hover:scale-[1.02] shadow-lg shadow-pink-500/25"
                     >
                       Join Waitlist
                     </button>
@@ -120,7 +120,7 @@ export default function Header({ onShowIOSInstructions }) {
                           setAuthMode('signin');
                           setIsAuthModalOpen(true);
                         }}
-                        className="btn-primary sm:btn-secondary text-xs sm:text-base px-3 py-1.5 sm:px-6 sm:py-3 rounded-lg"
+                        className="bg-white/10 hover:bg-white/20 text-white text-xs sm:text-base px-3 py-1.5 sm:px-6 sm:py-3 rounded-xl transition-all duration-300 ease-out backdrop-blur-sm border border-white/10 hover:border-white/20"
                         data-auth-trigger
                       >
                         Sign In
@@ -130,7 +130,8 @@ export default function Header({ onShowIOSInstructions }) {
                           setAuthMode('signup');
                           setIsAuthModalOpen(true);
                         }}
-                        className="btn-primary text-sm sm:text-base px-3 py-2 sm:px-5 sm:py-3 hidden sm:inline-flex"
+                        className="bg-gradient-to-r from-pink-400 to-orange-400 text-white text-sm sm:text-base px-3 py-2 sm:px-5 sm:py-3 rounded-xl font-medium transition-all duration-300 hover:opacity-90 hover:scale-[1.02] shadow-lg shadow-pink-500/25 hidden sm:inline-flex"
+                        style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)' }}
                       >
                         Try Free
                       </button>

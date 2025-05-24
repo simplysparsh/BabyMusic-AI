@@ -10,17 +10,6 @@ export default function CTASection({ onOpenAuth }: CTASectionProps) {
   // Check for 'true' or 'TRUE' case-insensitively
   const isSignupDisabled = import.meta.env.VITE_DISABLE_SIGNUP?.toLowerCase() === 'true';
   
-  // Handle methodology navigation to ensure scroll to top
-  const handleMethodologyClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    window.history.pushState({}, '', '/methodology');
-    window.scrollTo(0, 0);
-    
-    // Dispatch a custom event so any components listening for route changes can update
-    const navigationEvent = new CustomEvent('navigation', { detail: '/methodology' });
-    window.dispatchEvent(navigationEvent);
-  };
-
   const floatingIconVariants = {
     float: {
       y: [-2, 2, -2],
@@ -34,7 +23,7 @@ export default function CTASection({ onOpenAuth }: CTASectionProps) {
   };
   
   return (
-    <section className="relative py-16 sm:py-24 overflow-hidden">
+    <section className="relative pt-16 pb-8 sm:pt-20 sm:pb-12 overflow-hidden">
       {/* Enhanced warm background with floating orbs */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div 
@@ -230,8 +219,7 @@ export default function CTASection({ onOpenAuth }: CTASectionProps) {
               </motion.button>
               
               <motion.a 
-                href="/methodology" 
-                onClick={handleMethodologyClick}
+                href="/methodology"
                 className="relative inline-flex items-center justify-center text-sm sm:text-base px-6 py-4 sm:py-3
                           border border-white/40 rounded-2xl text-white
                           transition-all duration-150 w-full sm:w-auto backdrop-blur-md

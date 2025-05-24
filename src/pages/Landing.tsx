@@ -30,7 +30,7 @@ export default function Landing() {
   };
   
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative">
       {/* Warmer, more welcoming background - Baby and parent-friendly */}
       <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-gray-900 to-slate-950"></div>
       <div className="fixed inset-0 bg-gradient-to-tr from-rose-900/12 via-pink-900/8 to-orange-900/10"></div>
@@ -38,7 +38,7 @@ export default function Landing() {
       <div className="fixed inset-0 bg-gradient-to-t from-amber-900/6 via-transparent to-transparent"></div>
       
       {/* Large floating orbs with warmer, baby-friendly colors */}
-      <div className="fixed inset-0 pointer-events-none">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 left-1/6 w-80 h-80 rounded-full blur-3xl animate-pulse"
              style={{ 
                background: 'linear-gradient(135deg, rgba(255, 182, 193, 0.08), rgba(255, 218, 185, 0.06))',

@@ -1,10 +1,12 @@
 export default function Footer() {
   return (
-    <footer className="text-center text-white/40 text-sm py-8 border-t border-white/5">
-      <div>© 2025 TuneLoom. All rights reserved.</div>
-      <div className="mt-2 flex justify-center space-x-4">
-        <a href="/privacy" className="hover:text-white">Privacy Policy</a>
-        <a href="/terms" className="hover:text-white">Terms of Use</a>
+    <footer className="relative z-10 text-center text-white/70 text-sm py-6 border-t border-white/10 mt-2 bg-black/10 backdrop-blur-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-4">© 2025 TuneLoom. All rights reserved.</div>
+        <div className="flex justify-center space-x-6">
+          <a href="/privacy" className="hover:text-white transition-colors duration-300">Privacy Policy</a>
+          <a href="/terms" className="hover:text-white transition-colors duration-300">Terms of Use</a>
+        </div>
       </div>
     </footer>
   );

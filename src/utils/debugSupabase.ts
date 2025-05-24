@@ -326,16 +326,25 @@ export const monitorRealtimeHealth = () => {
     const timestamp = new Date().toLocaleTimeString();
     
     try {
+      console.log(`📊 [${timestamp}] Starting health check ${monitorCount}/${maxMonitors}`);
+      
       const { supabase } = await import('../lib/supabase');
       
       // Check if we can quickly test a channel
-      const testChannel = supabase.channel('health-check-' + Date.now());
+      const channelName = 'health-check-' + Date.now();
+      console.log(`📡 [${timestamp}] Creating test channel: ${channelName}`);
+      
+      const testChannel = supabase.channel(channelName);
       
       const statusPromise = new Promise((resolve) => {
-        const timeout = setTimeout(() => resolve('TIMEOUT'), 5000);
+        const timeout = setTimeout(() => {
+          console.log(`⏰ [${timestamp}] Channel subscription timeout after 5 seconds`);
+          resolve('TIMEOUT');
+        }, 5000);
         
         testChannel.subscribe((status) => {
           clearTimeout(timeout);
+          console.log(`📡 [${timestamp}] Channel status received: ${status}`);
           resolve(status);
         });
       });
@@ -349,13 +358,19 @@ export const monitorRealtimeHealth = () => {
       }
       
       // Clean up
-      supabase.removeChannel(testChannel);
+      try {
+        supabase.removeChannel(testChannel);
+        console.log(`🧹 [${timestamp}] Test channel cleaned up`);
+      } catch (cleanupError) {
+        console.warn(`⚠️ [${timestamp}] Cleanup error:`, cleanupError);
+      }
       
     } catch (error) {
       console.error(`❌ [${timestamp}] Realtime error:`, error);
     }
     
     if (monitorCount < maxMonitors) {
+      console.log(`⏳ [${timestamp}] Scheduling next check in 30 seconds...`);
       setTimeout(checkHealth, 30000); // Check every 30 seconds
     } else {
       console.log('🏁 Realtime health monitoring completed');
@@ -363,14 +378,106 @@ export const monitorRealtimeHealth = () => {
   };
   
   // Start monitoring
+  console.log('🚀 Starting first health check...');
   checkHealth();
   
-  return {
+  const controller = {
     stop: () => {
+      console.log('🛑 Realtime health monitoring stopped manually');
       monitorCount = maxMonitors;
-      console.log('🛑 Realtime health monitoring stopped');
     }
   };
+  
+  console.log('📋 Monitor controller created. Call monitor.stop() to stop early.');
+  return controller;
+};
+
+// Simple realtime connection test
+export const testRealtimeConnection = async () => {
+  console.log('🔍 Testing basic realtime connection...');
+  
+  try {
+    const { supabase } = await import('../lib/supabase');
+    
+    // Test 1: Check if the supabase client has realtime enabled
+    console.log('1️⃣ Checking Supabase client realtime config...');
+    console.log('   Realtime config:', (supabase as any).realtime?.options || 'No config found');
+    
+    // Test 2: Try to get the realtime connection status
+    console.log('2️⃣ Checking realtime connection state...');
+    try {
+      const realtimeState = (supabase as any).realtime?.connection?.readyState;
+      const stateNames = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+      console.log('   WebSocket state:', realtimeState !== undefined ? stateNames[realtimeState] || realtimeState : 'Unknown');
+    } catch (e) {
+      console.log('   Could not read connection state:', e.message);
+    }
+    
+    // Test 3: Try creating a channel without subscribing
+    console.log('3️⃣ Testing channel creation...');
+    const testChannel = supabase.channel('simple-test-' + Date.now());
+    console.log('   ✅ Channel created successfully');
+    
+    // Test 4: Try subscribing with detailed logging
+    console.log('4️⃣ Testing channel subscription...');
+    return new Promise((resolve) => {
+      let resolved = false;
+      
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          console.log('   ⏰ Subscription timeout after 10 seconds');
+          try {
+            supabase.removeChannel(testChannel);
+          } catch (e) {
+            console.log('   Cleanup error:', e.message);
+          }
+          resolve({ success: false, error: 'Subscription timeout' });
+        }
+      }, 10000);
+      
+      testChannel.subscribe((status, err) => {
+        if (resolved) return;
+        
+        console.log(`   📡 Subscription status: ${status}`);
+        if (err) console.log('   ❌ Subscription error:', err);
+        
+        if (status === 'SUBSCRIBED') {
+          resolved = true;
+          clearTimeout(timeout);
+          console.log('   ✅ Successfully subscribed!');
+          
+          // Clean up
+          setTimeout(() => {
+            try {
+              supabase.removeChannel(testChannel);
+              console.log('   🧹 Channel cleaned up');
+            } catch (e) {
+              console.log('   Cleanup error:', e.message);
+            }
+          }, 1000);
+          
+          resolve({ success: true });
+        } else if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(status)) {
+          resolved = true;
+          clearTimeout(timeout);
+          console.log(`   ❌ Subscription failed with status: ${status}`);
+          
+          try {
+            supabase.removeChannel(testChannel);
+          } catch (e) {
+            console.log('   Cleanup error:', e.message);
+          }
+          
+          resolve({ success: false, error: `Subscription failed: ${status}` });
+        }
+      });
+    });
+    
+  } catch (error) {
+    console.error('❌ Test failed:', error);
+    return { success: false, error: error.message };
+  }
 };
 
 // Make functions available globally for console debugging
@@ -381,4 +488,5 @@ if (typeof window !== 'undefined') {
   (window as any).checkSupabaseStatus = checkSupabaseStatus;
   (window as any).testSupabaseNetwork = testSupabaseNetwork;
   (window as any).monitorRealtimeHealth = monitorRealtimeHealth;
+  (window as any).testRealtimeConnection = testRealtimeConnection;
 } 

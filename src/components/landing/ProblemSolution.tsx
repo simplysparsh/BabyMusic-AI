@@ -42,14 +42,11 @@ export default function ProblemSolution() {
         {/* Creative comparison layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {/* Problem Side - Compact */}
-          <motion.div 
+          <div 
             className="relative p-5 rounded-2xl backdrop-blur-sm border border-red-200/20 overflow-hidden"
             style={{
               background: 'linear-gradient(135deg, rgba(255, 99, 132, 0.08), rgba(255, 159, 64, 0.05))'
             }}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-orange-500/3 opacity-60" />
             
@@ -79,17 +76,14 @@ export default function ProblemSolution() {
                 ))}
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Solution Side - Compact */}
-          <motion.div 
+          <div 
             className="relative p-5 rounded-2xl backdrop-blur-sm border border-green-200/20 overflow-hidden"
             style={{
               background: 'linear-gradient(135deg, rgba(75, 192, 192, 0.08), rgba(153, 102, 255, 0.05))'
             }}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-green-400/5 to-blue-400/3 opacity-60" />
             
@@ -97,12 +91,9 @@ export default function ProblemSolution() {
               {/* Compact header */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center border border-green-300/20">
-                  <motion.div
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                  >
+                  <div>
                     <Heart size={20} weight="duotone" className="text-green-400" />
-                  </motion.div>
+                  </div>
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white drop-shadow-sm">TuneLoom Solution</h3>
@@ -124,7 +115,7 @@ export default function ProblemSolution() {
                 ))}
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

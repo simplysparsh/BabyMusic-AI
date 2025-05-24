@@ -21,19 +21,6 @@ export class SongStateService {
   static getSongState(song: Song | undefined): SongState {
     if (!song) return SongState.INITIAL;
     
-    // Debug trace (minimize output to avoid console spam)
-    const shouldLog = Math.random() < 0.1; // Only log ~10% of calls
-    if (shouldLog) {
-      console.log(`[STATE CALC] SongStateService.getSongState for song ${song.id}:`, {
-        hasError: !!song.error,
-        isRetryable: !!song.retryable,
-        hasAudioUrl: !!song.audio_url,
-        hasTaskId: !!song.task_id,
-        taskId: song.task_id || 'none',
-        timestamp: new Date().toISOString()
-      });
-    }
-    
     // 1. Check for failure first
     if (song.error || song.retryable) return SongState.FAILED;
 
@@ -44,7 +31,6 @@ export class SongStateService {
     if (song.task_id) return SongState.GENERATING;
 
     // 4. If none of the above, it's likely in an initial pre-generation state
-    if (shouldLog) console.log(`[STATE DECISION] Song ${song.id} is INITIAL`);
     return SongState.INITIAL;
   }
 

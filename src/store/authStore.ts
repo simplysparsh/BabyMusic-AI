@@ -331,6 +331,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await supabase.auth.signOut();
       stopTokenRefresh(); 
       clearSupabaseStorage();
+      
+      // Reset song store to prevent stale data issues
+      const { useSongStore } = await import('./songStore');
+      useSongStore.getState().resetStore();
+      
       set({ user: null, profile: null, initialized: false, error: null });
     } catch (error: any) {
       console.error("Sign-out error:", error);
@@ -377,6 +382,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           set({ user: null, profile: null });
         }
       } else if (event === 'SIGNED_OUT') {
+        // Reset song store to prevent stale data issues
+        const { useSongStore } = await import('./songStore');
+        useSongStore.getState().resetStore();
+        
         set({ user: null, profile: null, error: null });
       }
       set({ isLoading: false, initialized: true });

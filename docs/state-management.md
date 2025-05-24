@@ -86,6 +86,8 @@ This wrapper extends the standard Supabase client with additional error handling
 - **Timeout Management**: Implements request timeouts to prevent UI getting stuck on pending requests
 - **Fallback Paths**: Provides graceful degradation when backend services are temporarily unavailable
 
+**Note**: For issues with WebSocket connections and real-time subscriptions becoming unresponsive in background tabs, see the [Realtime WebSocket Troubleshooting](./realtime-troubleshooting.md) guide.
+
 ### Token Management Functions
 
 Several utility functions manage authentication token lifecycles:

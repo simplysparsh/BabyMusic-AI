@@ -73,6 +73,7 @@ export interface SongState {
   queuedTaskIds: Set<string>; // Tasks that are in the queue (have task_id, no audio_url, no error)
   isDeleting: boolean;
   error: string | null;
+  isResetting: boolean; // Flag to indicate store is being reset (prevents subscription race conditions)
 
   // Actions
   setState: (updater: Partial<SongState>) => void;
@@ -84,6 +85,7 @@ export interface SongState {
   setupSubscription: (userId: string) => (() => void) | undefined;
   resetGeneratingState: () => Promise<void>;
   notifyPresetSongsRegenerating: () => void; // Method to remove preset songs from the store immediately
+  resetStore: () => void; // Method to reset all store state to initial values
 }
 
 export interface CreateSongParams {

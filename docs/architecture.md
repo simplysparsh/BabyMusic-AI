@@ -37,6 +37,9 @@ The backend is powered by Supabase, an open-source Firebase alternative. Supabas
 - **Authentication**: User authentication and authorization using JWT tokens
 - **Storage**: File storage for user-generated content and audio files
 - **Edge Functions**: Serverless functions for custom backend logic
+- **Real-time**: WebSocket-based real-time updates for live data synchronization
+
+**Important**: For issues with real-time WebSocket connections becoming unresponsive (especially in background tabs), see the [Realtime WebSocket Troubleshooting](./realtime-troubleshooting.md) guide.
 
 The backend is organized into the following main directories:
 

@@ -44,6 +44,7 @@ export const useSongStore = create<SongState>((set, get) => {
     queuedTaskIds: new Set<string>(),
     isDeleting: false,
     error: null,
+    isResetting: false,
 
     // State helpers
     setState: (updater) => set(updater),
@@ -137,6 +138,29 @@ export const useSongStore = create<SongState>((set, get) => {
     // The type checker should ensure this matches the signature in SongState
     setupSubscription: subscriptions.setupSubscription,
     
+    /**
+     * Reset all song store state to initial values
+     * This should be called during sign-out to prevent stale data issues
+     */
+    resetStore: () => {
+      console.log('[SONG STORE] Resetting store to initial state');
+      set({
+        songs: [],
+        isLoading: false,
+        retryingSongs: new Set<string>(),
+        processingTaskIds: new Set<string>(),
+        queuedTaskIds: new Set<string>(),
+        isDeleting: false,
+        error: null,
+        isResetting: true,
+      });
+      
+      // Clear the resetting flag after a brief delay to allow subscriptions to see it
+      setTimeout(() => {
+        set({ isResetting: false });
+      }, 100);
+    },
+
     /**
      * Handles UI state during preset song regeneration.
      * 

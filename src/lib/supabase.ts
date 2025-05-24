@@ -26,6 +26,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     // @ts-expect-error TypeScript type definition for AuthOptions might be outdated in this environment
     syncTabs: true
+  },
+  realtime: {
+    worker: true,
+    heartbeatIntervalMs: 25000 // 25 seconds (less than 30s to avoid timeouts)
   }
 });
 

@@ -41,6 +41,13 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
           filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
+          // Safety check: Don't process if store is being reset
+          const state = get();
+          if (state.isResetting) {
+            console.log('[SUBSCRIPTION] Ignoring INSERT event - store is being reset');
+            return;
+          }
+          
           const typedPayload = payload as RealtimePayload<SongPayload>;
           const newSong = typedPayload.new;
           if (!newSong || !('id' in newSong)) return;
@@ -57,6 +64,13 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
           filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
+          // Safety check: Don't process if store is being reset
+          const state = get();
+          if (state.isResetting) {
+            console.log('[SUBSCRIPTION] Ignoring UPDATE event - store is being reset');
+            return;
+          }
+          
           const typedPayload = payload as RealtimePayload<SongPayload>;
           const newSong = typedPayload.new;
           if (!newSong || !('id' in newSong)) return;
@@ -73,6 +87,13 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
+          // Safety check: Don't process if store is being reset
+          const state = get();
+          if (state.isResetting) {
+            console.log('[SUBSCRIPTION] Ignoring DELETE event - store is being reset');
+            return;
+          }
+          
           const typedPayload = payload as RealtimePayload<SongPayload>;
           const oldSong = typedPayload.old;
           if (!oldSong || !('id' in oldSong)) return;
@@ -126,6 +147,13 @@ export const createSongSubscriptions = (set: SetState, get: GetState) => {
           table: 'song_variations'
         },
         async (payload) => {
+          // Safety check: Don't process if store is being reset
+          const state = get();
+          if (state.isResetting) {
+            console.log('[SUBSCRIPTION] Ignoring variation INSERT event - store is being reset');
+            return;
+          }
+          
           // Use type assertion to ensure TypeScript knows the structure
           const typedPayload = payload as RealtimePayload<VariationPayload>;
           const { new: variation } = typedPayload;

@@ -88,6 +88,8 @@ The application uses Zustand for state management with several key stores:
 - **songStore**: Manages song data, generation, and song-related operations
 - **errorStore**: Centralized error handling and user notifications
 
+**Note**: For issues with real-time state updates not working after background tab periods, see the [Realtime WebSocket Troubleshooting](./realtime-troubleshooting.md) guide.
+
 Example of authStore usage:
 
 ```typescript

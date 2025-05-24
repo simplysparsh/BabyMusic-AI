@@ -75,7 +75,7 @@ export default function CTASection({ onOpenAuth }: CTASectionProps) {
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-6 sm:px-6 lg:px-8 relative z-10">
         <motion.div 
           className="relative rounded-3xl p-8 sm:p-12 group
                     transition-all duration-200 shadow-xl shadow-black/20 backdrop-blur-sm overflow-hidden

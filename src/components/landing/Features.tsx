@@ -4,7 +4,7 @@ import { Heart, Baby, Brain, MusicNote, Moon, Sparkle } from '@phosphor-icons/re
 export default function Features() {
   return (
     <section id="features" className="py-12 sm:py-16 relative overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-6 sm:px-6 lg:px-8">
         {/* Warm floating background elements */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div 

@@ -24,7 +24,7 @@ export default function ProblemSolution() {
         />
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="max-w-6xl mx-auto px-6 sm:px-6 lg:px-8 relative z-10">
         {/* Enhanced header */}
         <div className="text-center mb-8">
           <h2 

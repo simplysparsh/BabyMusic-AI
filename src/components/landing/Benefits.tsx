@@ -1,9 +1,7 @@
-
-
 export default function Benefits() {
   return (
     <section className="py-24 relative bg-gradient-to-b from-background-dark to-black">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-6 sm:px-6 lg:px-8">
         <h2 className="text-xl sm:text-2xl font-bold text-white text-center mb-8">
           Proven Impact
           <span className="block text-sm sm:text-base font-normal text-white/60 mt-1">

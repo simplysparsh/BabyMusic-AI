@@ -28,8 +28,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     syncTabs: true
   },
   realtime: {
-    worker: true,
-    heartbeatIntervalMs: 25000 // 25 seconds (less than 30s to avoid timeouts)
+    heartbeatIntervalMs: 25000, // 25 seconds (less than 30s to avoid timeouts)
+    reconnectAfterMs: function (tries: number) {
+      // Exponential backoff: 1s, 2s, 4s, 8s, 16s (max 16s)
+      return Math.min(1000 * Math.pow(2, tries), 16000);
+    },
+    timeout: 20000, // 20 second timeout for requests
+    // Remove worker: true as it's causing "Unhandled message type: heartbeat" errors
+    // The heartbeatIntervalMs alone should be sufficient to prevent connection drops
   }
 });
 

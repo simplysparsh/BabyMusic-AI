@@ -298,7 +298,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <button type="button" onClick={onClose} className="px-6 py-2 rounded-xl bg-white/10 text-white/80 hover:bg-white/20 transition-all duration-300">
               Cancel
             </button>
-            <button type="submit" className="px-6 py-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 transition-all duration-300 flex items-center justify-center gap-2">
+            <button type="submit" className="px-6 py-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-black hover:opacity-90 transition-all duration-300 flex items-center justify-center gap-2">
               Save Changes
             </button>
           </div>

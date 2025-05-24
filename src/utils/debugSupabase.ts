@@ -312,6 +312,67 @@ export const testSupabaseNetwork = async () => {
   return { completed: true };
 };
 
+// Monitor realtime connection health over time
+export const monitorRealtimeHealth = () => {
+  console.log('🔍 Starting realtime health monitor...');
+  console.log('💡 This will log connection status every 30 seconds for 5 minutes');
+  console.log('💡 Look for consistent "SUBSCRIBED" status and absence of reconnections');
+  
+  let monitorCount = 0;
+  const maxMonitors = 10; // 5 minutes (10 * 30 seconds)
+  
+  const checkHealth = async () => {
+    monitorCount++;
+    const timestamp = new Date().toLocaleTimeString();
+    
+    try {
+      const { supabase } = await import('../lib/supabase');
+      
+      // Check if we can quickly test a channel
+      const testChannel = supabase.channel('health-check-' + Date.now());
+      
+      const statusPromise = new Promise((resolve) => {
+        const timeout = setTimeout(() => resolve('TIMEOUT'), 5000);
+        
+        testChannel.subscribe((status) => {
+          clearTimeout(timeout);
+          resolve(status);
+        });
+      });
+      
+      const status = await statusPromise;
+      
+      if (status === 'SUBSCRIBED') {
+        console.log(`✅ [${timestamp}] Realtime healthy - Status: ${status}`);
+      } else {
+        console.log(`⚠️ [${timestamp}] Realtime issue - Status: ${status}`);
+      }
+      
+      // Clean up
+      supabase.removeChannel(testChannel);
+      
+    } catch (error) {
+      console.error(`❌ [${timestamp}] Realtime error:`, error);
+    }
+    
+    if (monitorCount < maxMonitors) {
+      setTimeout(checkHealth, 30000); // Check every 30 seconds
+    } else {
+      console.log('🏁 Realtime health monitoring completed');
+    }
+  };
+  
+  // Start monitoring
+  checkHealth();
+  
+  return {
+    stop: () => {
+      monitorCount = maxMonitors;
+      console.log('🛑 Realtime health monitoring stopped');
+    }
+  };
+};
+
 // Make functions available globally for console debugging
 if (typeof window !== 'undefined') {
   (window as any).clearAllSupabaseData = clearAllSupabaseData;
@@ -319,4 +380,5 @@ if (typeof window !== 'undefined') {
   (window as any).testSupabaseRealtime = testSupabaseRealtime;
   (window as any).checkSupabaseStatus = checkSupabaseStatus;
   (window as any).testSupabaseNetwork = testSupabaseNetwork;
+  (window as any).monitorRealtimeHealth = monitorRealtimeHealth;
 } 

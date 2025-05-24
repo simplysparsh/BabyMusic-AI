@@ -3,7 +3,7 @@ import { Heart, Baby, Brain, MusicNote, Moon, Sparkle } from '@phosphor-icons/re
 
 export default function Features() {
   return (
-    <section id="features" className="py-24 relative overflow-hidden">
+    <section id="features" className="py-12 sm:py-16 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Warm floating background elements */}
         <div className="absolute inset-0 overflow-hidden">
@@ -56,11 +56,11 @@ export default function Features() {
           />
         </div>
 
-        <div className="text-center mb-12 sm:mb-16 relative">
+        <div className="text-center mb-8 sm:mb-10 relative">
           {/* Enhanced section header with warmer design */}
           <div>
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-200/6 to-transparent blur-2xl rounded-full"></div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-6 relative
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4 sm:mb-5 relative
                          drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               Your Partner in Peaceful Parenting
             </h2>
@@ -70,7 +70,7 @@ export default function Features() {
             </p>
             
             {/* Warm decorative elements */}
-            <div className="flex justify-center mt-6">
+            <div className="flex justify-center mt-4">
               <motion.div 
                 className="w-16 h-px bg-gradient-to-r from-transparent via-pink-300/40 to-transparent"
                 animate={{ scaleX: [0.5, 1, 0.5] }}
@@ -80,7 +80,7 @@ export default function Features() {
           </div>
         </div>
 
-        <div className="relative max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+        <div className="relative max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {[
             {
               icon: Heart,
@@ -118,7 +118,7 @@ export default function Features() {
               className="relative group"
             >
               <div 
-                className={`relative h-full p-6 sm:p-8 rounded-3xl backdrop-blur-sm
+                className={`relative h-full p-4 sm:p-6 rounded-3xl backdrop-blur-sm
                          bg-white/[0.04] border ${accentColor}
                          shadow-lg shadow-black/5 transform-gpu overflow-hidden`}
                 style={{ backgroundColor: bgColor }}
@@ -130,11 +130,11 @@ export default function Features() {
                 
                 {/* Content */}
                 <div className="relative z-10 text-center">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-6 sm:mb-8 relative">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-4 sm:mb-5 relative">
                     <div className="absolute inset-0 bg-white/12 rounded-3xl shadow-lg backdrop-blur-sm border border-white/15" />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Icon 
-                        size={32} 
+                        size={28} 
                         weight="duotone" 
                         className={`${iconColor} drop-shadow-sm`} 
                       />
@@ -158,7 +158,7 @@ export default function Features() {
                     </div>
                   </div>
                   
-                  <h3 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6 
+                  <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 
                               drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                     {title}
                   </h3>

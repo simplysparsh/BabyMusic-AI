@@ -1,87 +1,133 @@
+import { motion } from 'framer-motion';
+import { X, Check, Warning, Heart, Brain, Sparkle, MusicNote, Baby } from '@phosphor-icons/react';
+
 export default function ProblemSolution() {
   return (
-    <section className="py-24 relative bg-gradient-to-b from-background-dark/50 to-background-dark">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white text-center mb-6 sm:mb-8">
-          Is Your Baby's Music Helping or Harming?
-        </h2>
-        
-        <div className="grid md:grid-cols-2 gap-4 sm:gap-8 max-w-5xl mx-auto">
-          {/* Problem Side */}
-          <div className="card p-6 sm:p-8 bg-red-500/5 border-red-500/10 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent"></div>
-            <div className="w-24 sm:w-32 h-24 sm:h-32 mx-auto mb-6 sm:mb-8 relative">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-24 h-24 bg-red-500/10 rounded-lg transform rotate-45 group-hover:rotate-90 transition-transform duration-700"></div>
-                <div className="w-24 h-24 bg-red-500/10 rounded-lg transform -rotate-45 group-hover:-rotate-90 transition-transform duration-700"></div>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center animate-spin-slow">
-                <div className="w-20 h-20 bg-red-500/20 rounded-lg transform rotate-[30deg]"></div>
-                <div className="w-20 h-20 bg-red-500/20 rounded-lg transform -rotate-[30deg]"></div>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-16 h-16 bg-red-500/30 rounded-lg animate-pulse">
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-8 h-8 border-4 border-red-500/40"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-3 text-center">Traditional Content</h3>
-            <p className="text-white text-center mb-6">Overstimulating, fast-paced, bright visuals</p>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-3 text-red-400">
-                <span className="text-lg">❌</span>
-                <span>Fast-paced cuts hijack attention spans</span>
-              </li>
-              <li className="flex items-start gap-3 text-red-400">
-                <span className="text-lg">❌</span>
-                <span>Overstimulation linked to speech delays</span>
-              </li>
-              <li className="flex items-start gap-3 text-red-400">
-                <span className="text-lg">❌</span>
-                <span>Passive consumption hurts emotional development</span>
-              </li>
-            </ul>
-          </div>
+    <section className="py-16 relative overflow-hidden">
+      {/* Subtle background - different from hero */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/50 to-slate-950/80" />
+        <motion.div 
+          className="absolute top-1/3 right-1/4 w-64 h-64 rounded-full blur-[100px]"
+          style={{
+            background: 'linear-gradient(135deg, rgba(255, 99, 132, 0.06), rgba(255, 159, 64, 0.04))'
+          }}
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.2, 0.4, 0.2]
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+      </div>
 
-          {/* Solution Side */}
-          <div className="card p-6 sm:p-8 bg-green-500/5 border-green-500/10 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent"></div>
-            <div className="w-32 h-32 mx-auto mb-8 relative">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-28 h-28 bg-green-500/10 rounded-full transform group-hover:scale-110 transition-transform duration-700"></div>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-24 h-24 bg-green-500/15 rounded-full transform group-hover:scale-110 transition-transform duration-500 delay-75"></div>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 bg-green-500/20 rounded-full transform group-hover:scale-110 transition-transform duration-500 delay-100">
-                  <div className="w-full h-full flex items-center justify-center relative">
-                    <div className="absolute w-3 h-8 bg-green-500/40 rounded-full transform -rotate-45 -translate-x-4"></div>
-                    <div className="absolute w-3 h-6 bg-green-500/40 rounded-full"></div>
-                    <div className="absolute w-3 h-8 bg-green-500/40 rounded-full transform rotate-45 translate-x-4"></div>
-                  </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Enhanced header */}
+        <div className="text-center mb-8">
+          <motion.h2 
+            className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-6 sm:mb-8
+                       drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] 
+                       [text-shadow:_0_1px_2px_rgb(0_0_0_/_80%)]"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            Is Your Baby's Music Helping or Harming?
+          </motion.h2>
+          <div className="flex justify-center">
+            <div className="w-8 h-px bg-gradient-to-r from-red-300/40 via-white/20 to-green-300/40" />
+          </div>
+        </div>
+
+        {/* Creative comparison layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          {/* Problem Side - Compact */}
+          <motion.div 
+            className="relative p-5 rounded-2xl backdrop-blur-sm border border-red-200/20 overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255, 99, 132, 0.08), rgba(255, 159, 64, 0.05))'
+            }}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-orange-500/3 opacity-60" />
+            
+            <div className="relative z-10">
+              {/* Compact header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center border border-red-300/20">
+                  <Warning size={20} weight="duotone" className="text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white drop-shadow-sm">Traditional Content</h3>
+                  <p className="text-red-300/80 text-xs">Overstimulating visuals</p>
                 </div>
               </div>
+              
+              {/* Updated points with proper text size */}
+              <div className="space-y-3">
+                {[
+                  'Fast-paced cuts hijack attention spans',
+                  'Overstimulation linked to speech delays',
+                  'Passive consumption hurts development'
+                ].map((item, index) => (
+                  <div key={index} className="flex items-start gap-3 text-red-400">
+                    <X size={16} weight="bold" className="text-red-400 flex-shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <h3 className="text-2xl font-bold text-white mb-3 text-center">TuneLoom Solution</h3>
-            <p className="text-white text-center mb-6">Designed for cognitive and emotional well-being</p>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-3 text-green-400">
-                <span className="text-lg">✓</span>
-                <span>Scientifically crafted melodies</span>
-              </li>
-              <li className="flex items-start gap-3 text-green-400">
-                <span className="text-lg">✓</span>
-                <span>Boosts cognition and emotional well-being</span>
-              </li>
-              <li className="flex items-start gap-3 text-green-400">
-                <span className="text-lg">✓</span>
-                <span>Supports deep sleep and relaxation</span>
-              </li>
-            </ul>
-          </div>
+          </motion.div>
+
+          {/* Solution Side - Compact */}
+          <motion.div 
+            className="relative p-5 rounded-2xl backdrop-blur-sm border border-green-200/20 overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, rgba(75, 192, 192, 0.08), rgba(153, 102, 255, 0.05))'
+            }}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-green-400/5 to-blue-400/3 opacity-60" />
+            
+            <div className="relative z-10">
+              {/* Compact header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center border border-green-300/20">
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <Heart size={20} weight="duotone" className="text-green-400" />
+                  </motion.div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white drop-shadow-sm">TuneLoom Solution</h3>
+                  <p className="text-green-300/80 text-xs">Scientifically designed</p>
+                </div>
+              </div>
+              
+              {/* Updated points with proper text size */}
+              <div className="space-y-3">
+                {[
+                  'Scientifically crafted melodies',
+                  'Boosts cognition and emotional well-being',
+                  'Supports deep sleep and relaxation'
+                ].map((item, index) => (
+                  <div key={index} className="flex items-start gap-3 text-green-400">
+                    <Check size={16} weight="bold" className="text-green-400 flex-shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>

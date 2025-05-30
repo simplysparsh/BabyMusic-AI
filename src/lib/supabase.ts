@@ -28,13 +28,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     syncTabs: true
   },
   realtime: {
-    heartbeatIntervalMs: 25000, // 25 seconds (less than 30s to avoid timeouts)
+    heartbeatIntervalMs: 30000, // 30 seconds - follow Supabase's official recommendation
     reconnectAfterMs: function (tries: number) {
       // Exponential backoff: 1s, 2s, 4s, 8s, 16s (max 16s)
       return Math.min(1000 * Math.pow(2, tries), 16000);
     },
     timeout: 20000, // 20 second timeout for requests
-    worker: true, // This was the actual fix - restore Web Worker support for better connection handling
+    worker: true, // Web Worker support for better connection handling
   }
 });
 

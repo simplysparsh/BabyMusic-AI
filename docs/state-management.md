@@ -72,41 +72,6 @@ The `streakStore` manages the state related to the user's daily activity streak.
 - On app initialization, the app checks for this flag and, if present, triggers the onboarding modal via Zustand and clears the flag.
 - This ensures a seamless onboarding experience for both email and OAuth signups.
 
-## Enhanced Supabase Client
-
-The application uses an enhanced Supabase client wrapper to handle authentication token refreshing and error recovery, particularly for Edge Function calls:
-
-### `supabaseWithRetry`
-
-This wrapper extends the standard Supabase client with additional error handling and automatic retry logic:
-
-- **Token Refresh Logic**: Automatically refreshes JWT tokens when they become stale
-- **Error Detection**: Identifies authentication errors in Edge Function responses
-- **Automatic Retry**: Retries failed operations with fresh tokens
-- **Timeout Management**: Implements request timeouts to prevent UI getting stuck on pending requests
-- **Fallback Paths**: Provides graceful degradation when backend services are temporarily unavailable
-
-**Note**: For issues with WebSocket connections and real-time subscriptions becoming unresponsive in background tabs, see the [Realtime WebSocket Troubleshooting](./realtime-troubleshooting.md) guide.
-
-### Token Management Functions
-
-Several utility functions manage authentication token lifecycles:
-
-- `startTokenRefresh()`: Begins periodic token refresh (called when user logs in)
-- `stopTokenRefresh()`: Ends periodic token refresh (called when user logs out)
-- `forceTokenRefresh()`: Immediately refreshes the token before critical operations
-
-### App Integration
-
-Token refresh mechanisms are integrated with the React component lifecycle:
-
-- **App Component**: Starts token refresh on mount if user is authenticated
-- **Visibility Events**: Refreshes tokens when the browser tab regains focus
-- **Cleanup**: Stops refresh timers when components unmount
-- **Critical Operations**: Forces refresh before important user actions
-
-This enhanced client ensures that the application maintains valid authentication tokens even during extended sessions, preventing disruptions to the user experience, particularly during music playback sessions.
-
 ## Usage in Components
 
 Components can access the state and actions from the Zustand stores using the `useStore` hook provided by Zustand. For example, to access the `authStore` in a component:

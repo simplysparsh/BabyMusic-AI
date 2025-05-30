@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { X, Star, Settings } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useErrorStore } from '../../store/errorStore';
-import { supabaseWithRetry, forceTokenRefresh } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { Language, DEFAULT_LANGUAGE } from '../../types';
 import { CURRENT_YEAR, CURRENT_MONTH, AGE_OPTIONS } from './utils/dateUtils';
 import { SongService } from '../../services/songService';
@@ -117,32 +117,25 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   };
 
   const handleManageSubscription = async () => {
-    setLocalError({});
-    clearError();
+    if (!profile) return;
+    
     setIsPortalLoading(true);
-
     try {
-      await forceTokenRefresh();
+      const { data, error } = await supabase.functions.invoke('create-customer-portal-session');
       
-      const { data, error } = await supabaseWithRetry.functions.invoke('create-customer-portal-session');
-
       if (error) {
-        console.error('Error invoking create-customer-portal-session:', error);
-        throw new Error(error.message || 'Could not open management portal.');
+        console.error('Error creating portal session:', error);
+        return;
       }
-
+      
       if (data?.url) {
         console.log('Redirecting to Stripe Customer Portal...');
         window.location.href = data.url;
-      } else {
-         throw new Error('Invalid response from portal function.');
       }
-
-    } catch (err) {
-      console.error('Stripe portal initiation failed:', err);
-      const message = err instanceof Error ? err.message : 'An unknown error occurred.';
-      setGlobalError(`Failed to manage subscription: ${message}`);
-      setIsPortalLoading(false); 
+    } catch (error) {
+      console.error('Unexpected error:', error);
+    } finally {
+      setIsPortalLoading(false);
     }
   };
 

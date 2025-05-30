@@ -8,7 +8,6 @@ import TermsOfService from './pages/TermsOfService';
 import { useEffect, useState, Suspense } from 'react';
 import { useAuthStore, SignupMethod } from './store/authStore'; 
 import { useSongStore } from './store/songStore';
-import { forceTokenRefresh, getLastSuccessfulRefresh, registerSessionExpiredCallback } from './lib/supabase';
 import OAuthOnboardingModal from './components/auth/OAuthOnboardingModal';
 import EmailOnboardingModal from './components/auth/EmailOnboardingModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
@@ -59,30 +58,10 @@ function App() {
         localStorage.removeItem('onboardingInProgress');
         localStorage.removeItem('lastSignupMethod');
       }
-      registerSessionExpiredCallback(signOut);
       loadSongs();
       setupSubscription(user.id);
     }
-  }, [initialized, user, loadSongs, setupSubscription, signOut]);
-
-  // Refresh token when app regains focus after being in background
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && user) {
-        const lastRefresh = getLastSuccessfulRefresh();
-        if (Date.now() - lastRefresh > 45 * 60 * 1000) {
-          console.log('App became visible, performing backup token refresh');
-          forceTokenRefresh();
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user]);
+  }, [initialized, user, loadSongs, setupSubscription]);
 
   // Show loading spinner while auth state is initializing
   if (!initialized) {
@@ -101,10 +80,10 @@ function App() {
           <Methodology />
         ) : path === '/premium' ? (
           <PremiumPage />
-        ) : path === '/privacy' ? (
-          <PrivacyPolicy />
         ) : path === '/terms' ? (
           <TermsOfService />
+        ) : path === '/privacy' ? (
+          <PrivacyPolicy />
         ) : (
           user ? <Dashboard /> : <Landing />
         )}

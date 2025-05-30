@@ -14,7 +14,6 @@ Welcome to the comprehensive documentation for the Baby Music AI project! This d
 - [Security](./security.md)
 - [Deployment](./deployment.md)
 - [Utility & Maintenance Scripts](./utility-scripts.md)
-- [Realtime WebSocket Troubleshooting](./realtime-troubleshooting.md)
 - [Contributing Guidelines](./contributing.md)
 
 ## Project Structure

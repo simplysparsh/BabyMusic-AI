@@ -65,8 +65,6 @@ Supabase supports webhooks for real-time event notifications. Baby Music AI uses
 
 The webhook endpoint is implemented as an Edge Function that listens for incoming HTTP POST requests. When a webhook event is received, the Edge Function validates the request signature, extracts the relevant data, and updates the corresponding song record in the database.
 
-**Note**: For troubleshooting issues with real-time WebSocket connections (such as buttons becoming unresponsive after background tab periods), see the [Realtime WebSocket Troubleshooting](./realtime-troubleshooting.md) guide.
-
 ## Supabase Edge Functions
 
 Edge Functions provide serverless compute capabilities close to the user.

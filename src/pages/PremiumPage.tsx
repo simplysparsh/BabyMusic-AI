@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle, Zap, Star, Play, Download, Heart } from 'lucide-react'; // Example icons
-import { supabaseWithRetry, forceTokenRefresh } from '../lib/supabase'; // <-- Import Supabase client
-import { useErrorStore } from '../store/errorStore'; // <-- Import error store for feedback
+import { supabase } from '../lib/supabase'; // <-- Import Supabase client
 import { useAuthStore } from '../store/authStore'; // <-- Import auth store
 
 // IMPORTANT: Replace with your actual Stripe Price IDs from your Stripe dashboard
@@ -10,7 +9,6 @@ const STRIPE_YEARLY_PRICE_ID = 'price_1RLCtYD7u6T4OuZrQ71AUgq9';
 
 const PremiumPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { setError, clearError } = useErrorStore(); // <-- Use error store
   const user = useAuthStore((state) => state.user); // <-- Get user from auth store
   
   // TODO: Fetch actual prices from configuration/backend if dynamic
@@ -30,53 +28,31 @@ const PremiumPage: React.FC = () => {
   ];
 
   const handleUpgradeClick = async (plan: 'monthly' | 'yearly') => {
-    clearError(); // Clear previous errors
-
-    // --- Check if user is logged in --- 
     if (!user) {
-      setError('Please sign in or create an account to upgrade.');
+      console.error('No user found');
       return;
     }
-    // --- End Check --- 
 
     setIsLoading(true);
-    console.log(`Initiating upgrade to ${plan} plan...`);
-
-    const priceId = plan === 'monthly' ? STRIPE_MONTHLY_PRICE_ID : STRIPE_YEARLY_PRICE_ID;
-
-    if (!priceId || priceId.includes('YOUR_')) {
-      console.error('Stripe Price ID not configured.');
-      setError('Upgrade configuration error. Please contact support.'); // Show user error
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      // Refresh token before critical checkout operation
-      await forceTokenRefresh();
-      
-      const { data, error } = await supabaseWithRetry.functions.invoke('create-stripe-checkout', {
-        body: { priceId },
+      const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
+        body: { plan }
       });
 
       if (error) {
-        console.error('Error invoking create-stripe-checkout:', error);
-        throw new Error(error.message || 'Could not initiate checkout.');
+        console.error('Stripe checkout error:', error);
+        return;
       }
 
       if (data?.url) {
-        console.log('Redirecting to Stripe Checkout...');
-        window.location.href = data.url; // Redirect user to Stripe
+        window.location.href = data.url;
       } else {
-         throw new Error('Invalid response from checkout function.');
+        console.error('No checkout URL returned');
       }
-      // No need to set isLoading(false) here as we are redirecting
-
-    } catch (err) {
-      console.error('Stripe checkout initiation failed:', err);
-      const message = err instanceof Error ? err.message : 'An unknown error occurred.';
-      setError(`Failed to start upgrade: ${message}`); // Show user error
-      setIsLoading(false); 
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 

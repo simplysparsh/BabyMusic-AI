@@ -7,7 +7,7 @@ import { useAuthStore } from '../store/authStore';
 import { useErrorStore } from '../store/errorStore';
 import { useAudioStore } from '../store/audioStore';
 import SongGenerationTimer from './common/SongGenerationTimer';
-import { supabaseWithRetry, forceTokenRefresh } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { SongService } from '../services/songService';
 
 // Define the specific error message for play limit
@@ -118,41 +118,24 @@ export default function SongItem({
 
   // Handle Toggle Favorite Click
   const handleToggleFavorite = async () => {
-    if (!isPremium) return;
+    if (!song.id) return;
+    
     setIsTogglingFavorite(true);
-    clearGlobalError(); // Clear previous errors
-    let response: { data: any; error: any; } | null = null;
-
+    let response: { data: any; error: any; };
     try {
-      // Refresh token before toggling favorite status
-      await forceTokenRefresh();
-      
-      response = await supabaseWithRetry.functions.invoke('toggle-favorite', {
-        body: { song_id: song.id },
+      response = await supabase.functions.invoke('toggle-favorite', {
+        body: { songId: song.id }
       });
 
-      // Defensive checks
-      if (!response) {
-        throw new Error("Invocation returned null or undefined response.");
-      }
-      const invokeData = response.data;
-      const invokeError = response.error;
-
-      if (invokeError) {
-        const message = typeof invokeError === 'object' && invokeError !== null && invokeError.message ? invokeError.message : 'Unknown invocation error';
-        throw new Error(`Failed to toggle favorite: ${message}`);
+      if (response.error) {
+        console.error('Error toggling favorite:', response.error);
+        return;
       }
 
-      // Check data structure more carefully
-      if (!(typeof invokeData === 'object' && invokeData !== null && invokeData.success !== undefined)) {
-        const message = typeof invokeData === 'object' && invokeData !== null && invokeData.error ? invokeData.error : 'Unexpected response structure from toggle function.';
-        throw new Error(message);
-      }
-      // Success: UI update relies on subscription
-
-    } catch (caughtError) {
-      const errorMessage = caughtError instanceof Error ? caughtError.message : 'Could not update favorite status.';
-      setGlobalError(errorMessage);
+      // Optimistically update the UI - the realtime subscription will sync this
+      console.log('Favorite toggled successfully');
+    } catch (error) {
+      console.error('Network error toggling favorite:', error);
     } finally {
       setIsTogglingFavorite(false);
     }

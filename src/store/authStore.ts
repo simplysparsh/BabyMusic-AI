@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase, supabaseWithRetry, stopTokenRefresh, clearSupabaseStorage } from '../lib/supabase';
+import { supabase, clearSupabaseStorage } from '../lib/supabase';
 import { useErrorStore } from './errorStore';
 import { ProfileService } from '../services/profileService';
 import { SongService } from '../services/songService';
@@ -329,7 +329,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       await supabase.auth.signOut();
-      stopTokenRefresh(); 
       clearSupabaseStorage();
       
       // Reset song store to prevent stale data issues
@@ -399,22 +398,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   incrementPlayCount: async () => {
-    const user = get().user;
-    const profile = get().profile;
-    if (!user || !profile) return;
-
     try {
-      const updatedPlays = (profile.monthlyPlaysCount || 0) + 1;
-      set(state => ({ 
-        profile: state.profile ? { ...state.profile, monthlyPlaysCount: updatedPlays } : null 
-      }));
-      
-      await supabaseWithRetry.functions.invoke('increment-play-count');
+      await supabase.functions.invoke('increment-play-count');
     } catch (error) {
-      console.error("Failed to increment play count in DB:", error);
-      set(state => ({ 
-        profile: state.profile ? { ...state.profile, monthlyPlaysCount: profile.monthlyPlaysCount } : null 
-      }));
+      console.error('Failed to increment play count:', error);
     }
   },
 

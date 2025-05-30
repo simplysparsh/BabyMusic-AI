@@ -64,7 +64,7 @@ The application implements a comprehensive authentication and onboarding process
 
 4. **Session Management**:
    - JWT-based authentication
-   - Persistent sessions with refresh tokens
+   - Supabase's automatic token refresh with built-in session persistence
    - Profile loading on authentication
 
 ## Streak Tracking

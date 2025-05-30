@@ -8,26 +8,7 @@ The application uses Supabase's built-in authentication system, which supports e
 
 The frontend stores the JWT in local storage and includes it in the `Authorization` header of API requests. The backend API verifies the JWT before processing any authenticated requests.
 
-### Token Refresh Mechanism
-
-To ensure uninterrupted user experience during extended sessions (particularly important for music playback), the application implements a comprehensive token refresh strategy:
-
-1. **Automatic Periodic Refresh**: JWT tokens are automatically refreshed every 10 minutes to prevent expiration during long sessions.
-
-2. **Event-based Refreshes**: Tokens are refreshed when the application regains focus after being in the background.
-
-3. **Operation-specific Refreshes**: Tokens are proactively refreshed before critical operations:
-   - Song creation
-   - Retry of failed song generation
-   - Toggling song favorites
-   - Opening Stripe customer portal
-   - Initiating premium checkout
-
-4. **Enhanced Error Recovery**: The application includes a retry mechanism with automatic token refresh for Edge Function calls that fail due to authentication issues.
-
-5. **Timeouts and Fallbacks**: For certain operations, the application implements fallback paths to ensure the user experience remains smooth even when backend services experience delays.
-
-This multi-layered approach prevents issues where requests to Supabase Edge Functions would be dropped early ("EarlyDrop") due to stale tokens, particularly affecting long-running music playback sessions.
+Supabase automatically handles token refresh with its built-in `autoRefreshToken: true` configuration, ensuring seamless authentication during extended sessions.
 
 ## Authorization
 

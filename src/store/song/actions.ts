@@ -112,9 +112,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
         throw new Error('Baby name is required');
       }
       
-      // Removed proactive token refresh; rely on Supabase auto-refresh and supabaseWithRetry retry logic.
-      
-      // --- Call Check Function using enhanced client with auto-retry --- 
+      // Call check-generation-allowance function
       console.log(`[Action] Invoking check-generation-allowance function...`);
       
       // Check generation allowance first
@@ -255,9 +253,7 @@ export const createSongActions = (set: SetState, get: GetState) => ({
     const babyName = profile.babyName || 'Baby'; // Use profile directly
     
     try {
-      // No proactive token refresh; retry logic will handle on auth failure.
-      
-      // --- Add Check Function Call using enhanced client --- 
+      // Check generation allowance before retrying
       console.log(`[Action] Invoking check-generation-allowance before retrying song ${songId}...`);
       const { data: checkData, error: checkError } = await supabase.functions.invoke(
         'check-generation-allowance'

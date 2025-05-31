@@ -13,11 +13,16 @@ import EmailOnboardingModal from './components/auth/EmailOnboardingModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import IOSInstallModal from './components/common/IOSInstallModal';
 import { useUIStore } from './store/uiStore';
+import { realtimeHandler } from './lib/supabase';
+
+// Load test utilities in development mode
+if (import.meta.env.DEV) {
+  import('./utils/testRealtimeHandler').catch(console.error);
+}
 
 function App() {
   const { user, initialized, profile, signOut } = useAuthStore();
   const loadSongs = useSongStore(state => state.loadSongs);
-  const setupSubscription = useSongStore(state => state.setupSubscription);
   const [path, setPath] = useState(window.location.pathname);
   const [isIOSInstallModalOpen, setIsIOSInstallModalOpen] = useState(false);
   const isOnboardingOpen = useUIStore(state => state.isOnboardingOpen);
@@ -26,6 +31,17 @@ function App() {
 
   // Mount usePWAInstall at the top level to always capture beforeinstallprompt
   usePWAInstall(user?.id);
+
+  // Initialize RealtimeHandler - start connection management
+  useEffect(() => {
+    console.log('🚀 Starting RealtimeHandler...');
+    const cleanup = realtimeHandler.start();
+    
+    return () => {
+      console.log('🔌 Cleaning up RealtimeHandler...');
+      cleanup();
+    };
+  }, []); // Run once on app mount
 
   // Handle client-side navigation
   useEffect(() => {
@@ -59,9 +75,8 @@ function App() {
         localStorage.removeItem('lastSignupMethod');
       }
       loadSongs();
-      setupSubscription(user.id);
     }
-  }, [initialized, user, loadSongs, setupSubscription]);
+  }, [initialized, user, loadSongs]);
 
   // Show loading spinner while auth state is initializing
   if (!initialized) {

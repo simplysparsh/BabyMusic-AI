@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { RealtimeHandler } from './realtimeHandler';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -36,6 +37,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     timeout: 20000, // 20 second timeout for requests
     worker: true, // Web Worker support for better connection handling
   }
+});
+
+// Central RealtimeHandler instance - use this throughout the app
+export const realtimeHandler = new RealtimeHandler(supabase, {
+  inactiveTabTimeoutSeconds: 10 * 60 // 10 minutes
 });
 
 // Helper function to clear browser storage (can be run from console)

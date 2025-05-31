@@ -80,12 +80,65 @@ The `SongList` component displays a list of generated songs along with their var
 
 The `PresetSongs` component offers a collection of pre-generated songs tailored for specific moments in a baby's day, such as playtime, mealtime, or bedtime. These songs are customized based on the user's preferences and provide quick access to high-quality, age-appropriate melodies.
 
+## Real-time Data Synchronization
+
+The frontend implements a robust real-time system using a custom `RealtimeHandler` that provides enhanced reliability over standard Supabase real-time subscriptions.
+
+### RealtimeHandler Integration
+
+The application uses a centralized `RealtimeHandler` instance (`src/lib/realtimeHandler.ts`) that addresses common issues with real-time connections:
+
+**Key Features:**
+
+- **Factory-Based Channel Recreation**: Enables proper reconnection after errors by using channel factories instead of static channels
+- **Token Expiration Handling**: Automatically detects and handles Supabase token expiration
+- **Tab Visibility Management**: Disconnects real-time when tabs are hidden for extended periods (configurable timeout)
+- **Auto-Reconnection**: Automatically reconnects timed-out channels unless the tab is hidden
+- **Comprehensive Error Handling**: Provides detailed callbacks for different subscription states
+
+**Integration in Components:**
+
+```typescript
+// Real-time integration in useRealtime hook
+export function useRealtime() {
+  const { user } = useAuthStore();
+  const { setupSubscription } = useSongStore();
+
+  useEffect(() => {
+    if (user) {
+      // Setup subscriptions using RealtimeHandler
+      const cleanup = setupSubscription(user.id);
+      return cleanup;
+    }
+  }, [user, setupSubscription]);
+}
+```
+
+**Benefits for User Experience:**
+
+- **Eliminates Button Unresponsiveness**: Resolves issues where UI buttons became unresponsive after tab switching or idle periods
+- **Instant Updates**: Song generation progress and completion are reflected immediately in the UI
+- **Reliable Connections**: Handles network issues and connection problems gracefully
+- **Resource Efficient**: Automatically manages connections based on tab activity
+
+**Testing and Debugging:**
+
+The system includes comprehensive browser-based testing utilities (`src/utils/testRealtimeHandler.ts`) that can be accessed in the browser console:
+
+```javascript
+// Test RealtimeHandler functionality in browser
+window.testRealtimeHandler.runBrowserTests();
+
+// Diagnose connection issues
+window.testRealtimeHandler.diagnoseMealtimeConnection();
+```
+
 ## State Management
 
 The application uses Zustand for state management with several key stores:
 
 - **authStore**: Manages user authentication state, profile data, and auth-related methods
-- **songStore**: Manages song data, generation, and song-related operations
+- **songStore**: Manages song data, generation, and song-related operations with real-time synchronization
 - **errorStore**: Centralized error handling and user notifications
 
 Example of authStore usage:
@@ -110,6 +163,8 @@ The frontend components interact with each other and the backend through various
 
 - **API Calls**: Components make API calls to the backend to request song generation, retrieve song lists, and perform other operations.
 
+- **Real-time Updates**: Components receive live updates through the RealtimeHandler system, ensuring immediate UI updates when data changes.
+
 - **Event Handlers**: Components communicate with each other through event handlers and callbacks.
 
 ## UI/UX Considerations
@@ -118,10 +173,10 @@ The frontend components are designed with user experience in mind, incorporating
 
 - **Responsive Design**: All components work well across device sizes
 - **Animations and Transitions**: Smooth visual effects enhance the experience
-- **Real-time Feedback**: Status updates keep users informed
+- **Real-time Feedback**: Status updates keep users informed via the RealtimeHandler system
 - **Intuitive Controls**: Easy-to-use interface for all features
 
-By leveraging these UI/UX considerations and the power of React, the Baby Music AI frontend components work together to create a seamless, engaging, and user-friendly experience for parents and their little ones.
+By leveraging these UI/UX considerations and the power of React, combined with the robust RealtimeHandler system, the Baby Music AI frontend components work together to create a seamless, engaging, and user-friendly experience for parents and their little ones.
 
 ## Progressive Web App (PWA) Features
 

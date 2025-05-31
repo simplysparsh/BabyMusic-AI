@@ -4,6 +4,49 @@ Baby Music AI includes a collection of utility scripts for development, testing,
 
 ## Testing Scripts
 
+### Real-time System Testing
+
+- **testRealtimeHandler.ts**: Browser-based testing utilities for the RealtimeHandler system.
+
+**Usage**:
+
+The RealtimeHandler testing utilities are designed to run in the browser during development to verify real-time functionality:
+
+```javascript
+// Test all RealtimeHandler functionality
+window.testRealtimeHandler.runBrowserTests();
+
+// Diagnose real-time connection issues
+window.testRealtimeHandler.diagnoseMealtimeConnection();
+
+// Test with real user session
+window.testRealtimeHandler.testWithRealSession('user-id-here');
+
+// Individual test functions
+window.testRealtimeHandler.testHandlerInitialization();
+window.testRealtimeHandler.testChannelManagement();
+window.testRealtimeHandler.testSubscriptionCallbacks();
+window.testRealtimeHandler.testVisibilityHandling();
+window.testRealtimeHandler.testSupabaseIntegration();
+window.testRealtimeHandler.testErrorRecovery();
+```
+
+**Features**:
+- Comprehensive test suite covering all RealtimeHandler functionality
+- Channel management and factory pattern testing
+- Subscription callback verification
+- Visibility change handling tests
+- Error recovery and timeout handling validation
+- Real session integration testing with actual Supabase channels
+- Connection diagnostics for troubleshooting real-time issues
+
+**Test Results**:
+The testing utilities provide detailed feedback including:
+- ✅ Test pass/fail status with explanatory messages
+- 📊 Summary statistics (passed/failed/total tests)
+- 🔍 Diagnostic information for connection issues
+- 📡 Real-time subscription status and behavior verification
+
 ### API Testing
 
 - **test-webhook.ts**: Simulates webhook calls to test the webhook function locally.
@@ -99,6 +142,18 @@ The linting scripts are combined in a single command for convenience:
 npm run lint:fix
 ```
 
+## Development Testing Workflow
+
+For real-time functionality testing during development:
+
+1. **Start the development server**: `npm run dev`
+2. **Open browser console** and navigate to your local development URL
+3. **Run comprehensive tests**: `window.testRealtimeHandler.runBrowserTests()`
+4. **Diagnose issues** (if any): `window.testRealtimeHandler.diagnoseMealtimeConnection()`
+5. **Test with real data**: Use `testWithRealSession()` with your actual user ID
+
+This workflow helps ensure the RealtimeHandler system is working correctly before deploying changes.
+
 ## Usage Instructions
 
 To run any script, use one of the following command patterns:
@@ -109,6 +164,9 @@ npm run <command-name>
 
 # For scripts without npm commands
 npx tsx scripts/<script-name>.ts
+
+# For browser-based testing (RealtimeHandler)
+# Open browser console and use window.testRealtimeHandler methods
 ```
 
 ## Environment Variables
@@ -135,7 +193,9 @@ Some maintenance scripts involve database operations or API calls that could aff
 
 ## Best Practices
 
-- Run `check-for-secrets.ts` regularly to ensure no secrets are hardcoded in the codebase
-- Use `check-stuck-tasks.ts` to identify potential issues before using `fix-stuck-tasks.ts`
-- Always back up your database before running scripts that modify data
-- Keep your `.env.local` file secure and never commit it to version control 
+- **Real-time Testing**: Run RealtimeHandler tests regularly during development to catch connection issues early
+- **Secrets Scanning**: Run `check-for-secrets.ts` regularly to ensure no secrets are hardcoded in the codebase
+- **Task Management**: Use `check-stuck-tasks.ts` to identify potential issues before using `fix-stuck-tasks.ts`
+- **Database Safety**: Always back up your database before running scripts that modify data
+- **Environment Security**: Keep your `.env.local` file secure and never commit it to version control 
+- **Browser Testing**: Use the browser-based RealtimeHandler tests for more accurate real-time testing than Node.js alternatives 

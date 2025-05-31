@@ -19,6 +19,74 @@ Baby Music AI implements role-based access control (RBAC) to authorize user acti
 
 The backend API endpoints check the user's role before allowing access to specific resources or actions. For example, only users with the `admin` role can access the user management endpoints.
 
+## Real-time Security
+
+The application implements comprehensive security measures for real-time data synchronization:
+
+### Row Level Security (RLS)
+
+All real-time subscriptions are protected by Supabase Row Level Security policies:
+
+```sql
+-- Example RLS policy for songs table
+CREATE POLICY "Users can view their own songs" ON songs
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own songs" ON songs
+  FOR UPDATE USING (auth.uid() = user_id);
+```
+
+**RLS Benefits:**
+- **Data Isolation**: Users can only access their own data through real-time subscriptions
+- **Automatic Filtering**: Database-level filtering prevents unauthorized data exposure
+- **Consistent Security**: Same security model for API calls and real-time updates
+
+### Token Management in RealtimeHandler
+
+The custom `RealtimeHandler` system implements secure token handling:
+
+```typescript
+// Automatic token refresh for real-time connections
+private async refreshSessionIfNeeded() {
+  const { data, error } = await this.supabaseClient.auth.getSession();
+  if (error) throw error;
+  if (!data.session) throw new Error('Session not found');
+  
+  // Update real-time connection with fresh token
+  if (this.supabaseClient.realtime.accessTokenValue !== data.session.access_token) {
+    await this.supabaseClient.realtime.setAuth(data.session.access_token);
+  }
+}
+```
+
+**Security Features:**
+- **Token Expiration Detection**: Automatically detects expired tokens and refreshes them
+- **Secure Reconnection**: Ensures real-time connections use valid authentication
+- **Error Handling**: Properly handles authentication errors in real-time contexts
+
+### Real-time Subscription Security
+
+All real-time channels implement user-specific filtering:
+
+```typescript
+// Secure channel setup with user filtering
+const songsChannelFactory: ChannelFactory = (supabase) => {
+  return supabase
+    .channel(`songs-${userId}`)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'songs',
+      filter: `user_id=eq.${userId}`, // Critical: User-specific filtering
+    }, handleSongUpdate);
+};
+```
+
+**Key Security Measures:**
+- **User-Specific Channels**: Each user subscribes only to their own data
+- **Database-Level Filtering**: Combines with RLS for defense in depth
+- **Channel Isolation**: Prevents cross-user data leakage
+
 ## Data Protection
 
 Baby Music AI takes several measures to protect user data:
@@ -47,6 +115,34 @@ When using cookies for authentication or session management, the application set
 
 Baby Music AI relies on several third-party libraries and services, such as Supabase, PIAPI.ai, and Anthropic Claude. The application carefully vets these dependencies and keeps them up to date to ensure they are secure and free from known vulnerabilities.
 
+## Real-time Connection Security
+
+The RealtimeHandler system implements additional security measures:
+
+### Connection Lifecycle Management
+
+- **Tab Visibility Handling**: Automatically disconnects real-time when tabs are hidden for extended periods to prevent unauthorized long-running connections
+- **Resource Cleanup**: Properly cleans up connections to prevent memory leaks and reduce attack surface
+- **Connection Limits**: Manages the number of concurrent real-time connections per user
+
+### Error Handling Security
+
+```typescript
+// Secure error handling in RealtimeHandler
+case REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR: {
+  if (document.hidden) {
+    // Security: Remove channels when tab is hidden to prevent lingering connections
+    await this.supabaseClient.removeChannel(channel);
+    return;
+  } else if (err && isTokenExpiredError(err)) {
+    // Security: Handle token expiration securely
+    this.resubscribeToChannel(topic);
+  }
+  // Log errors securely without exposing sensitive information
+  console.warn(`Channel error in '${topic}': `, err?.message);
+}
+```
+
 ## Security Best Practices
 
 In addition to the above measures, Baby Music AI follows general security best practices:
@@ -56,5 +152,8 @@ In addition to the above measures, Baby Music AI follows general security best p
 - Conducting regular security audits and penetration testing
 - Implementing a bug bounty program to encourage responsible disclosure of vulnerabilities
 - Providing security training to developers and team members
+- **Real-time Security Monitoring**: Monitoring real-time connection patterns for unusual activity
+- **Secure Token Handling**: Implementing proper token refresh and expiration handling in real-time contexts
+- **Data Access Controls**: Ensuring real-time subscriptions respect the same security boundaries as API endpoints
 
-By implementing these security measures and following best practices, Baby Music AI aims to provide a secure and trustworthy application for its users.
+By implementing these security measures and following best practices, Baby Music AI aims to provide a secure and trustworthy application for its users, with particular attention to the security of real-time data synchronization.

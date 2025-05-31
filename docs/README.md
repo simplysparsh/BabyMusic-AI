@@ -6,6 +6,7 @@ Welcome to the comprehensive documentation for the Baby Music AI project! This d
 
 - [Architecture Overview](./architecture.md)
   - Includes Progressive Web App (PWA) Integration details
+  - Real-time Data Synchronization with RealtimeHandler
 - [Frontend Components](./frontend.md)
 - [Backend Services](./backend.md)
 - [API Integration](./api-integration.md)
@@ -26,11 +27,17 @@ src/
 ├── data/           # Static data and configurations
 ├── hooks/          # Custom React hooks
 ├── lib/            # Utility libraries and API clients
+│   ├── realtimeHandler.ts    # Custom real-time connection management
+│   ├── supabase.ts          # Supabase client configuration
+│   ├── piapi.ts             # Music generation API integration
+│   └── claude.ts            # AI lyrics generation
 ├── pages/          # Main application pages/routes
 ├── services/       # Business logic services
 ├── store/          # State management (Zustand)
+│   └── song/       # Song-specific state with real-time subscriptions
 ├── types/          # TypeScript type definitions
 └── utils/          # Helper utilities
+    └── testRealtimeHandler.ts  # Real-time testing utilities
 ```
 
 ## Key Features Implementation
@@ -39,6 +46,8 @@ src/
 - **Onboarding**: Multi-step onboarding process to collect baby profile information after signup
 - **Song Generation**: AI-powered music generation with PIAPI.ai and lyrics by Anthropic Claude
 - **Song Management**: User can create, save, and manage personalized songs
+- **Real-time Synchronization**: Robust real-time data updates using a custom RealtimeHandler system that eliminates common connection issues like button unresponsiveness after tab switching or idle periods
+- **Progressive Web App**: Full PWA implementation with offline capabilities and native app-like experience
 
 Each section provides detailed explanations and code examples to help you understand and navigate the project effectively. Whether you're a new contributor or an experienced developer, this documentation will serve as your guide to the Baby Music AI codebase.
 

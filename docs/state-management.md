@@ -34,6 +34,64 @@ The `songStore` manages the state related to songs, including the song list, gen
 - `fetchSongs()`: An action to fetch the list of songs from the backend API.
 - `selectSong(song)`: An action to set the selected song.
 
+**Real-time Integration:**
+
+The song store integrates with the custom `RealtimeHandler` system for live data synchronization:
+
+```typescript
+// Real-time subscription setup in src/store/song/subscriptions.ts
+const setupSubscription = (userId: string) => {
+  // Songs channel factory for real-time updates
+  const songsChannelFactory: ChannelFactory = (supabase) => {
+    return supabase
+      .channel(`songs-${userId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'songs',
+        filter: `user_id=eq.${userId}`,
+      }, (payload) => handleSongUpdate(payload, set, get, supabase));
+  };
+
+  // Song variations channel factory
+  const variationsChannelFactory: ChannelFactory = (supabase) => {
+    return supabase
+      .channel(`variations-${userId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'song_variations',
+      }, (payload) => handleVariationUpdate(payload, set, get, supabase));
+  };
+
+  // Add channels to RealtimeHandler with callbacks
+  const cleanupSongs = realtimeHandler.addChannel(songsChannelFactory, {
+    onSubscribe: (channel) => console.log(`📡 Subscribed to ${channel.topic}`),
+    onTimeout: (channel) => console.log(`⏰ Timeout in ${channel.topic}`),
+    onError: (channel, error) => console.error(`❌ Error in ${channel.topic}:`, error)
+  });
+
+  const cleanupVariations = realtimeHandler.addChannel(variationsChannelFactory, {
+    onSubscribe: (channel) => console.log(`📡 Subscribed to ${channel.topic}`),
+    onTimeout: (channel) => console.log(`⏰ Timeout in ${channel.topic}`),
+    onError: (channel, error) => console.error(`❌ Error in ${channel.topic}:`, error)
+  });
+
+  // Return cleanup function
+  return () => {
+    cleanupSongs();
+    cleanupVariations();
+  };
+};
+```
+
+**Benefits of RealtimeHandler Integration:**
+
+- **Reliable Connections**: Automatically handles connection timeouts and token expiration
+- **Tab Visibility Management**: Disconnects when tabs are hidden to save resources
+- **Factory-Based Reconnection**: Properly recreates channels after errors for robust reconnection
+- **Comprehensive Error Handling**: Provides detailed callbacks for different subscription states
+
 ### `audioStore`
 
 The `audioStore` manages the state related to audio playback, including the currently playing song and playback controls. It includes the following state variables and actions:
@@ -65,6 +123,35 @@ The `streakStore` manages the state related to the user's daily activity streak.
 - `setLoading(loading)`: Action to set the loading state.
 - `setError(error)`: Action to set an error message.
 
+## Real-time Data Management
+
+The application uses a custom `RealtimeHandler` system (`src/lib/realtimeHandler.ts`) for managing Supabase real-time subscriptions:
+
+### Key Features:
+
+1. **Centralized Management**: Single `realtimeHandler` instance manages all real-time connections
+2. **Factory Pattern**: Uses channel factories instead of static channels for proper reconnection
+3. **Lifecycle Management**: Automatically starts/stops based on user authentication
+4. **Resource Optimization**: Disconnects when tabs are hidden for extended periods
+5. **Error Recovery**: Handles token expiration, timeouts, and connection errors gracefully
+
+### Integration Pattern:
+
+```typescript
+// Initialize RealtimeHandler in App.tsx
+useEffect(() => {
+  if (user) {
+    const cleanup = realtimeHandler.start();
+    const subscriptionCleanup = setupSubscription(user.id);
+    
+    return () => {
+      cleanup();
+      subscriptionCleanup?.();
+    };
+  }
+}, [user]);
+```
+
 ## Hybrid Onboarding Modal State (Zustand + localStorage)
 
 - Zustand is used for all UI state, including the onboarding modal.
@@ -87,4 +174,4 @@ const MyComponent = () => {
 };
 ```
 
-By using Zustand stores (and the hybrid onboarding modal approach for OAuth), Baby Music AI can efficiently manage the application state, keep the components focused on rendering and user interactions, and ensure a smooth and responsive user experience.
+By using Zustand stores (and the hybrid onboarding modal approach for OAuth), combined with the robust RealtimeHandler system, Baby Music AI can efficiently manage the application state, maintain real-time data synchronization, keep the components focused on rendering and user interactions, and ensure a smooth and responsive user experience.

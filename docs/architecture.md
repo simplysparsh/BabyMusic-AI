@@ -44,6 +44,63 @@ The backend is organized into the following main directories:
 - `supabase/functions`: Contains Supabase Edge Functions
 - `supabase/migrations`: Contains database migration files
 
+## Real-time Data Synchronization
+
+Baby Music AI implements a robust real-time data synchronization system using a custom `RealtimeHandler` class that provides enhanced reliability and user experience over standard Supabase real-time subscriptions.
+
+### RealtimeHandler Architecture
+
+The `RealtimeHandler` (`src/lib/realtimeHandler.ts`) is a comprehensive solution that addresses common real-time connection issues:
+
+**Key Features:**
+
+1. **Factory-Based Channel Recreation**: Uses channel factories instead of static channels, enabling proper reconnection after errors
+2. **Token Expiration Handling**: Automatically detects and handles Supabase token expiration scenarios
+3. **Tab Visibility Management**: Intelligently disconnects from real-time when tabs are hidden for extended periods (configurable timeout)
+4. **Auto-Reconnection**: Automatically reconnects timed-out channels unless the tab is hidden
+5. **Comprehensive Error Handling**: Handles various error states with appropriate callbacks and recovery mechanisms
+
+**Integration Pattern:**
+
+```typescript
+// Central instance in src/lib/supabase.ts
+export const realtimeHandler = new RealtimeHandler(supabase, {
+  inactiveTabTimeoutSeconds: 10 * 60 // 10 minutes
+});
+
+// Channel factories for different data types
+const songsChannelFactory: ChannelFactory = (supabase) => {
+  return supabase
+    .channel(`songs-${userId}`)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'songs',
+      filter: `user_id=eq.${userId}`,
+    }, handleSongUpdate);
+};
+
+// Usage in subscription management
+const cleanup = realtimeHandler.addChannel(songsChannelFactory, {
+  onSubscribe: (channel) => console.log(`Connected to ${channel.topic}`),
+  onTimeout: (channel) => console.log(`Timeout in ${channel.topic}`),
+  onError: (channel, error) => console.error(`Error in ${channel.topic}:`, error)
+});
+```
+
+**Benefits Over Standard Subscriptions:**
+
+- **Eliminates Button Unresponsiveness**: Resolves issues where UI buttons became unresponsive after tab switching or idle periods
+- **Better Resource Management**: Automatically manages connections based on tab visibility
+- **Improved Reliability**: Handles network issues, token expiration, and connection timeouts gracefully
+- **Debugging Support**: Comprehensive logging and test utilities for troubleshooting
+
+**Implementation Files:**
+
+- `src/lib/realtimeHandler.ts`: Core RealtimeHandler implementation
+- `src/store/song/subscriptions.ts`: Song-specific subscription management using RealtimeHandler
+- `src/utils/testRealtimeHandler.ts`: Browser-based testing utilities for real-time functionality
+
 ## Authentication & Onboarding Flow
 
 The application implements a comprehensive authentication and onboarding process:
@@ -97,7 +154,8 @@ The typical data flow in the application is as follows:
 2. The Zustand stores update the application state and make API requests to the backend or external APIs
 3. The backend (Supabase) handles database operations, file storage, and authentication
 4. External APIs (PIAPI.ai and Anthropic Claude) process requests for music and lyric generation
-5. The frontend receives responses from the backend and external APIs, updating the UI accordingly
+5. **Real-time updates are received through the RealtimeHandler system**, ensuring the frontend stays synchronized with database changes
+6. The frontend receives responses from the backend and external APIs, updating the UI accordingly
 
 ## Deployment
 

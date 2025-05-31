@@ -201,43 +201,120 @@ console.log(`Song state transition: ${previousState} → ${newState}`, {
 });
 ```
 
-Following these patterns ensures React will reliably detect changes from Supabase, maintaining consistent UI state transitions across your application.
+## 8. RealtimeHandler Integration Patterns
 
-### Song Subscription Handlers (`src/store/song/handlers/songSubscriptionHandlers.ts`)
+When using the custom RealtimeHandler system, follow these patterns for optimal React integration:
 
-Handle state transitions reliably:
+### 8.1 Factory-Based Channel Creation
+
+Use channel factories instead of direct channel creation for proper reconnection:
 
 ```typescript
-// Inside handleSongUpdate
+// ✅ Good: Factory pattern for reliable reconnection
+const songsChannelFactory: ChannelFactory = (supabase) => {
+  return supabase
+    .channel(`songs-${userId}`)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'songs',
+      filter: `user_id=eq.${userId}`,
+    }, (payload) => handleSongUpdate(payload, set, get, supabase));
+};
 
-// ... determine old and new states ...
-
-// Handle state transitions based on `SongStateService`
-if (transitionToReady) {
-  // Update song state
-  batchUpdate(...);
-}
-
-// Handle FAILED transition
-if (transitionToFailed) {
-  batchUpdate(...);
-}
-
-// Handle GENERATING state updates (e.g., task ID change)
-if (stillGenerating) {
-  batchUpdate(...);
-}
+// ❌ Avoid: Direct channel creation (doesn't survive reconnections)
+const songsChannel = supabase.channel(`songs-${userId}`);
 ```
 
-Example transitions:
+### 8.2 Proper Callback Integration
+
+Structure subscription callbacks for clean React state updates:
 
 ```typescript
-// Example transition: Song starts generating
-_stateTransition: 'INITIAL_TO_GENERATING'
+// Add channel with comprehensive callbacks
+const cleanup = realtimeHandler.addChannel(songsChannelFactory, {
+  onSubscribe: (channel) => {
+    console.log(`📡 Connected to ${channel.topic}`);
+    // Optional: Set connection status in React state
+  },
+  onTimeout: (channel) => {
+    console.log(`⏰ Timeout in ${channel.topic}`);
+    // Handle timeout in React state if needed
+  },
+  onError: (channel, error) => {
+    console.error(`❌ Error in ${channel.topic}:`, error);
+    // Update error state in React
+    setError(`Connection error: ${error.message}`);
+  }
+});
+```
 
-// Example transition: Webhook completes, song is ready
-_stateTransition: 'GENERATING_TO_READY'
+### 8.3 Lifecycle Management
 
-// Example transition: Generation fails
-_stateTransition: 'GENERATING_TO_FAILED'
-``` 
+Properly integrate RealtimeHandler with React component lifecycle:
+
+```typescript
+// In React components or hooks
+useEffect(() => {
+  if (user) {
+    // Start RealtimeHandler and setup subscriptions
+    const cleanup = realtimeHandler.start();
+    const subscriptionCleanup = setupSubscriptions(user.id);
+    
+    return () => {
+      // Clean up both RealtimeHandler and subscriptions
+      cleanup();
+      subscriptionCleanup?.();
+    };
+  }
+}, [user]);
+```
+
+### 8.4 State Update Patterns
+
+Structure state updates to work well with RealtimeHandler reconnection:
+
+```typescript
+// Handle real-time updates with state deduplication
+const handleSongUpdate = (payload, set, get, supabase) => {
+  const { new: newSong, old: oldSong, eventType } = payload;
+  
+  set((state) => {
+    // Always return new object reference for React reactivity
+    return {
+      ...state,
+      songs: updateSongsArrayWithDeduplication(state.songs, newSong, eventType),
+      lastUpdateTimestamp: Date.now() // Helps React detect changes
+    };
+  });
+};
+```
+
+### 8.5 Error Recovery Integration
+
+Integrate RealtimeHandler error recovery with React error boundaries:
+
+```typescript
+// Error boundary integration
+const subscriptionCallbacks = {
+  onError: (channel, error) => {
+    // Log for debugging
+    console.error(`Real-time error in ${channel.topic}:`, error);
+    
+    // Update React error state
+    setConnectionError(error.message);
+    
+    // For critical errors, trigger error boundary
+    if (error.message.includes('FATAL')) {
+      throw new Error(`Critical real-time error: ${error.message}`);
+    }
+  },
+  onSubscribe: (channel) => {
+    // Clear previous errors on successful reconnection
+    setConnectionError(null);
+    console.log(`Reconnected to ${channel.topic}`);
+  }
+};
+```
+
+By following these patterns, the RealtimeHandler system integrates seamlessly with React's reactivity model while providing robust real-time functionality. 

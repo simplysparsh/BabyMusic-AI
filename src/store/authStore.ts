@@ -368,14 +368,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log(`[AuthStore] onAuthStateChange: event='${event}', session exists=`, !!session);
       set({ isLoading: true, error: null });
+      
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (session?.user) {
-          // Log the authentication provider for debugging
-          console.log(`[AuthStore] onAuthStateChange: User signed in via ${session.user.app_metadata?.provider || 'unknown'}`);
+          const currentUser = get().user;
+          const currentProfile = get().profile;
           
-          set({ user: session.user });
-          // loadProfile will detect if this is a new OAuth user and create a profile
-          await get().loadProfile();
+          // If we already have the same user and profile loaded, skip expensive reload operations
+          // This prevents corruption during automatic token refreshes on tab visibility changes
+          if (currentUser && currentProfile && 
+              currentUser.id === session.user.id && 
+              event === 'SIGNED_IN' && 
+              session.user.app_metadata?.provider === 'email') {
+            console.log('[AuthStore] onAuthStateChange: Skipping reload - same user already loaded (likely automatic token refresh)');
+            set({ user: session.user }); // Update user object but skip profile reload
+          } else {
+            // Log the authentication provider for debugging
+            console.log(`[AuthStore] onAuthStateChange: User signed in via ${session.user.app_metadata?.provider || 'unknown'}`);
+            
+            set({ user: session.user });
+            // loadProfile will detect if this is a new OAuth user and create a profile
+            await get().loadProfile();
+          }
         } else {
           console.warn('[AuthStore] onAuthStateChange: Signed in event but no session user.');
           set({ user: null, profile: null });

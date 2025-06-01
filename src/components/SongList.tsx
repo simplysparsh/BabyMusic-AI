@@ -38,7 +38,7 @@ export default function SongList() {
         console.error('loadSongs function not available in songStore!');
       }
     }
-  }, [loadSongs, user]); // Correct dependency array
+  }, [loadSongs, user?.id]); // Correct dependency array
 
   const handleDeleteAll = async () => {
     try {

@@ -21,7 +21,7 @@ if (import.meta.env.DEV) {
 }
 
 function App() {
-  const { user, initialized, profile, signOut } = useAuthStore();
+  const { user, initialized, profile } = useAuthStore();
   const loadSongs = useSongStore(state => state.loadSongs);
   const [path, setPath] = useState(window.location.pathname);
   const [isIOSInstallModalOpen, setIsIOSInstallModalOpen] = useState(false);
@@ -76,7 +76,7 @@ function App() {
       }
       loadSongs();
     }
-  }, [initialized, user, loadSongs]);
+  }, [initialized, user?.id, loadSongs]);
 
   // Show loading spinner while auth state is initializing
   if (!initialized) {

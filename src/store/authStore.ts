@@ -380,7 +380,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               currentUser.id === session.user.id && 
               event === 'SIGNED_IN' && 
               session.user.app_metadata?.provider === 'email') {
-            console.log('[AuthStore] onAuthStateChange: Skipping reload - same user already loaded (likely automatic token refresh)');
+            console.log('🔄 [AuthStore] onAuthStateChange: Skipping reload - same user already loaded (likely automatic token refresh)');
+            console.log('🔄 [AuthStore] Setting user state (same ID):', { 
+              oldUserId: currentUser.id, 
+              newUserId: session.user.id, 
+              event,
+              timestamp: new Date().toISOString() 
+            });
             set({ user: session.user }); // Update user object but skip profile reload
           } else {
             // Log the authentication provider for debugging

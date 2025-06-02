@@ -18,6 +18,8 @@ type GetState = () => SongState;
 
 export const createSongActions = (set: SetState, get: GetState) => ({
   loadSongs: async () => {
+    console.log('🚀 [loadSongs] Function called at:', new Date().toISOString());
+    
     try {
       set({ isLoading: true, error: null });
       

@@ -26,8 +26,15 @@ export default function SongList() {
   const [activeTab, setActiveTab] = useState<TabType>('custom'); // Add state for active tab
 
   useEffect(() => {
+    console.log('🔍 [SongList] useEffect triggered:', { 
+      userId: user?.id, 
+      hasUser: !!user,
+      hasLoadSongs: !!loadSongs,
+      timestamp: new Date().toISOString() 
+    });
+    
     if (user) {
-      console.log('Loading songs for user:', user.id);
+      console.log('📦 [SongList] Calling loadSongs() for user:', user.id);
       // Ensure loadSongs is defined before calling
       if (loadSongs) { 
         loadSongs().then(() => {

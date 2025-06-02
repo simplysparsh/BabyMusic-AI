@@ -61,6 +61,13 @@ function App() {
 
   // Handle authentication state changes (without manual interval)
   useEffect(() => {
+    console.log('🔍 [App.tsx] useEffect triggered:', { 
+      initialized, 
+      userId: user?.id, 
+      hasUser: !!user,
+      timestamp: new Date().toISOString() 
+    });
+    
     // IMPORTANT: This logic ensures onboarding modal is shown after OAuth signups.
     // When using OAuth, the app redirects away and reloads, losing in-memory state.
     // We persist onboarding intent in localStorage before redirect, and check here on app load.
@@ -74,6 +81,7 @@ function App() {
         localStorage.removeItem('onboardingInProgress');
         localStorage.removeItem('lastSignupMethod');
       }
+      console.log('📦 [App.tsx] Calling loadSongs() for user:', user.id);
       loadSongs();
     }
   }, [initialized, user?.id, loadSongs]);

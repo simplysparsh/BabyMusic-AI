@@ -67,7 +67,7 @@ const TermsOfService: React.FC = () => {
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-accent">10. Governing Law</h2>
         <p className="mb-4">
-          These terms are governed by the laws of [Your State/Country], regardless of conflict-of-law rules.
+          These terms are governed by the laws of the State of Delaware, United States, regardless of conflict-of-law rules. Any disputes arising under these Terms shall be subject to the exclusive jurisdiction of the courts of Delaware.
         </p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4 text-accent">11. Changes to Terms</h2>

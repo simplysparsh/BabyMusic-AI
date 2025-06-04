@@ -1,0 +1,15 @@
+# Redirect old domain to new domain
+# Force all babymusic.ai traffic to www.tuneloom.com
+
+# Handle www.babymusic.ai
+https://www.babymusic.ai/* https://www.tuneloom.com/:splat 301!
+
+# Handle babymusic.ai (naked domain)  
+https://babymusic.ai/* https://www.tuneloom.com/:splat 301!
+
+# Handle non-www tuneloom.com to www.tuneloom.com
+https://tuneloom.com/* https://www.tuneloom.com/:splat 301!
+
+# Fallback for any other babymusic variations
+http://babymusic.ai/* https://www.tuneloom.com/:splat 301!
+http://www.babymusic.ai/* https://www.tuneloom.com/:splat 301! 
